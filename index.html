@@ -978,7 +978,7 @@
             <div id="tab-todos" class="tab-content">
                 <!-- TODO Controls -->
                 <div class="controls" style="margin-bottom: 25px;">
-                    <button onclick="showAddTodoDialog()">➕ Neues TODO</button>
+                    <button onclick="showAddTodoDialog()" style="padding: 6px 12px; font-size: 0.85em; height: 30px;">Neues TODO</button>
                 </div>
 
                 <!-- Priorität I -->
@@ -1762,7 +1762,7 @@
                     <div class="todo-text" style="${todo.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${escapeHtml(todo.text)}</div>
                     <button onclick="deleteTodo(${todo.id})"
                             style="margin-left: auto; background: linear-gradient(135deg, #FFB5C0 0%, #FFC9D6 100%); color: #8b3a46; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 0.85em; font-weight: 600; transition: all 0.3s; flex-shrink: 0;">
-                        🗑️ Löschen
+                        Löschen
                     </button>
                 </li>
             `).join('');
