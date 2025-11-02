@@ -1132,6 +1132,8 @@
             width: 90%;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             animation: slideIn 0.5s ease;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         @keyframes slideIn {
@@ -1157,6 +1159,7 @@
             color: #666;
             text-align: center;
             margin: 0 0 30px 0;
+            font-size: 0.95em;
         }
 
         .profile-list {
@@ -1416,12 +1419,63 @@
 
         @media (max-width: 768px) {
             .profile-container {
-                padding: 30px 20px;
+                padding: 20px 16px;
+                max-height: 85vh;
             }
 
             .profile-title {
-                font-size: 2.5em;
+                font-size: 2em;
+                margin: 0 0 5px 0;
             }
+
+            .profile-subtitle {
+                font-size: 0.85em;
+                margin: 0 0 15px 0;
+            }
+
+            .profile-list {
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+
+            .profile-card {
+                padding: 15px 8px;
+            }
+
+            .profile-avatar {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+                margin-bottom: 8px;
+            }
+
+            .profile-name {
+                font-size: 0.85em;
+            }
+
+            .profile-actions {
+                gap: 8px;
+            }
+
+            .btn-new-profile,
+            .btn-guest {
+                padding: 10px 16px;
+                font-size: 0.95em;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+
+            .modal-content h2 {
+                font-size: 1.3em;
+                margin-bottom: 15px;
+            }
+
+            .form-group {
+                margin-bottom: 15px;
+            }
+        }
 
             .user-info {
                 top: 10px;
