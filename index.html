@@ -1781,7 +1781,9 @@
             try {
                 const response = await fetch(`${API_BASE}/users`);
                 const users = await response.json();
-                displayUserProfiles(users);
+                // Filter out test users (from pytest)
+                const realUsers = users.filter(u => !u.email.includes('@test.local'));
+                displayUserProfiles(realUsers);
             } catch (error) {
                 console.error('Fehler beim Laden der User:', error);
             }
