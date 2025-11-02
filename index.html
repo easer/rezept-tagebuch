@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>@rezept-tagebuch - Natalies Rezept Tagebuch</title>
+
+    <!-- Zentrale CSS -->
+    <link rel="stylesheet" href="/common/seaser-style.css?v=8">
+
+    <style>
+        .container {
+            max-width: 1200px;
+        }
+
+        /* Überschrift kompakter */
+        header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(40, 50, 60, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 12px;
+            padding: 12px 16px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .stat-card .number {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 2px;
+        }
+
+        .stat-card .label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85em;
+        }
+
+        .controls {
+            background: rgba(40, 50, 60, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .controls input {
+            background: rgba(50, 60, 70, 0.7);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            font-size: 1em;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .controls input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .controls button {
+            padding: 12px 25px;
+            background: rgba(40, 50, 60, 0.8);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .controls button:hover {
+            background: rgba(60, 70, 80, 0.9);
+            transform: translateY(-2px);
+        }
+
+        /* Rezepte Grid */
+        .recipes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .recipe-card {
+            background: rgba(40, 50, 60, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .recipe-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .recipe-date {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .recipe-duration {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .recipe-rating {
+            color: #ffd700;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .recipe-notes {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            margin-top: 10px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .empty-state .icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Slide-over Panel */
+        .panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .panel-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .slide-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            height: 100dvh; /* Dynamic viewport height für iOS */
+            width: 70%;
+            max-width: 800px;
+            background: rgba(30, 40, 50, 0.95);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            box-shadow: -10px 0 60px rgba(0, 0, 0, 0.5);
+            border-left: 1px solid rgba(255, 255, 255, 0.15);
+            z-index: 1001;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            overflow: hidden; /* Wichtig: kein scroll am Panel selbst */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide-panel.active {
+            transform: translateX(0);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 25px 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(30, 40, 50, 0.95);
+            backdrop-filter: blur(40px);
+            flex: 0 0 auto; /* Nie schrumpfen, nie wachsen */
+        }
+
+        .panel-header h2 {
+            color: white;
+            font-size: 1.8em;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .panel-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2em;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+
+        .panel-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-content {
+            flex: 1 1 auto;
+            padding: 30px;
+            overflow-y: auto; /* Scroll nur hier */
+            min-height: 0; /* Wichtig für Flex-Scroll */
+            max-height: 100%; /* Verhindert Überlauf */
+        }
+
+        .panel-actions {
+            padding: 10px 20px !important;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 15px;
+            background: rgba(30, 40, 50, 0.98);
+            backdrop-filter: blur(20px);
+            flex: 0 0 auto; /* Nie schrumpfen, nie wachsen */
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+            min-height: 62px !important; /* 42px button + 2x10px padding */
+            max-height: 82px !important; /* mit safe-area-inset max */
+        }
+
+        .panel-actions button {
+            flex: 1;
+            padding: 10px 20px !important;
+            background: rgba(142, 142, 147, 0.8);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-height: 42px !important;
+            max-height: 42px !important;
+            height: 42px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel-actions button:hover {
+            background: rgba(142, 142, 147, 1);
+            transform: translateY(-2px);
+        }
+
+        .panel-actions button.primary {
+            background: rgba(76, 175, 80, 0.8);
+        }
+
+        .panel-actions button.primary:hover {
+            background: rgba(76, 175, 80, 1);
+        }
+
+        .panel-actions button.danger {
+            background: rgba(255, 99, 132, 0.7);
+        }
+
+        .panel-actions button.danger:hover {
+            background: rgba(255, 99, 132, 0.9);
+        }
+
+        /* Detail View */
+        .detail-section {
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .detail-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            min-width: 140px;
+            flex-shrink: 0;
+        }
+
+        .detail-value {
+            color: white;
+            font-size: 1.1em;
+            flex: 1;
+        }
+
+        .detail-rating {
+            color: #ffd700;
+            font-size: 1.5em;
+            flex: 1;
+        }
+
+        /* Detail-Sections mit komplexem Inhalt (Dokument, Bild, Notizen) */
+        .detail-section.full-width {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .detail-section.full-width .detail-label {
+            margin-bottom: 8px;
+        }
+
+        /* Notizen Section - Label oben ausrichten */
+        .detail-section.notes {
+            align-items: flex-start;
+        }
+
+        /* Document/Image Viewer */
+        .document-viewer {
+            background: rgba(20, 30, 40, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            width: 100%;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .document-viewer iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .document-viewer img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .document-info {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .document-info a {
+            color: #4caf50;
+            text-decoration: none;
+        }
+
+        .document-info a:hover {
+            text-decoration: underline;
+        }
+
+        /* Form Styles */
+        /* Form Layout: Label und Feld nebeneinander */
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .form-group label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            white-space: nowrap;
+            min-width: 140px;
+            flex-shrink: 0;
+        }
+
+        /* Alle Formularfelder einheitliche Höhe (Referenz: Rezeptname) */
+        .form-group input,
+        .form-group select {
+            flex: 1;
+            height: 44px; /* Feste Höhe wie Rezeptname-Feld */
+            padding: 0 16px;
+            background: rgba(50, 60, 70, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 1em;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .form-group input[type="date"] {
+            width: auto;
+            min-width: 180px;
+        }
+
+        .form-group input[type="file"] {
+            height: 44px;
+            padding: 0; /* Kein Padding - Button direkt am Rahmen */
+            cursor: pointer;
+            color: transparent; /* Versteckt den Dateinamen-Text */
+            background: transparent; /* Transparenter Hintergrund wie der Rest */
+            border: none; /* Kein eigener Border */
+        }
+
+        .form-group input[type="file"]::file-selector-button {
+            height: 28px;
+            padding: 0 12px;
+            background: rgba(76, 175, 80, 0.8);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 0; /* Kein Abstand rechts */
+        }
+
+        .form-group input[type="file"]::file-selector-button:hover {
+            background: rgba(76, 175, 80, 1);
+        }
+
+        /* Spezial-Gruppen: Textarea und Datei-Upload */
+        .form-group.textarea-group {
+            align-items: flex-start;
+        }
+
+        .form-group.file-group {
+            align-items: center;
+            margin-bottom: 0; /* Kein extra Abstand - wird von #file-preview oder #pdf-status-row gehandhabt */
+        }
+
+        .form-group.file-group input[type="file"] {
+            flex: 1;
+            min-width: 0; /* Verhindert Überlauf */
+            max-width: 100%; /* Verhindert dass es über den Rand ragt */
+        }
+
+        /* Image Preview als separate Zeile unter dem file-group */
+        .image-preview {
+            width: 100%;
+        }
+
+        .image-preview:not(:empty) {
+            margin-bottom: 20px; /* Nur Abstand wenn Inhalt vorhanden */
+        }
+
+        /* PDF Status Row - Abstand oben */
+        #pdf-status-row {
+            margin-top: 20px;
+        }
+
+        .form-group textarea {
+            flex: 1;
+            min-height: 120px;
+            padding: 12px 16px;
+            background: rgba(50, 60, 70, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 1em;
+            font-family: inherit;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        /* Recipe Form nimmt ganzen verfügbaren Platz */
+        #recipe-form {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Notizen-Gruppe stretch bis zum Ende */
+        .form-group.textarea-group {
+            flex: 1;
+            min-height: 0;
+            margin-bottom: 0; /* Kein Abstand am Ende */
+        }
+
+        .form-group.textarea-group textarea {
+            height: 100%;
+            min-height: 120px;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Star Rating */
+        .star-rating {
+            display: flex;
+            gap: 5px;
+            font-size: 1.3em; /* Verkleinert von 2em */
+        }
+
+        .star-rating .star {
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.3);
+            transition: color 0.2s;
+        }
+
+        .star-rating .star.active {
+            color: #ffd700;
+        }
+
+        .star-rating .star:hover {
+            color: #ffd700;
+        }
+
+        /* Image Preview in Form */
+        .image-preview {
+            margin-top: 10px;
+            border-radius: 12px;
+            overflow: hidden;
+            max-height: 200px;
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Confirm Dialog */
+        .confirm-dialog {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .confirm-dialog.active {
+            display: flex;
+        }
+
+        .confirm-content {
+            background: rgba(40, 50, 60, 0.95);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border-radius: 20px;
+            padding: 35px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            text-align: center;
+        }
+
+        .confirm-icon {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+        }
+
+        .confirm-title {
+            color: white;
+            font-size: 1.6em;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .confirm-message {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1em;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .confirm-actions button {
+            flex: 1;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-cancel {
+            background: rgba(100, 110, 120, 0.7);
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(120, 130, 140, 0.9);
+        }
+
+        .btn-danger {
+            background: rgba(255, 99, 132, 0.8);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 99, 132, 1);
+        }
+
+        /* Document Viewer Overlay */
+        .document-viewer-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .document-viewer-overlay.active {
+            display: flex;
+        }
+
+        .document-viewer-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: rgba(20, 30, 40, 0.98);
+        }
+
+        .document-viewer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 30px;
+            background: rgba(30, 40, 50, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            flex: 0 0 auto;
+        }
+
+        .document-viewer-header h3 {
+            color: white;
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .document-viewer-close {
+            background: rgba(142, 142, 147, 0.8);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .document-viewer-close:hover {
+            background: rgba(142, 142, 147, 1);
+        }
+
+        .document-viewer-content {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .document-viewer-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .slide-panel {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .recipes-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .panel-content {
+                padding: 20px;
+            }
+
+            .panel-header {
+                padding: 20px;
+            }
+
+            .panel-actions {
+                padding: 10px 20px !important;
+                padding-bottom: max(10px, env(safe-area-inset-bottom)) !important; /* Notch-sicher */
+                min-height: 62px !important; /* 42px button + 2x10px padding */
+                max-height: 82px !important; /* mit safe-area-inset max */
+            }
+
+            .panel-actions button {
+                padding: 10px 20px !important; /* Einheitliche Höhe mit allen anderen Buttons */
+                font-size: 1.05em;
+                min-height: 42px !important;
+                max-height: 42px !important;
+                height: 42px !important;
+            }
+
+            .document-viewer iframe {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Refresh Button -->
+    <button class="refresh-button" onclick="hardRefresh()">🔄 Refresh</button>
+
+    <div class="container">
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+            <a href="/">🏠 Home</a>
+            <span>›</span>
+            <span class="current">Natalies Rezept Tagebuch</span>
+        </div>
+
+        <header>
+            <h1>🍳 Natalies Rezept Tagebuch</h1>
+        </header>
+
+        <main>
+            <!-- Statistiken -->
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <div class="number" id="total-recipes">0</div>
+                    <div class="label">Rezepte gekocht</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="with-images">0</div>
+                    <div class="label">Mit Bildern</div>
+                </div>
+            </div>
+
+            <!-- Steuerung -->
+            <div class="controls">
+                <input type="text" id="search-input" placeholder="🔍 Rezept suchen...">
+                <button onclick="showAddPanel()">➕ Neues Rezept</button>
+            </div>
+
+            <!-- Rezepte Grid -->
+            <div id="recipes-container" class="recipes-grid"></div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <div class="icon">🍳</div>
+                <h3>Noch keine Rezepte</h3>
+                <p>Füge dein erstes Rezept hinzu!</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Panel Overlay -->
+    <div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
+
+    <!-- Slide-over Panel -->
+    <div class="slide-panel" id="slide-panel">
+        <div class="panel-header">
+            <h2 id="panel-title">Rezept</h2>
+            <button class="panel-close" onclick="closePanel()">&times;</button>
+        </div>
+
+        <div class="panel-content" id="panel-content">
+            <!-- Content wird dynamisch geladen -->
+        </div>
+
+        <div class="panel-actions" id="panel-actions">
+            <!-- Actions werden dynamisch geladen -->
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div id="confirm-dialog" class="confirm-dialog">
+        <div class="confirm-content">
+            <div class="confirm-icon">⚠️</div>
+            <div class="confirm-title" id="confirm-title">Rezept löschen?</div>
+            <div class="confirm-message" id="confirm-message">
+                Diese Aktion kann nicht rückgängig gemacht werden.
+            </div>
+            <div class="confirm-actions">
+                <button class="btn-cancel" onclick="closeConfirm()">Abbrechen</button>
+                <button class="btn-danger" onclick="confirmDelete()">Löschen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Viewer -->
+    <div id="document-viewer-overlay" class="document-viewer-overlay">
+        <div class="document-viewer-container">
+            <div class="document-viewer-header">
+                <h3 id="document-viewer-title">Dokument</h3>
+                <button class="document-viewer-close" onclick="closeDocumentViewer()">← Zurück</button>
+            </div>
+            <div class="document-viewer-content">
+                <iframe id="document-viewer-iframe" src=""></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'api';
+        let recipes = [];
+        let currentRecipeId = null;
+        let deleteCallback = null;
+        let panelMode = 'detail'; // 'detail' or 'edit'
+
+        // Initial laden
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRecipes();
+            loadStats();
+
+            // Suche mit Debounce
+            let searchTimeout;
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    loadRecipes(e.target.value);
+                }, 300);
+            });
+        });
+
+        // Statistiken laden
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const stats = await response.json();
+                document.getElementById('total-recipes').textContent = stats.total_recipes;
+                document.getElementById('with-images').textContent = stats.recipes_with_images;
+            } catch (error) {
+                console.error('Fehler beim Laden der Statistiken:', error);
+            }
+        }
+
+        // Rezepte laden
+        async function loadRecipes(search = '') {
+            try {
+                const url = search ? `${API_BASE}/recipes?search=${encodeURIComponent(search)}` : `${API_BASE}/recipes`;
+                const response = await fetch(url);
+                recipes = await response.json();
+                renderRecipes();
+            } catch (error) {
+                console.error('Fehler beim Laden der Rezepte:', error);
+            }
+        }
+
+        // Rezepte anzeigen
+        function renderRecipes() {
+            const container = document.getElementById('recipes-container');
+            const emptyState = document.getElementById('empty-state');
+
+            if (recipes.length === 0) {
+                container.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            container.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            container.innerHTML = recipes.map(recipe => `
+                <div class="recipe-card" onclick="showDetailPanel(${recipe.id})">
+                    <div class="recipe-title">${escapeHtml(recipe.title)}</div>
+                    <div class="recipe-date">📅 ${formatDate(recipe.cooked_date)}</div>
+                    ${recipe.duration ? `<div class="recipe-duration">⏱️ ${formatDuration(recipe.duration)}</div>` : ''}
+                    ${recipe.rating ? `<div class="recipe-rating">${'★'.repeat(recipe.rating)}${'☆'.repeat(5 - recipe.rating)}</div>` : ''}
+                    ${recipe.notes ? `<div class="recipe-notes">${escapeHtml(recipe.notes)}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Panel für neues Rezept öffnen
+        function showAddPanel() {
+            currentRecipeId = null;
+            panelMode = 'edit';
+            document.getElementById('panel-title').textContent = 'Neues Rezept';
+            renderEditView();
+            openPanel();
+        }
+
+        // Panel für Detail-Ansicht öffnen
+        async function showDetailPanel(id) {
+            currentRecipeId = id;
+            panelMode = 'detail';
+            document.getElementById('panel-title').textContent = 'Rezept';
+
+            try {
+                const response = await fetch(`${API_BASE}/recipes/${id}`);
+                const recipe = await response.json();
+                renderDetailView(recipe);
+                openPanel();
+            } catch (error) {
+                console.error('Fehler beim Laden des Rezepts:', error);
+                alert('Fehler beim Laden des Rezepts');
+            }
+        }
+
+        // Panel für Edit-Ansicht öffnen
+        async function showEditPanel(id = null) {
+            currentRecipeId = id;
+            panelMode = 'edit';
+
+            if (id) {
+                document.getElementById('panel-title').textContent = 'Rezept bearbeiten';
+                try {
+                    const response = await fetch(`${API_BASE}/recipes/${id}`);
+                    const recipe = await response.json();
+                    renderEditView(recipe);
+                } catch (error) {
+                    console.error('Fehler beim Laden des Rezepts:', error);
+                    alert('Fehler beim Laden des Rezepts');
+                }
+            } else {
+                document.getElementById('panel-title').textContent = 'Neues Rezept';
+                renderEditView();
+            }
+        }
+
+        // Detail-Ansicht rendern
+        function renderDetailView(recipe) {
+            const content = document.getElementById('panel-content');
+
+            let documentHtml = '';
+            if (recipe.image) {
+                const fileExt = recipe.image.split('.').pop().toLowerCase();
+                const isPdf = fileExt === 'pdf';
+                const isDoc = ['doc', 'docx', 'odt'].includes(fileExt);
+                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt);
+
+                if (isPdf || isDoc) {
+                    documentHtml = `
+                        <div class="detail-section">
+                            <div class="detail-label">REZEPT</div>
+                            <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+                                <input type="checkbox" checked disabled style="width: 20px; height: 20px; cursor: default;">
+                                <button type="button" onclick="showDocumentViewer('${API_BASE}/uploads/${recipe.image}', '${escapeHtml(recipe.title)}')" style="width: 120px; background: rgba(0, 122, 255, 0.9); color: white; border: none; border-radius: 8px; padding: 0 12px; cursor: pointer; font-size: 0.9em; font-weight: 600; height: 28px; display: flex; align-items: center; justify-content: center;">Öffnen</button>
+                            </div>
+                        </div>
+                    `;
+                } else if (isImage) {
+                    documentHtml = `
+                        <div class="detail-section full-width">
+                            <div class="detail-label">Bild</div>
+                            <div class="document-viewer">
+                                <img src="${API_BASE}/uploads/${recipe.image}" alt="${escapeHtml(recipe.title)}">
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            content.innerHTML = `
+                <div class="detail-section">
+                    <div class="detail-label">Rezept-Name</div>
+                    <div class="detail-value">${escapeHtml(recipe.title)}</div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-label">Gekocht am</div>
+                    <div class="detail-value">📅 ${formatDate(recipe.cooked_date)}</div>
+                </div>
+
+                ${recipe.duration ? `
+                    <div class="detail-section">
+                        <div class="detail-label">Zeitdauer</div>
+                        <div class="detail-value">⏱️ ${formatDuration(recipe.duration)}</div>
+                    </div>
+                ` : ''}
+
+                ${recipe.rating ? `
+                    <div class="detail-section">
+                        <div class="detail-label">Bewertung</div>
+                        <div class="detail-rating">${'★'.repeat(recipe.rating)}${'☆'.repeat(5 - recipe.rating)}</div>
+                    </div>
+                ` : ''}
+
+                ${documentHtml}
+
+                ${recipe.notes ? `
+                    <div class="detail-section notes">
+                        <div class="detail-label">Notizen</div>
+                        <div class="detail-value">${escapeHtml(recipe.notes)}</div>
+                    </div>
+                ` : ''}
+            `;
+
+            const actions = document.getElementById('panel-actions');
+            actions.innerHTML = `
+                <button class="primary" onclick="showEditPanel(${recipe.id})">Bearbeiten</button>
+            `;
+        }
+
+        // Edit-Ansicht rendern
+        function renderEditView(recipe = null) {
+            const content = document.getElementById('panel-content');
+            const isEdit = recipe !== null;
+
+            const today = new Date().toISOString().split('T')[0];
+
+            content.innerHTML = `
+                <form id="recipe-form" onsubmit="saveRecipe(event)">
+                    <input type="hidden" id="recipe-id" value="${isEdit ? recipe.id : ''}">
+                    <input type="hidden" id="recipe-image-filename" value="${isEdit && recipe.image ? recipe.image : ''}">
+
+                    <div class="form-group">
+                        <label for="recipe-title">REZEPT-NAME *</label>
+                        <input type="text" id="recipe-title" required placeholder="z.B. Spaghetti Carbonara" value="${isEdit ? escapeHtml(recipe.title) : ''}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipe-date">GEKOCHT AM *</label>
+                        <input type="date" id="recipe-date" required value="${isEdit ? recipe.cooked_date : today}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipe-duration">ZEITDAUER</label>
+                        <select id="recipe-duration">
+                            <option value="">Keine Angabe</option>
+                            <option value="0.25" ${isEdit && recipe.duration == 0.25 ? 'selected' : ''}>15 Minuten</option>
+                            <option value="0.5" ${isEdit && recipe.duration == 0.5 ? 'selected' : ''}>30 Minuten</option>
+                            <option value="0.75" ${isEdit && recipe.duration == 0.75 ? 'selected' : ''}>45 Minuten</option>
+                            <option value="1" ${isEdit && recipe.duration == 1 ? 'selected' : ''}>1 Stunde</option>
+                            <option value="1.25" ${isEdit && recipe.duration == 1.25 ? 'selected' : ''}>1 Std. 15 Min.</option>
+                            <option value="1.5" ${isEdit && recipe.duration == 1.5 ? 'selected' : ''}>1 Std. 30 Min.</option>
+                            <option value="1.75" ${isEdit && recipe.duration == 1.75 ? 'selected' : ''}>1 Std. 45 Min.</option>
+                            <option value="2" ${isEdit && recipe.duration == 2 ? 'selected' : ''}>2 Stunden</option>
+                            <option value="2.5" ${isEdit && recipe.duration == 2.5 ? 'selected' : ''}>2 Std. 30 Min.</option>
+                            <option value="3" ${isEdit && recipe.duration == 3 ? 'selected' : ''}>3 Stunden</option>
+                            <option value="3.5" ${isEdit && recipe.duration == 3.5 ? 'selected' : ''}>3 Std. 30 Min.</option>
+                            <option value="4" ${isEdit && recipe.duration == 4 ? 'selected' : ''}>4 Stunden</option>
+                            <option value="5" ${isEdit && recipe.duration == 5 ? 'selected' : ''}>5 Stunden</option>
+                            <option value="6" ${isEdit && recipe.duration == 6 ? 'selected' : ''}>6 Stunden</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>BEWERTUNG</label>
+                        <input type="hidden" id="recipe-rating" value="${isEdit && recipe.rating ? recipe.rating : ''}">
+                        <div class="star-rating" id="star-rating">
+                            <span class="star ${isEdit && recipe.rating >= 1 ? 'active' : ''}" data-value="1">★</span>
+                            <span class="star ${isEdit && recipe.rating >= 2 ? 'active' : ''}" data-value="2">★</span>
+                            <span class="star ${isEdit && recipe.rating >= 3 ? 'active' : ''}" data-value="3">★</span>
+                            <span class="star ${isEdit && recipe.rating >= 4 ? 'active' : ''}" data-value="4">★</span>
+                            <span class="star ${isEdit && recipe.rating >= 5 ? 'active' : ''}" data-value="5">★</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group file-group">
+                        <label for="recipe-image">UPLOADER</label>
+                        <input type="file" id="recipe-image" accept="image/*,.pdf,.doc,.docx,.odt" onchange="previewFile(event)">
+                    </div>
+
+                    <div id="file-preview" class="image-preview">
+                        ${isEdit && recipe.image ? renderFilePreview(recipe.image, recipe.title) : ''}
+                    </div>
+
+                    <div class="form-group" id="pdf-status-row">
+                        <label>REZEPT</label>
+                        <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+                            <input type="checkbox" id="pdf-checkbox" disabled style="width: 20px; height: 20px; cursor: default;">
+                            <button type="button" id="pdf-open-btn" onclick="openCurrentPDF()" disabled style="flex: 1; background: rgba(0, 122, 255, 0.9); color: white; border: none; border-radius: 8px; padding: 0 12px; cursor: pointer; font-size: 0.9em; font-weight: 600; height: 28px; display: flex; align-items: center; justify-content: center; opacity: 0.5;">Öffnen</button>
+                            <button type="button" id="pdf-delete-btn" onclick="removeFile()" disabled style="flex: 1; background: rgba(255, 99, 132, 0.8); color: white; border: none; border-radius: 8px; padding: 0 12px; cursor: pointer; font-size: 0.9em; font-weight: 600; height: 28px; display: flex; align-items: center; justify-content: center; opacity: 0.5;">Löschen</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group textarea-group">
+                        <label for="recipe-notes">NOTIZEN</label>
+                        <textarea id="recipe-notes" placeholder="Besonderheiten, Variationen, persönliche Anmerkungen...">${isEdit && recipe.notes ? escapeHtml(recipe.notes) : ''}</textarea>
+                    </div>
+                </form>
+            `;
+
+            // Star rating initialisieren
+            setTimeout(() => {
+                initStarRating();
+                // PDF-Status initialisieren falls bereits eine Datei vorhanden ist
+                if (isEdit && recipe.image) {
+                    const fileExt = recipe.image.split('.').pop().toLowerCase();
+                    const isPdfOrDoc = ['pdf', 'doc', 'docx', 'odt'].includes(fileExt);
+                    if (isPdfOrDoc) {
+                        updatePDFStatus(true, recipe.image, recipe.title);
+                    } else {
+                        updatePDFStatus(false);
+                    }
+                } else {
+                    updatePDFStatus(false);
+                }
+            }, 0);
+
+            const actions = document.getElementById('panel-actions');
+            actions.innerHTML = `
+                <button onclick="closePanel()">Abbrechen</button>
+                <button class="primary" onclick="document.getElementById('recipe-form').requestSubmit()">Speichern</button>
+                ${isEdit ? '<button class="danger" onclick="deleteRecipe()">Löschen</button>' : ''}
+            `;
+        }
+
+        // File Preview rendern
+        function renderFilePreview(filename, title) {
+            const fileExt = filename.split('.').pop().toLowerCase();
+            const isPdf = fileExt === 'pdf';
+            const isDoc = ['doc', 'docx', 'odt'].includes(fileExt);
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt);
+
+            if (isImage) {
+                return `
+                    <div style="position: relative;">
+                        <img src="${API_BASE}/uploads/${filename}" alt="${escapeHtml(title)}">
+                        <button type="button" onclick="removeFile()" style="position: absolute; top: 5px; right: 5px; background: rgba(244, 67, 54, 0.9); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 18px; line-height: 1;">×</button>
+                    </div>
+                `;
+            } else if (isPdf || isDoc) {
+                // PDF-Status-Row aktivieren
+                updatePDFStatus(true, filename, title);
+                return ''; // Kein separates Preview-Element mehr
+            }
+            return '';
+        }
+
+        // PDF-Status aktualisieren
+        let currentPDFUrl = '';
+        let currentPDFTitle = '';
+
+        function updatePDFStatus(hasPDF, filename = '', title = '') {
+            const checkbox = document.getElementById('pdf-checkbox');
+            const openBtn = document.getElementById('pdf-open-btn');
+            const deleteBtn = document.getElementById('pdf-delete-btn');
+
+            // Elemente existieren nicht in allen Views (nur in Edit)
+            if (!checkbox || !openBtn || !deleteBtn) return;
+
+            if (hasPDF) {
+                checkbox.checked = true;
+                openBtn.disabled = false;
+                deleteBtn.disabled = false;
+                openBtn.style.opacity = '1';
+                openBtn.style.cursor = 'pointer';
+                deleteBtn.style.opacity = '1';
+                deleteBtn.style.cursor = 'pointer';
+                currentPDFUrl = `${API_BASE}/uploads/${filename}`;
+                currentPDFTitle = title;
+            } else {
+                checkbox.checked = false;
+                openBtn.disabled = true;
+                deleteBtn.disabled = true;
+                openBtn.style.opacity = '0.5';
+                openBtn.style.cursor = 'not-allowed';
+                deleteBtn.style.opacity = '0.5';
+                deleteBtn.style.cursor = 'not-allowed';
+                currentPDFUrl = '';
+                currentPDFTitle = '';
+            }
+        }
+
+        function openCurrentPDF() {
+            if (currentPDFUrl) {
+                showDocumentViewer(currentPDFUrl, currentPDFTitle);
+            }
+        }
+
+        // Datei-Vorschau
+        async function previewFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt);
+            const isPdf = fileExt === 'pdf';
+            const isDoc = ['doc', 'docx', 'odt'].includes(fileExt);
+
+            // Lokale Vorschau für Bilder (mit X-Button zum Entfernen)
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('file-preview').innerHTML = `
+                        <div style="position: relative;">
+                            <img src="${e.target.result}" alt="Vorschau">
+                            <button type="button" onclick="removeFile()" style="position: absolute; top: 5px; right: 5px; background: rgba(244, 67, 54, 0.9); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 18px; line-height: 1;">×</button>
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else if (isPdf || isDoc) {
+                // Für PDFs/Docs: Dateiname mit Öffnen & Löschen Buttons
+                document.getElementById('file-preview').innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(50, 60, 70, 0.5); border-radius: 8px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                            <span style="font-size: 1.5em;">📄</span>
+                            <span style="color: rgba(255, 255, 255, 0.9);">${file.name}</span>
+                        </div>
+                        <button type="button" onclick="removeFile()" style="background: rgba(255, 99, 132, 0.8); color: white; border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; font-size: 0.95em; font-weight: 600; min-height: 42px; display: flex; align-items: center; justify-content: center;">Löschen</button>
+                    </div>
+                `;
+            }
+
+            // Upload zum Server
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                document.getElementById('recipe-image-filename').value = data.filename;
+
+                // Für PDFs: Nach Upload den "Öffnen"-Button hinzufügen
+                if (isPdf || isDoc) {
+                    document.getElementById('file-preview').innerHTML = `
+                        <div style="padding: 12px; background: rgba(50, 60, 70, 0.5); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                                <span style="font-size: 1.5em;">📄</span>
+                                <span style="color: rgba(255, 255, 255, 0.9);">PDF vorhanden</span>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button type="button" onclick="showDocumentViewer('${API_BASE}/uploads/${data.filename}', 'Dokument')" style="flex: 1; background: rgba(0, 122, 255, 0.9); color: white; border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; font-size: 0.95em; font-weight: 600; min-height: 42px; display: flex; align-items: center; justify-content: center;">Öffnen</button>
+                                <button type="button" onclick="removeFile()" style="flex: 1; background: rgba(255, 99, 132, 0.8); color: white; border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; font-size: 0.95em; font-weight: 600; min-height: 42px; display: flex; align-items: center; justify-content: center;">Löschen</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Fehler beim Hochladen:', error);
+                alert('Fehler beim Hochladen der Datei');
+            }
+        }
+
+        // Datei entfernen
+        function removeFile() {
+            document.getElementById('recipe-image-filename').value = '';
+            document.getElementById('recipe-image').value = '';
+            document.getElementById('file-preview').innerHTML = '';
+            updatePDFStatus(false); // PDF-Status zurücksetzen
+        }
+
+        // Sterne-Bewertung initialisieren
+        function initStarRating() {
+            const stars = document.querySelectorAll('.star-rating .star');
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    const rating = this.getAttribute('data-value');
+                    document.getElementById('recipe-rating').value = rating;
+                    updateStarDisplay(rating);
+                });
+            });
+        }
+
+        function updateStarDisplay(rating) {
+            const stars = document.querySelectorAll('.star-rating .star');
+            stars.forEach(star => {
+                const starValue = star.getAttribute('data-value');
+                if (starValue <= rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        // Rezept speichern
+        async function saveRecipe(event) {
+            event.preventDefault();
+
+            const recipeData = {
+                title: document.getElementById('recipe-title').value,
+                cooked_date: document.getElementById('recipe-date').value,
+                image: document.getElementById('recipe-image-filename').value,
+                notes: document.getElementById('recipe-notes').value,
+                duration: document.getElementById('recipe-duration').value || null,
+                rating: document.getElementById('recipe-rating').value || null
+            };
+
+            try {
+                let response;
+                if (currentRecipeId) {
+                    response = await fetch(`${API_BASE}/recipes/${currentRecipeId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(recipeData)
+                    });
+                } else {
+                    response = await fetch(`${API_BASE}/recipes`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(recipeData)
+                    });
+                }
+
+                if (response.ok) {
+                    closePanel();
+                    loadRecipes();
+                    loadStats();
+                } else {
+                    alert('Fehler beim Speichern des Rezepts');
+                }
+            } catch (error) {
+                console.error('Fehler beim Speichern:', error);
+                alert('Fehler beim Speichern des Rezepts');
+            }
+        }
+
+        // Rezept löschen
+        function deleteRecipe() {
+            showConfirm(
+                'Rezept löschen?',
+                'Diese Aktion kann nicht rückgängig gemacht werden.',
+                async () => {
+                    try {
+                        const response = await fetch(`${API_BASE}/recipes/${currentRecipeId}`, {
+                            method: 'DELETE'
+                        });
+
+                        if (response.ok) {
+                            closePanel();
+                            loadRecipes();
+                            loadStats();
+                        } else {
+                            alert('Fehler beim Löschen des Rezepts');
+                        }
+                    } catch (error) {
+                        console.error('Fehler beim Löschen:', error);
+                        alert('Fehler beim Löschen des Rezepts');
+                    }
+                }
+            );
+        }
+
+        // Panel öffnen/schließen
+        function openPanel() {
+            document.getElementById('panel-overlay').classList.add('active');
+            document.getElementById('slide-panel').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePanel() {
+            document.getElementById('panel-overlay').classList.remove('active');
+            document.getElementById('slide-panel').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Confirm Dialog
+        function showConfirm(title, message, callback) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            deleteCallback = callback;
+            document.getElementById('confirm-dialog').classList.add('active');
+        }
+
+        function closeConfirm() {
+            document.getElementById('confirm-dialog').classList.remove('active');
+            deleteCallback = null;
+        }
+
+        function confirmDelete() {
+            if (deleteCallback) {
+                deleteCallback();
+            }
+            closeConfirm();
+        }
+
+        // Hilfsfunktionen
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function formatDuration(hours) {
+            if (!hours) return '';
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            if (h === 0) return `${m} Min.`;
+            if (m === 0) return `${h} Std.`;
+            return `${h} Std. ${m} Min.`;
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text ? text.replace(/[&<>"']/g, m => map[m]) : '';
+        }
+
+        // Document Viewer öffnen
+        function showDocumentViewer(url, title) {
+            document.getElementById('document-viewer-title').textContent = title;
+            document.getElementById('document-viewer-iframe').src = url;
+            document.getElementById('document-viewer-overlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Document Viewer schließen
+        function closeDocumentViewer() {
+            document.getElementById('document-viewer-overlay').classList.remove('active');
+            document.getElementById('document-viewer-iframe').src = '';
+            document.body.style.overflow = '';
+        }
+
+        // Hard refresh
+        function hardRefresh() {
+            window.location.href = window.location.href + '?t=' + new Date().getTime();
+        }
+    </script>
+</body>
+</html>
