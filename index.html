@@ -1161,7 +1161,6 @@
 
             const actions = document.getElementById('panel-actions');
             actions.innerHTML = `
-                <button onclick="closePanel()">Abbrechen</button>
                 <button class="primary" onclick="document.getElementById('recipe-form').requestSubmit()">Speichern</button>
                 ${isEdit ? '<button class="danger" onclick="deleteRecipe()">Löschen</button>' : ''}
             `;
