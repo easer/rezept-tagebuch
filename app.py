@@ -45,6 +45,32 @@ def init_db():
         c.execute('ALTER TABLE recipes ADD COLUMN duration REAL')
     if 'rating' not in columns:
         c.execute('ALTER TABLE recipes ADD COLUMN rating INTEGER')
+
+    # TODOs Tabelle erstellen
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS todos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            text TEXT NOT NULL,
+            priority INTEGER NOT NULL,
+            completed BOOLEAN DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Initiale TODOs einfügen (nur wenn Tabelle leer ist)
+    c.execute('SELECT COUNT(*) as count FROM todos')
+    if c.fetchone()['count'] == 0:
+        initial_todos = [
+            ('Rezepte optimieren (kein gekocht am, etc.)', 1, 0),
+            ('Abbrechen Button raus, aus neu und bearbeiten', 1, 1),  # Bereits erledigt
+            ('Katalog nur Rezepte, noch kein Tagebuch als Ziel', 2, 0),
+            ('Profil anlegen', 2, 0),
+            ('Rezept vorhanden Mechanismus', 2, 0),
+            ('Tagebuch aus Rezepten erstellen', 3, 0),
+        ]
+        c.executemany('INSERT INTO todos (text, priority, completed) VALUES (?, ?, ?)', initial_todos)
+
     conn.commit()
     conn.close()
 
@@ -223,6 +249,62 @@ def get_stats():
         'total_recipes': total,
         'recipes_with_images': with_images
     })
+
+# TODO API Endpoints
+
+@app.route('/api/todos', methods=['GET'])
+def get_todos():
+    """Alle TODOs abrufen, gruppiert nach Priorität"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM todos ORDER BY priority ASC, id ASC')
+    todos = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(todos)
+
+@app.route('/api/todos', methods=['POST'])
+def create_todo():
+    """Neues TODO erstellen"""
+    data = request.json
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO todos (text, priority, completed)
+        VALUES (?, ?, ?)
+    ''', (data.get('text'), data.get('priority', 2), data.get('completed', 0)))
+    conn.commit()
+    todo_id = c.lastrowid
+    c.execute('SELECT * FROM todos WHERE id = ?', (todo_id,))
+    todo = dict(c.fetchone())
+    conn.close()
+    return jsonify(todo), 201
+
+@app.route('/api/todos/<int:todo_id>', methods=['PUT'])
+def update_todo(todo_id):
+    """TODO aktualisieren"""
+    data = request.json
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        UPDATE todos
+        SET text = ?, priority = ?, completed = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    ''', (data.get('text'), data.get('priority'), data.get('completed'), todo_id))
+    conn.commit()
+    c.execute('SELECT * FROM todos WHERE id = ?', (todo_id,))
+    todo = dict(c.fetchone())
+    conn.close()
+    return jsonify(todo)
+
+@app.route('/api/todos/<int:todo_id>', methods=['DELETE'])
+def delete_todo(todo_id):
+    """TODO löschen"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('DELETE FROM todos WHERE id = ?', (todo_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
 
 # Server starten
 if __name__ == '__main__':

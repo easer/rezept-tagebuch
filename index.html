@@ -983,14 +983,7 @@
                         Hohe Priorität
                     </h3>
                     <ul class="todo-list">
-                        <li class="todo-item">
-                            <div class="todo-checkbox"></div>
-                            <div class="todo-text">Rezepte optimieren (kein gekocht am, etc.)</div>
-                        </li>
-                        <li class="todo-item">
-                            <div class="todo-checkbox"></div>
-                            <div class="todo-text">Abbrechen Button raus, aus neu und bearbeiten</div>
-                        </li>
+                        <!-- Wird dynamisch geladen -->
                     </ul>
                 </div>
 
@@ -1001,18 +994,7 @@
                         Mittlere Priorität
                     </h3>
                     <ul class="todo-list">
-                        <li class="todo-item">
-                            <div class="todo-checkbox"></div>
-                            <div class="todo-text">Katalog nur Rezepte, noch kein Tagebuch als Ziel</div>
-                        </li>
-                        <li class="todo-item">
-                            <div class="todo-checkbox"></div>
-                            <div class="todo-text">Profil anlegen</div>
-                        </li>
-                        <li class="todo-item">
-                            <div class="todo-checkbox"></div>
-                            <div class="todo-text">Rezept vorhanden Mechanismus</div>
-                        </li>
+                        <!-- Wird dynamisch geladen -->
                     </ul>
                 </div>
 
@@ -1023,10 +1005,7 @@
                         Niedrige Priorität
                     </h3>
                     <ul class="todo-list">
-                        <li class="todo-item">
-                            <div class="todo-checkbox"></div>
-                            <div class="todo-text">Tagebuch aus Rezepten erstellen</div>
-                        </li>
+                        <!-- Wird dynamisch geladen -->
                     </ul>
                 </div>
             </div>
@@ -1090,6 +1069,7 @@
         // Initial laden
         document.addEventListener('DOMContentLoaded', () => {
             loadRecipes();
+            loadTodos();
 
             // Suche mit Debounce
             let searchTimeout;
@@ -1694,6 +1674,82 @@
             // Aktiven Tab aktivieren
             event.target.classList.add('active');
             document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        // TODOs State
+        let allTodos = [];
+
+        // TODOs laden
+        async function loadTodos() {
+            try {
+                const response = await fetch(`${API_BASE}/todos`);
+                allTodos = await response.json();
+                renderTodos(allTodos);
+            } catch (error) {
+                console.error('Fehler beim Laden der TODOs:', error);
+            }
+        }
+
+        // TODOs anzeigen
+        function renderTodos(todos) {
+            const priorities = {1: [], 2: [], 3: []};
+            todos.forEach(todo => {
+                if (priorities[todo.priority]) {
+                    priorities[todo.priority].push(todo);
+                }
+            });
+
+            // Priorität I
+            renderTodoSection(1, priorities[1]);
+            // Priorität II
+            renderTodoSection(2, priorities[2]);
+            // Priorität III
+            renderTodoSection(3, priorities[3]);
+        }
+
+        function renderTodoSection(priority, todos) {
+            const sectionMap = {
+                1: document.querySelector('.todo-section:nth-child(1) .todo-list'),
+                2: document.querySelector('.todo-section:nth-child(2) .todo-list'),
+                3: document.querySelector('.todo-section:nth-child(3) .todo-list')
+            };
+
+            const list = sectionMap[priority];
+            if (!list) return;
+
+            list.innerHTML = todos.map(todo => `
+                <li class="todo-item">
+                    <div class="todo-checkbox ${todo.completed ? 'checked' : ''}"
+                         onclick="toggleTodo(${todo.id})"
+                         style="${todo.completed ? 'background: rgba(255, 255, 255, 0.3); border-color: rgba(255, 255, 255, 0.6);' : ''}">
+                        ${todo.completed ? '✓' : ''}
+                    </div>
+                    <div class="todo-text" style="${todo.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${escapeHtml(todo.text)}</div>
+                </li>
+            `).join('');
+        }
+
+        // TODO Toggle
+        async function toggleTodo(id) {
+            try {
+                const todo = allTodos.find(t => t.id === id);
+                if (!todo) return;
+
+                const response = await fetch(`${API_BASE}/todos/${id}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        text: todo.text,
+                        priority: todo.priority,
+                        completed: todo.completed ? 0 : 1
+                    })
+                });
+                if (response.ok) {
+                    loadTodos();
+                }
+            } catch (error) {
+                console.error('Fehler beim Aktualisieren des TODOs:', error);
+            }
         }
 
         // Hard refresh
