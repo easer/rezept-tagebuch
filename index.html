@@ -16,11 +16,25 @@
             max-width: 1200px;
         }
 
-        /* Überschrift kompakter */
+        /* Überschrift */
         header h1 {
-            font-size: 1.8em;
+            font-size: 2.2em;
             margin-bottom: 5px;
             text-align: center;
+            white-space: nowrap;
+        }
+
+        /* Responsive: iPhone 13 Pro Max und kleiner */
+        @media (max-width: 428px) {
+            header h1 {
+                font-size: 2em;
+            }
+        }
+
+        @media (max-width: 380px) {
+            header h1 {
+                font-size: 1.7em;
+            }
         }
 
         /* Jedes Wort in eigener Pastellfarbe */
