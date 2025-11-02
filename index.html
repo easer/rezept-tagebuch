@@ -11,29 +11,61 @@
     <!-- Zentrale CSS -->
     <link rel="stylesheet" href="/common/seaser-style.css?v=9">
 
+    <!-- Google Font: Sacramento -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sacramento&display=swap" rel="stylesheet">
+
     <style>
         .container {
             max-width: 1200px;
         }
 
-        /* Überschrift */
+        /* Überschrift mit Sacramento Font */
         header h1 {
-            font-size: 2.2em;
+            font-family: 'Sacramento', cursive;
+            font-size: 3.5em;
+            font-weight: 400;
             margin-bottom: 5px;
             text-align: center;
             white-space: nowrap;
+            transform: rotate(-2deg);
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* Responsive: iPhone 13 Pro Max und kleiner */
-        @media (max-width: 428px) {
+        header {
+            text-align: center;
+            overflow: hidden;
+            padding: 0 10px;
+        }
+
+        /* Responsive: iPhone 15 Pro Max (430px) */
+        @media (max-width: 430px) {
             header h1 {
-                font-size: 2em;
+                font-size: 2.6em;
             }
         }
 
+        /* Responsive: iPhone 13 Pro Max und kleiner (428px) */
+        @media (max-width: 428px) {
+            header h1 {
+                font-size: 2.5em;
+            }
+        }
+
+        /* Sehr kleine Bildschirme */
         @media (max-width: 380px) {
             header h1 {
-                font-size: 1.7em;
+                font-size: 2.1em;
+            }
+        }
+
+        @media (max-width: 360px) {
+            header h1 {
+                font-size: 1.9em;
             }
         }
 
@@ -43,6 +75,10 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            filter: drop-shadow(0.5px 0.5px 0 #FFB6C1)
+                    drop-shadow(-0.5px -0.5px 0 #FFC9D6)
+                    drop-shadow(0.5px -0.5px 0 #FFB6C1)
+                    drop-shadow(-0.5px 0.5px 0 #FFC9D6);
         }
 
         .word-rezept {
@@ -50,6 +86,10 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            filter: drop-shadow(0.5px 0.5px 0 #E0BBE4)
+                    drop-shadow(-0.5px -0.5px 0 #D5AAFF)
+                    drop-shadow(0.5px -0.5px 0 #E0BBE4)
+                    drop-shadow(-0.5px 0.5px 0 #D5AAFF);
         }
 
         .word-tagebuch {
@@ -57,6 +97,10 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            filter: drop-shadow(0.5px 0.5px 0 #AED9E0)
+                    drop-shadow(-0.5px -0.5px 0 #C2E9FB)
+                    drop-shadow(0.5px -0.5px 0 #AED9E0)
+                    drop-shadow(-0.5px 0.5px 0 #C2E9FB);
         }
 
 
@@ -291,8 +335,8 @@
             background: rgba(40, 50, 60, 0.7);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 14px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.15);
             cursor: pointer;
@@ -300,34 +344,39 @@
         }
 
         .recipe-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
             box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
             border-color: rgba(255, 255, 255, 0.3);
         }
 
         .recipe-title {
-            font-size: 1.4em;
+            font-size: 0.95em;
             font-weight: 600;
             color: white;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .recipe-date {
             color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9em;
-            margin-bottom: 8px;
+            font-size: 0.8em;
+            margin-bottom: 0;
+        }
+
+        .recipe-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .recipe-duration {
             color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9em;
-            margin-bottom: 8px;
+            font-size: 0.8em;
         }
 
         .recipe-rating {
-            color: #ffd700;
-            font-size: 1.1em;
-            margin-bottom: 10px;
+            color: #F4E5A0;
+            font-size: 0.95em;
         }
 
         .recipe-notes {
@@ -509,6 +558,13 @@
         }
 
         /* Detail View */
+        .detail-row {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
         .detail-section {
             margin-bottom: 25px;
             display: flex;
@@ -532,8 +588,30 @@
             flex: 1;
         }
 
+        /* Bilder in Detail-View: Label oben, mehr Abstand */
+        .detail-row:has(img) {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .detail-row:has(img) .detail-label {
+            margin-bottom: 15px;
+        }
+
+        .detail-row:has(img) .detail-value {
+            width: 100%;
+        }
+
+        .detail-row:has(img) .detail-value img {
+            margin-bottom: 15px;
+        }
+
+        .detail-row:has(img) .detail-value img:last-child {
+            margin-bottom: 0;
+        }
+
         .detail-rating {
-            color: #ffd700;
+            color: #F4E5A0;
             font-size: 1.5em;
             flex: 1;
         }
@@ -620,6 +698,9 @@
         .form-group input,
         .form-group select {
             flex: 1;
+            min-width: 0; /* Wichtig für flex-shrinking */
+            width: 100%;
+            max-width: 100%;
             height: 44px; /* Feste Höhe wie Rezeptname-Feld */
             padding: 0 16px;
             background: rgba(50, 60, 70, 0.7);
@@ -631,18 +712,23 @@
             box-sizing: border-box;
         }
 
-        .form-group input[type="date"] {
-            width: auto;
-            min-width: 180px;
+        /* Kalender-Icon verstecken */
+        .form-group input[type="date"]::-webkit-calendar-picker-indicator {
+            display: none;
+        }
+        .form-group input[type="date"]::-webkit-inner-spin-button {
+            display: none;
         }
 
         .form-group input[type="file"] {
-            height: 44px;
-            padding: 0; /* Kein Padding - Button direkt am Rahmen */
+            height: 28px;
+            max-width: 150px; /* Begrenzt auf Button-Breite */
+            padding: 0;
             cursor: pointer;
-            color: transparent; /* Versteckt den Dateinamen-Text */
-            background: transparent; /* Transparenter Hintergrund wie der Rest */
-            border: none; /* Kein eigener Border */
+            color: transparent;
+            background: transparent;
+            border: none;
+            overflow: hidden; /* Versteckt Dateinamen-Überlauf */
         }
 
         .form-group input[type="file"]::file-selector-button {
@@ -668,6 +754,7 @@
         /* Spezial-Gruppen: Textarea und Datei-Upload */
         .form-group.textarea-group {
             align-items: flex-start;
+            margin-bottom: 20px !important; /* Explizit für konsistenten Abstand */
         }
 
         .form-group.file-group {
@@ -707,6 +794,7 @@
             font-family: inherit;
             box-sizing: border-box;
             resize: vertical;
+            margin: 0; /* Kein margin das den Abstand stören könnte */
         }
 
         /* Recipe Form nimmt ganzen verfügbaren Platz */
@@ -747,11 +835,11 @@
         }
 
         .star-rating .star.active {
-            color: #ffd700;
+            color: #F4E5A0;
         }
 
         .star-rating .star:hover {
-            color: #ffd700;
+            color: #F4E5A0;
         }
 
         /* Image Preview in Form */
@@ -998,12 +1086,32 @@
         <main>
             <!-- Tab Navigation -->
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('rezepte')">Rezepte</button>
+                <button class="tab active" onclick="switchTab('tagebuch')">Tagebuch</button>
+                <button class="tab" onclick="switchTab('rezepte')">Rezepte</button>
                 <button class="tab" onclick="switchTab('todos')">TODOs</button>
             </div>
 
+            <!-- Tagebuch Tab -->
+            <div id="tab-tagebuch" class="tab-content active">
+                <!-- Tagebuch Controls -->
+                <div class="controls">
+                    <input type="text" id="diary-search-input" placeholder="🔍 Eintrag suchen...">
+                    <button onclick="showAddDiaryPanel()">➕ Neuer Eintrag</button>
+                </div>
+
+                <!-- Tagebuch Liste -->
+                <div id="diary-container" class="recipes-grid"></div>
+
+                <!-- Empty State -->
+                <div id="diary-empty-state" class="empty-state" style="display: none;">
+                    <div class="icon">📔</div>
+                    <h3>Noch keine Tagebucheinträge</h3>
+                    <p>Füge deinen ersten Eintrag hinzu!</p>
+                </div>
+            </div>
+
             <!-- Rezepte Tab -->
-            <div id="tab-rezepte" class="tab-content active">
+            <div id="tab-rezepte" class="tab-content">
                 <!-- Steuerung -->
                 <div class="controls">
                     <input type="text" id="search-input" placeholder="🔍 Rezept suchen...">
@@ -1120,8 +1228,8 @@
                 <form id="todo-form" onsubmit="saveTodo(event)">
                     <div class="form-group" style="margin-bottom: 15px;">
                         <label for="todo-text" style="display: block; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">Beschreibung</label>
-                        <input type="text" id="todo-text" required placeholder="Was möchtest du erledigen?"
-                               style="width: 100%; padding: 12px; background: rgba(50, 60, 70, 0.7); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: white; font-size: 1em;">
+                        <textarea id="todo-text" required placeholder="Was möchtest du erledigen?" rows="4"
+                               style="width: 100%; padding: 12px; background: rgba(50, 60, 70, 0.7); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: white; font-size: 1em; resize: vertical; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"></textarea>
                     </div>
                     <div class="form-group">
                         <label for="todo-priority" style="display: block; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">Priorität</label>
@@ -1152,13 +1260,23 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadRecipes();
             loadTodos();
+            loadDiaryEntries();
 
-            // Suche mit Debounce
+            // Suche mit Debounce (Rezepte)
             let searchTimeout;
             document.getElementById('search-input').addEventListener('input', (e) => {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
                     loadRecipes(e.target.value);
+                }, 300);
+            });
+
+            // Suche mit Debounce (Tagebuch)
+            let diarySearchTimeout;
+            document.getElementById('diary-search-input').addEventListener('input', (e) => {
+                clearTimeout(diarySearchTimeout);
+                diarySearchTimeout = setTimeout(() => {
+                    loadDiaryEntries(e.target.value);
                 }, 300);
             });
         });
@@ -1194,15 +1312,18 @@
             container.style.display = 'grid';
             emptyState.style.display = 'none';
 
-            container.innerHTML = recipes.map(recipe => `
+            container.innerHTML = recipes.map(recipe => {
+                const hasMeta = recipe.duration || recipe.rating;
+                return `
                 <div class="recipe-card" onclick="showDetailPanel(${recipe.id})">
                     <div class="recipe-title">${escapeHtml(recipe.title)}</div>
-                    <div class="recipe-date">📅 ${formatDate(recipe.cooked_date)}</div>
-                    ${recipe.duration ? `<div class="recipe-duration">⏱️ ${formatDuration(recipe.duration)}</div>` : ''}
-                    ${recipe.rating ? `<div class="recipe-rating">${'★'.repeat(recipe.rating)}${'☆'.repeat(5 - recipe.rating)}</div>` : ''}
-                    ${recipe.notes ? `<div class="recipe-notes">${escapeHtml(recipe.notes)}</div>` : ''}
+                    ${hasMeta ? `<div class="recipe-meta">
+                        ${recipe.duration ? `<div class="recipe-duration">⏱️ ${formatDuration(recipe.duration)}</div>` : ''}
+                        ${recipe.rating ? `<div class="recipe-rating">${'★'.repeat(recipe.rating)}${'☆'.repeat(5 - recipe.rating)}</div>` : ''}
+                    </div>` : ''}
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Panel für neues Rezept öffnen
@@ -1266,7 +1387,7 @@
                 if (isPdf || isDoc) {
                     documentHtml = `
                         <div class="detail-section">
-                            <div class="detail-label">REZEPT</div>
+                            <div class="detail-label">Rezept</div>
                             <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
                                 <input type="checkbox" checked disabled style="width: 20px; height: 20px; cursor: default;">
                                 <button type="button" onclick="openDocumentViewer('${recipe.image}', '${escapeHtml(recipe.title)}')" style="width: 120px; background: linear-gradient(135deg, #A8E6CF 0%, #DCEDC8 100%); color: #2d5016; border: none; border-radius: 8px; padding: 0 12px; cursor: pointer; font-size: 0.9em; font-weight: 600; height: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(168, 230, 207, 0.4); transition: all 0.3s;">Öffnen</button>
@@ -1276,7 +1397,7 @@
                 } else if (isImage) {
                     documentHtml = `
                         <div class="detail-section full-width">
-                            <div class="detail-label">Bild</div>
+                            <div class="detail-label">Rezept</div>
                             <div class="document-viewer">
                                 <img src="${API_BASE}/uploads/${recipe.image}" alt="${escapeHtml(recipe.title)}">
                             </div>
@@ -1289,11 +1410,6 @@
                 <div class="detail-section">
                     <div class="detail-label">Rezept-Name</div>
                     <div class="detail-value">${escapeHtml(recipe.title)}</div>
-                </div>
-
-                <div class="detail-section">
-                    <div class="detail-label">Gekocht am</div>
-                    <div class="detail-value">📅 ${formatDate(recipe.cooked_date)}</div>
                 </div>
 
                 ${recipe.duration ? `
@@ -1331,8 +1447,6 @@
             const content = document.getElementById('panel-content');
             const isEdit = recipe !== null;
 
-            const today = new Date().toISOString().split('T')[0];
-
             content.innerHTML = `
                 <form id="recipe-form" onsubmit="saveRecipe(event)">
                     <input type="hidden" id="recipe-id" value="${isEdit ? recipe.id : ''}">
@@ -1341,11 +1455,6 @@
                     <div class="form-group">
                         <label for="recipe-title">REZEPT-NAME *</label>
                         <input type="text" id="recipe-title" required placeholder="z.B. Spaghetti Carbonara" value="${isEdit ? escapeHtml(recipe.title) : ''}">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="recipe-date">GEKOCHT AM *</label>
-                        <input type="date" id="recipe-date" required value="${isEdit ? recipe.cooked_date : today}">
                     </div>
 
                     <div class="form-group">
@@ -1409,18 +1518,22 @@
             // Star rating initialisieren
             setTimeout(() => {
                 initStarRating();
+
                 // PDF-Status initialisieren falls bereits eine Datei vorhanden ist
-                if (isEdit && recipe.image) {
-                    const fileExt = recipe.image.split('.').pop().toLowerCase();
-                    const isPdfOrDoc = ['pdf', 'doc', 'docx', 'odt', 'txt'].includes(fileExt);
-                    if (isPdfOrDoc) {
-                        updatePDFStatus(true, recipe.image, recipe.title);
+                // Warten bis DOM-Elemente sicher verfügbar sind
+                setTimeout(() => {
+                    if (isEdit && recipe.image) {
+                        const fileExt = recipe.image.split('.').pop().toLowerCase();
+                        const isPdfOrDoc = ['pdf', 'doc', 'docx', 'odt', 'txt'].includes(fileExt);
+                        if (isPdfOrDoc) {
+                            updatePDFStatus(true, recipe.image, recipe.title);
+                        } else {
+                            updatePDFStatus(false);
+                        }
                     } else {
                         updatePDFStatus(false);
                     }
-                } else {
-                    updatePDFStatus(false);
-                }
+                }, 10);
             }, 0);
 
             const actions = document.getElementById('panel-actions');
@@ -1462,7 +1575,12 @@
             const deleteBtn = document.getElementById('pdf-delete-btn');
 
             // Elemente existieren nicht in allen Views (nur in Edit)
-            if (!checkbox || !openBtn || !deleteBtn) return;
+            if (!checkbox || !openBtn || !deleteBtn) {
+                console.log('PDF-Status Elemente nicht gefunden');
+                return;
+            }
+
+            console.log('updatePDFStatus:', hasPDF, filename);
 
             if (hasPDF) {
                 checkbox.checked = true;
@@ -1599,7 +1717,6 @@
 
             const recipeData = {
                 title: document.getElementById('recipe-title').value,
-                cooked_date: document.getElementById('recipe-date').value,
                 image: document.getElementById('recipe-image-filename').value,
                 notes: document.getElementById('recipe-notes').value,
                 duration: document.getElementById('recipe-duration').value || null,
@@ -1897,6 +2014,487 @@
                 console.error('Fehler beim Löschen:', error);
                 alert('Fehler beim Löschen des TODOs');
             }
+        }
+
+        // === TAGEBUCH FUNKTIONEN ===
+
+        // Tagebuch State
+        let allDiaryEntries = [];
+        let allRecipesForDiary = [];
+
+        // Tagebuch laden
+        async function loadDiaryEntries(search = '') {
+            try {
+                const url = search
+                    ? `${API_BASE}/diary?search=${encodeURIComponent(search)}&t=${Date.now()}`
+                    : `${API_BASE}/diary?t=${Date.now()}`;
+                const response = await fetch(url);
+                allDiaryEntries = await response.json();
+                console.log('Loaded diary entries:', allDiaryEntries);
+                renderDiaryEntries(allDiaryEntries);
+            } catch (error) {
+                console.error('Fehler beim Laden der Tagebucheinträge:', error);
+            }
+        }
+
+        // Rezepte für Dropdown laden
+        async function loadRecipesForDiary() {
+            try {
+                const response = await fetch(`${API_BASE}/recipes`);
+                allRecipesForDiary = await response.json();
+            } catch (error) {
+                console.error('Fehler beim Laden der Rezepte:', error);
+            }
+        }
+
+        // Tagebucheinträge anzeigen
+        function renderDiaryEntries(entries) {
+            const container = document.getElementById('diary-container');
+            const emptyState = document.getElementById('diary-empty-state');
+
+            if (entries.length === 0) {
+                container.style.display = 'none';
+                emptyState.style.display = 'flex';
+                return;
+            }
+
+            container.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            container.innerHTML = entries.map(entry => `
+                <div class="recipe-card" onclick="showDiaryDetail(${entry.id})">
+                    <div class="recipe-title">${entry.dish_name || entry.recipe_title || 'Ohne Name'}</div>
+                    <p class="recipe-date">${formatDate(entry.date)}</p>
+                </div>
+            `).join('');
+        }
+
+        // Datum formatieren
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('de-DE', options);
+        }
+
+        // Tagebuch-Detail anzeigen
+        function showDiaryDetail(entryId) {
+            const entry = allDiaryEntries.find(e => e.id === entryId);
+            console.log('showDiaryDetail - entryId:', entryId);
+            console.log('showDiaryDetail - entry:', entry);
+            console.log('showDiaryDetail - entry.images:', entry?.images);
+            if (!entry) return;
+
+            const title = document.getElementById('panel-title');
+            const content = document.getElementById('panel-content');
+            const actions = document.getElementById('panel-actions');
+
+            title.textContent = entry.dish_name || entry.recipe_title || 'Tagebucheintrag';
+
+            content.innerHTML = `
+                <div class="detail-row">
+                    <div class="detail-label">Datum</div>
+                    <div class="detail-value">${formatDate(entry.date)}</div>
+                </div>
+                ${entry.notes ? `
+                <div class="detail-row">
+                    <div class="detail-label">Notizen</div>
+                    <div class="detail-value">${entry.notes}</div>
+                </div>
+                ` : ''}
+                ${entry.recipe_image ? `
+                <div class="detail-row">
+                    <div class="detail-label">Rezept</div>
+                    <div class="detail-value">
+                        ${entry.recipe_image.match(/\\.(pdf|doc|docx|odt|txt)$/i) ?
+                            `<button onclick="window.open('${API_BASE}/uploads/${entry.recipe_image}', '_blank')" class="open-document-btn">📄 Rezept öffnen</button>` :
+                            `<img src="${API_BASE}/uploads/${entry.recipe_image}?t=${Date.now()}" style="max-width: 100%; border-radius: 12px;" onerror="this.style.display='none'" />`
+                        }
+                    </div>
+                </div>
+                ` : ''}
+                ${entry.images && entry.images.length > 0 ? `
+                <div class="detail-row">
+                    <div class="detail-label">Bilder</div>
+                    <div class="detail-value">
+                        ${entry.images.map(img => `<img src="${API_BASE}/uploads/${img}?t=${Date.now()}" style="max-width: 100%; border-radius: 12px;" onerror="this.style.display='none'" />`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            `;
+
+            actions.innerHTML = `
+                <button onclick="showEditDiaryPanel(${entry.id})" class="btn-primary">Bearbeiten</button>
+                <button onclick="deleteDiaryEntry(${entry.id})" class="btn-danger">Löschen</button>
+            `;
+
+            openPanel();
+        }
+
+        // Panel zum Hinzufügen eines neuen Eintrags anzeigen
+        async function showAddDiaryPanel() {
+            // Reset globale Variablen
+            selectedDiaryImages = [];
+            imagesToRemove = [];
+
+            await loadRecipesForDiary();
+            const title = document.getElementById('panel-title');
+            const content = document.getElementById('panel-content');
+            const actions = document.getElementById('panel-actions');
+
+            title.textContent = 'Neuer Tagebucheintrag';
+
+            content.innerHTML = `
+                <form id="diary-form">
+                    <div class="form-group">
+                        <label>Rezept</label>
+                        <select id="entry-recipe" onchange="updateDishName()">
+                            <option value="">-- Ohne Rezept --</option>
+                            ${allRecipesForDiary.map(r => `<option value="${r.id}">${r.title}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="entry-dish-name" placeholder="z.B. Züri Geschnetzeltes">
+                    </div>
+                    <div class="form-group">
+                        <label>Datum</label>
+                        <input type="date" id="entry-date" value="${new Date().toISOString().split('T')[0]}" required>
+                    </div>
+                    <div class="form-group textarea-group">
+                        <label>Notizen</label>
+                        <textarea id="entry-notes" placeholder="Wie war das Essen? Besonderheiten?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Bilder</label>
+                        <input type="file" id="entry-images" multiple accept="image/*" onchange="previewDiaryImages(event)">
+                    </div>
+                    <small style="display: block; margin-top: -15px; margin-bottom: 15px; margin-left: 155px; color: rgba(255, 255, 255, 0.5);">Du kannst mehrere Bilder auswählen</small>
+                    <div id="diary-images-preview" style="margin-left: 155px; margin-top: 10px; margin-bottom: 20px;"></div>
+                </form>
+            `;
+
+            actions.innerHTML = `
+                <button onclick="saveDiaryEntry()" class="btn-primary">Speichern</button>
+            `;
+
+            openPanel();
+        }
+
+        // Panel zum Bearbeiten eines Eintrags anzeigen
+        async function showEditDiaryPanel(entryId) {
+            // Reset globale Variablen
+            selectedDiaryImages = [];
+            imagesToRemove = [];
+
+            await loadRecipesForDiary();
+            const entry = allDiaryEntries.find(e => e.id === entryId);
+            console.log('showEditDiaryPanel - entryId:', entryId);
+            console.log('showEditDiaryPanel - entry:', entry);
+            console.log('showEditDiaryPanel - entry.images:', entry?.images);
+            if (!entry) return;
+
+            const title = document.getElementById('panel-title');
+            const content = document.getElementById('panel-content');
+            const actions = document.getElementById('panel-actions');
+
+            title.textContent = 'Tagebucheintrag bearbeiten';
+
+            content.innerHTML = `
+                <form id="diary-form">
+                    <input type="hidden" id="entry-id" value="${entry.id}">
+                    <div class="form-group">
+                        <label>Rezept</label>
+                        <select id="entry-recipe" onchange="updateDishName()">
+                            <option value="">-- Ohne Rezept --</option>
+                            ${allRecipesForDiary.map(r => `<option value="${r.id}" ${r.id === entry.recipe_id ? 'selected' : ''}>${r.title}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="entry-dish-name" value="${entry.dish_name || ''}" placeholder="z.B. Züri Geschnetzeltes">
+                    </div>
+                    <div class="form-group">
+                        <label>Datum</label>
+                        <input type="date" id="entry-date" value="${entry.date}" required>
+                    </div>
+                    <div class="form-group textarea-group">
+                        <label>Notizen</label>
+                        <textarea id="entry-notes">${entry.notes || ''}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Bilder</label>
+                        <input type="file" id="entry-images" multiple accept="image/*" onchange="previewDiaryImages(event)">
+                    </div>
+                    <small style="display: block; margin-top: -15px; margin-bottom: 15px; margin-left: 155px; color: rgba(255, 255, 255, 0.5);">
+                        ${entry.images && entry.images.length > 0 ? `Vorhandene: ${entry.images.length} | ` : ''}Neue Bilder hinzufügen
+                    </small>
+                    <div id="diary-images-preview" style="margin-left: 155px; margin-top: 10px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+                        ${entry.images && entry.images.length > 0 ? entry.images.map(img => `
+                            <div style="position: relative; display: flex; align-items: center; background: rgba(50, 60, 70, 0.3); border-radius: 8px; padding: 8px; max-width: 300px;">
+                                <img src="${API_BASE}/uploads/${img}" alt="Bild" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; margin-right: 10px;">
+                                <span style="flex: 1; color: rgba(255, 255, 255, 0.7); font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${img}</span>
+                                <button type="button" onclick="removeExistingDiaryImage('${img}')" style="background: linear-gradient(135deg, #FFABAB 0%, #FFC3A0 100%); color: #8b3a3a; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 16px; line-height: 1; box-shadow: 0 3px 10px rgba(255, 171, 171, 0.5); transition: all 0.3s; flex-shrink: 0;">×</button>
+                            </div>
+                        `).join('') : ''}
+                    </div>
+                </form>
+            `;
+
+            actions.innerHTML = `
+                <button onclick="saveDiaryEntry()" class="btn-primary">Speichern</button>
+            `;
+
+            openPanel();
+        }
+
+        // Rezeptname automatisch in Name-Feld eintragen
+        function updateDishName() {
+            const recipeSelect = document.getElementById('entry-recipe');
+            const dishNameInput = document.getElementById('entry-dish-name');
+
+            if (!recipeSelect || !dishNameInput) return;
+
+            const selectedRecipeId = recipeSelect.value;
+
+            if (selectedRecipeId) {
+                // Rezept ausgewählt - Namen eintragen
+                const selectedRecipe = allRecipesForDiary.find(r => r.id == selectedRecipeId);
+                if (selectedRecipe) {
+                    dishNameInput.value = selectedRecipe.title;
+                }
+            }
+            // Wenn kein Rezept ausgewählt: Feld leer lassen oder bestehenden Wert behalten
+        }
+
+        // Globale Variable für ausgewählte neue Bilder
+        let selectedDiaryImages = [];
+        // Globale Variable für zu entfernende existierende Bilder
+        let imagesToRemove = [];
+
+        // Hilfsfunktion: Bild komprimieren
+        async function compressImage(file, maxWidth = 1920, maxHeight = 1920, quality = 0.8) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Canvas erstellen
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // Proportional skalieren, wenn größer als maxWidth/maxHeight
+                        if (width > maxWidth || height > maxHeight) {
+                            const ratio = Math.min(maxWidth / width, maxHeight / height);
+                            width = width * ratio;
+                            height = height * ratio;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        // Bild auf Canvas zeichnen
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Als Blob mit Komprimierung exportieren
+                        canvas.toBlob((blob) => {
+                            // Neuen File-Objekt mit gleichem Namen erstellen
+                            const compressedFile = new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            resolve(compressedFile);
+                        }, 'image/jpeg', quality);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Vorschau für mehrere Bilder
+        async function previewDiaryImages(event) {
+            const files = Array.from(event.target.files);
+
+            // Bilder komprimieren
+            const compressedFiles = await Promise.all(
+                files.map(file => compressImage(file))
+            );
+
+            selectedDiaryImages = compressedFiles;
+
+            const previewContainer = document.getElementById('diary-images-preview');
+
+            // Neue Bilder hinzufügen (behalte existierende)
+            compressedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageDiv = document.createElement('div');
+                    imageDiv.style.cssText = 'position: relative; display: flex; align-items: center; background: rgba(50, 60, 70, 0.3); border-radius: 8px; padding: 8px; max-width: 300px; margin-bottom: 10px;';
+                    imageDiv.innerHTML = `
+                        <img src="${e.target.result}" alt="Vorschau" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; margin-right: 10px;">
+                        <span style="flex: 1; color: rgba(255, 255, 255, 0.7); font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
+                        <button type="button" onclick="removeNewDiaryImage(${index})" style="background: linear-gradient(135deg, #FFABAB 0%, #FFC3A0 100%); color: #8b3a3a; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 16px; line-height: 1; box-shadow: 0 3px 10px rgba(255, 171, 171, 0.5); transition: all 0.3s; flex-shrink: 0;">×</button>
+                    `;
+                    previewContainer.appendChild(imageDiv);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Entfernen eines neu ausgewählten Bildes
+        function removeNewDiaryImage(index) {
+            selectedDiaryImages.splice(index, 1);
+
+            // File input zurücksetzen und neu befüllen
+            const input = document.getElementById('entry-images');
+            const dt = new DataTransfer();
+            selectedDiaryImages.forEach(file => dt.items.add(file));
+            input.files = dt.files;
+
+            // Preview neu rendern
+            const previewContainer = document.getElementById('diary-images-preview');
+            const existingImages = previewContainer.querySelectorAll('img[src^="/api/uploads"]');
+            previewContainer.innerHTML = '';
+
+            // Existierende Bilder wieder hinzufügen
+            existingImages.forEach(img => {
+                const parent = img.parentElement.cloneNode(true);
+                previewContainer.appendChild(parent);
+            });
+
+            // Neue Bilder neu rendern
+            selectedDiaryImages.forEach((file, idx) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageDiv = document.createElement('div');
+                    imageDiv.style.cssText = 'position: relative; display: flex; align-items: center; background: rgba(50, 60, 70, 0.3); border-radius: 8px; padding: 8px; max-width: 300px; margin-bottom: 10px;';
+                    imageDiv.innerHTML = `
+                        <img src="${e.target.result}" alt="Vorschau" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; margin-right: 10px;">
+                        <span style="flex: 1; color: rgba(255, 255, 255, 0.7); font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</span>
+                        <button type="button" onclick="removeNewDiaryImage(${idx})" style="background: linear-gradient(135deg, #FFABAB 0%, #FFC3A0 100%); color: #8b3a3a; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 16px; line-height: 1; box-shadow: 0 3px 10px rgba(255, 171, 171, 0.5); transition: all 0.3s; flex-shrink: 0;">×</button>
+                    `;
+                    previewContainer.appendChild(imageDiv);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Entfernen eines existierenden Bildes
+        function removeExistingDiaryImage(filename) {
+            imagesToRemove.push(filename);
+
+            // Bild aus der Vorschau entfernen
+            const previewContainer = document.getElementById('diary-images-preview');
+            const images = previewContainer.querySelectorAll('img');
+            images.forEach(img => {
+                if (img.src.includes(filename)) {
+                    img.parentElement.remove();
+                }
+            });
+        }
+
+        // Tagebucheintrag speichern
+        async function saveDiaryEntry() {
+            const entryId = document.getElementById('entry-id')?.value;
+            const recipeId = document.getElementById('entry-recipe').value;
+            const dishName = document.getElementById('entry-dish-name').value;
+            const date = document.getElementById('entry-date').value;
+            const notes = document.getElementById('entry-notes').value;
+            const imagesInput = document.getElementById('entry-images');
+
+            if (!date) {
+                alert('Bitte gib ein Datum ein');
+                return;
+            }
+
+            // Bilder hochladen (verwende selectedDiaryImages, die bereits komprimiert sind)
+            const uploadedImages = [];
+            if (selectedDiaryImages.length > 0) {
+                for (const file of selectedDiaryImages) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    try {
+                        const response = await fetch(`${API_BASE}/upload`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+                        uploadedImages.push(data.filename);
+                    } catch (error) {
+                        console.error('Fehler beim Hochladen:', error);
+                        alert('Fehler beim Hochladen der Bilder');
+                        return;
+                    }
+                }
+            }
+
+            // Wenn wir bearbeiten, alte Bilder behalten (außer die zu entfernenden)
+            let images = uploadedImages;
+            if (entryId) {
+                const existingEntry = allDiaryEntries.find(e => e.id == entryId);
+                if (existingEntry && existingEntry.images) {
+                    // Nur die Bilder behalten, die nicht in imagesToRemove sind
+                    const keepImages = existingEntry.images.filter(img => !imagesToRemove.includes(img));
+                    images = [...keepImages, ...uploadedImages];
+                }
+            }
+
+            const entryData = {
+                recipe_id: recipeId || null,
+                dish_name: dishName,
+                date,
+                notes,
+                images
+            };
+
+            try {
+                const url = entryId ? `${API_BASE}/diary/${entryId}` : `${API_BASE}/diary`;
+                const method = entryId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(entryData)
+                });
+
+                if (response.ok) {
+                    closePanel();
+                    await loadDiaryEntries();
+                } else {
+                    alert('Fehler beim Speichern des Eintrags');
+                }
+            } catch (error) {
+                console.error('Fehler beim Speichern:', error);
+                alert('Fehler beim Speichern des Eintrags');
+            }
+        }
+
+        // Tagebucheintrag löschen
+        function deleteDiaryEntry(entryId) {
+            showConfirm(
+                'Tagebucheintrag löschen?',
+                'Diese Aktion kann nicht rückgängig gemacht werden.',
+                async () => {
+                    try {
+                        const response = await fetch(`${API_BASE}/diary/${entryId}`, {
+                            method: 'DELETE'
+                        });
+
+                        if (response.ok) {
+                            closePanel();
+                            loadDiaryEntries();
+                        } else {
+                            alert('Fehler beim Löschen des Eintrags');
+                        }
+                    } catch (error) {
+                        console.error('Fehler beim Löschen:', error);
+                        alert('Fehler beim Löschen des Eintrags');
+                    }
+                }
+            );
         }
 
         // Hard refresh

@@ -29,7 +29,6 @@ def init_db():
         CREATE TABLE IF NOT EXISTS recipes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
-            cooked_date DATE NOT NULL,
             image TEXT,
             notes TEXT,
             duration REAL,
@@ -72,6 +71,26 @@ def init_db():
         ]
         c.executemany('INSERT INTO todos (text, priority, completed) VALUES (?, ?, ?)', initial_todos)
 
+    # Tagebuch-Einträge Tabelle erstellen
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS diary_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipe_id INTEGER,
+            date DATE NOT NULL,
+            notes TEXT,
+            images TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE SET NULL
+        )
+    ''')
+
+    # Migration: Add dish_name column if it doesn't exist
+    c.execute("PRAGMA table_info(diary_entries)")
+    diary_columns = [column[1] for column in c.fetchall()]
+    if 'dish_name' not in diary_columns:
+        c.execute('ALTER TABLE diary_entries ADD COLUMN dish_name TEXT')
+
     conn.commit()
     conn.close()
 
@@ -104,7 +123,7 @@ def get_recipes():
         search_term = f'%{search}%'
         params.extend([search_term, search_term])
 
-    query += ' ORDER BY cooked_date DESC'
+    query += ' ORDER BY created_at DESC'
 
     c.execute(query, params)
     recipes = [dict(row) for row in c.fetchall()]
@@ -121,11 +140,10 @@ def create_recipe():
     c = conn.cursor()
 
     c.execute('''
-        INSERT INTO recipes (title, cooked_date, image, notes, duration, rating)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO recipes (title, image, notes, duration, rating)
+        VALUES (?, ?, ?, ?, ?)
     ''', (
         data.get('title'),
-        data.get('cooked_date'),
         data.get('image'),
         data.get('notes'),
         data.get('duration'),
@@ -166,12 +184,11 @@ def update_recipe(recipe_id):
 
     c.execute('''
         UPDATE recipes
-        SET title = ?, cooked_date = ?, image = ?, notes = ?,
+        SET title = ?, image = ?, notes = ?,
             duration = ?, rating = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     ''', (
         data.get('title'),
-        data.get('cooked_date'),
         data.get('image'),
         data.get('notes'),
         data.get('duration'),
@@ -305,6 +322,215 @@ def delete_todo(todo_id):
     c.execute('DELETE FROM todos WHERE id = ?', (todo_id,))
     conn.commit()
     conn.close()
+    return jsonify({'success': True})
+
+# Tagebuch API Endpoints
+
+@app.route('/api/diary', methods=['GET'])
+def get_diary_entries():
+    """Alle Tagebucheinträge abrufen"""
+    conn = get_db()
+    c = conn.cursor()
+
+    # Optional: Suche nach Name, Notizen oder Rezept-Titel
+    search = request.args.get('search')
+
+    query = '''
+        SELECT
+            d.id, d.recipe_id, d.date, d.notes, d.images, d.dish_name,
+            d.created_at, d.updated_at,
+            r.title as recipe_title, r.image as recipe_image
+        FROM diary_entries d
+        LEFT JOIN recipes r ON d.recipe_id = r.id
+        WHERE 1=1
+    '''
+    params = []
+
+    if search:
+        query += ' AND (d.dish_name LIKE ? OR d.notes LIKE ? OR r.title LIKE ?)'
+        search_term = f'%{search}%'
+        params.extend([search_term, search_term, search_term])
+
+    query += ' ORDER BY d.date DESC, d.created_at DESC'
+
+    c.execute(query, params)
+    entries = [dict(row) for row in c.fetchall()]
+    conn.close()
+
+    # Parse images JSON
+    import json
+    for entry in entries:
+        if entry['images']:
+            try:
+                entry['images'] = json.loads(entry['images'])
+            except:
+                entry['images'] = []
+        else:
+            entry['images'] = []
+
+    return jsonify(entries)
+
+@app.route('/api/diary', methods=['POST'])
+def create_diary_entry():
+    """Neuen Tagebucheintrag erstellen"""
+    import json
+    data = request.json
+
+    conn = get_db()
+    c = conn.cursor()
+
+    # Images als JSON speichern
+    images_json = json.dumps(data.get('images', []))
+
+    c.execute('''
+        INSERT INTO diary_entries (recipe_id, date, notes, images, dish_name)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (
+        data.get('recipe_id'),
+        data.get('date'),
+        data.get('notes'),
+        images_json,
+        data.get('dish_name')
+    ))
+
+    conn.commit()
+    entry_id = c.lastrowid
+
+    # Eintrag mit Rezept-Daten zurückgeben
+    c.execute('''
+        SELECT
+            d.id, d.recipe_id, d.date, d.notes, d.images, d.dish_name,
+            d.created_at, d.updated_at,
+            r.title as recipe_title, r.image as recipe_image
+        FROM diary_entries d
+        LEFT JOIN recipes r ON d.recipe_id = r.id
+        WHERE d.id = ?
+    ''', (entry_id,))
+    entry = dict(c.fetchone())
+    conn.close()
+
+    # Parse images JSON
+    if entry['images']:
+        try:
+            entry['images'] = json.loads(entry['images'])
+        except:
+            entry['images'] = []
+    else:
+        entry['images'] = []
+
+    return jsonify(entry), 201
+
+@app.route('/api/diary/<int:entry_id>', methods=['GET'])
+def get_diary_entry(entry_id):
+    """Einzelnen Tagebucheintrag abrufen"""
+    import json
+    conn = get_db()
+    c = conn.cursor()
+
+    c.execute('''
+        SELECT
+            d.id, d.recipe_id, d.date, d.notes, d.images,
+            d.created_at, d.updated_at,
+            r.title as recipe_title, r.image as recipe_image
+        FROM diary_entries d
+        LEFT JOIN recipes r ON d.recipe_id = r.id
+        WHERE d.id = ?
+    ''', (entry_id,))
+    entry = c.fetchone()
+    conn.close()
+
+    if entry is None:
+        return jsonify({'error': 'Entry not found'}), 404
+
+    entry = dict(entry)
+
+    # Parse images JSON
+    if entry['images']:
+        try:
+            entry['images'] = json.loads(entry['images'])
+        except:
+            entry['images'] = []
+    else:
+        entry['images'] = []
+
+    return jsonify(entry)
+
+@app.route('/api/diary/<int:entry_id>', methods=['PUT'])
+def update_diary_entry(entry_id):
+    """Tagebucheintrag aktualisieren"""
+    import json
+    data = request.json
+
+    conn = get_db()
+    c = conn.cursor()
+
+    # Images als JSON speichern
+    images_json = json.dumps(data.get('images', []))
+
+    c.execute('''
+        UPDATE diary_entries
+        SET recipe_id = ?, date = ?, notes = ?, images = ?, dish_name = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    ''', (
+        data.get('recipe_id'),
+        data.get('date'),
+        data.get('notes'),
+        images_json,
+        data.get('dish_name'),
+        entry_id
+    ))
+
+    conn.commit()
+
+    # Aktualisierter Eintrag mit Rezept-Daten zurückgeben
+    c.execute('''
+        SELECT
+            d.id, d.recipe_id, d.date, d.notes, d.images, d.dish_name,
+            d.created_at, d.updated_at,
+            r.title as recipe_title, r.image as recipe_image
+        FROM diary_entries d
+        LEFT JOIN recipes r ON d.recipe_id = r.id
+        WHERE d.id = ?
+    ''', (entry_id,))
+    entry = dict(c.fetchone())
+    conn.close()
+
+    # Parse images JSON
+    if entry['images']:
+        try:
+            entry['images'] = json.loads(entry['images'])
+        except:
+            entry['images'] = []
+    else:
+        entry['images'] = []
+
+    return jsonify(entry)
+
+@app.route('/api/diary/<int:entry_id>', methods=['DELETE'])
+def delete_diary_entry(entry_id):
+    """Tagebucheintrag löschen"""
+    import json
+    conn = get_db()
+    c = conn.cursor()
+
+    # Bilder löschen falls vorhanden
+    c.execute('SELECT images FROM diary_entries WHERE id = ?', (entry_id,))
+    row = c.fetchone()
+    if row and row['images']:
+        try:
+            images = json.loads(row['images'])
+            for image in images:
+                image_path = os.path.join(UPLOAD_FOLDER, image)
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+        except:
+            pass
+
+    c.execute('DELETE FROM diary_entries WHERE id = ?', (entry_id,))
+    conn.commit()
+    conn.close()
+
     return jsonify({'success': True})
 
 # Server starten
