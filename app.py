@@ -25,6 +25,26 @@ def init_db():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
+
+    # Users Tabelle erstellen
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            avatar_color TEXT DEFAULT '#FFB6C1',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Migration: Natalie als ersten User erstellen (nur wenn noch keine User existieren)
+    c.execute('SELECT COUNT(*) as count FROM users')
+    if c.fetchone()['count'] == 0:
+        c.execute('''
+            INSERT INTO users (email, name, avatar_color)
+            VALUES ('natalie@seaser.local', 'Natalie', '#FFB6C1')
+        ''')
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS recipes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,6 +66,14 @@ def init_db():
     if 'rating' not in columns:
         c.execute('ALTER TABLE recipes ADD COLUMN rating INTEGER')
 
+    # Migration: Add user_id and is_system columns to recipes
+    if 'user_id' not in columns:
+        c.execute('ALTER TABLE recipes ADD COLUMN user_id INTEGER REFERENCES users(id)')
+        # Alle existierenden Rezepte Natalie (user_id=1) zuordnen
+        c.execute('UPDATE recipes SET user_id = 1 WHERE user_id IS NULL')
+    if 'is_system' not in columns:
+        c.execute('ALTER TABLE recipes ADD COLUMN is_system BOOLEAN DEFAULT 0')
+
     # TODOs Tabelle erstellen
     c.execute('''
         CREATE TABLE IF NOT EXISTS todos (
@@ -57,6 +85,14 @@ def init_db():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    # Migration: Add user_id column to todos
+    c.execute("PRAGMA table_info(todos)")
+    todo_columns = [column[1] for column in c.fetchall()]
+    if 'user_id' not in todo_columns:
+        c.execute('ALTER TABLE todos ADD COLUMN user_id INTEGER REFERENCES users(id)')
+        # Alle existierenden TODOs Natalie (user_id=1) zuordnen
+        c.execute('UPDATE todos SET user_id = 1 WHERE user_id IS NULL')
 
     # Initiale TODOs einfügen (nur wenn Tabelle leer ist)
     c.execute('SELECT COUNT(*) as count FROM todos')
@@ -70,6 +106,8 @@ def init_db():
             ('Tagebuch aus Rezepten erstellen', 3, 0),
         ]
         c.executemany('INSERT INTO todos (text, priority, completed) VALUES (?, ?, ?)', initial_todos)
+        # Initial TODOs auch Natalie zuordnen
+        c.execute('UPDATE todos SET user_id = 1 WHERE user_id IS NULL')
 
     # Tagebuch-Einträge Tabelle erstellen
     c.execute('''
@@ -106,24 +144,178 @@ def get_db():
 def index():
     return send_from_directory('.', 'index.html')
 
+# ============================================================================
+# User API Endpoints
+# ============================================================================
+
+@app.route('/api/users', methods=['GET'])
+def get_users():
+    """Alle User abrufen (für Profil-Auswahl)"""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('SELECT id, email, name, avatar_color, created_at FROM users ORDER BY created_at ASC')
+        users = [dict(row) for row in c.fetchall()]
+        conn.close()
+        return jsonify(users), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users', methods=['POST'])
+def create_user():
+    """Neuen User erstellen"""
+    try:
+        data = request.get_json()
+
+        # Validierung
+        if not data.get('email'):
+            return jsonify({'error': 'Email is required'}), 400
+        if not data.get('name'):
+            return jsonify({'error': 'Name is required'}), 400
+
+        email = data['email']
+        name = data['name']
+        avatar_color = data.get('avatar_color', '#FFB6C1')
+
+        conn = get_db()
+        c = conn.cursor()
+
+        # Prüfen ob Email bereits existiert
+        c.execute('SELECT id FROM users WHERE email = ?', (email,))
+        if c.fetchone():
+            conn.close()
+            return jsonify({'error': 'Email already exists'}), 409
+
+        c.execute('''
+            INSERT INTO users (email, name, avatar_color)
+            VALUES (?, ?, ?)
+        ''', (email, name, avatar_color))
+
+        user_id = c.lastrowid
+        conn.commit()
+
+        # Neuen User zurückgeben
+        c.execute('SELECT id, email, name, avatar_color, created_at FROM users WHERE id = ?', (user_id,))
+        user = dict(c.fetchone())
+        conn.close()
+
+        return jsonify(user), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    """Einzelnen User abrufen"""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('SELECT id, email, name, avatar_color, created_at FROM users WHERE id = ?', (user_id,))
+        user = c.fetchone()
+        conn.close()
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        return jsonify(dict(user)), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    """User bearbeiten (nur Name und Avatar-Farbe, NICHT Email!)"""
+    try:
+        data = request.get_json()
+
+        conn = get_db()
+        c = conn.cursor()
+
+        # Prüfen ob User existiert
+        c.execute('SELECT id FROM users WHERE id = ?', (user_id,))
+        if not c.fetchone():
+            conn.close()
+            return jsonify({'error': 'User not found'}), 404
+
+        # Nur Name und avatar_color können geändert werden
+        if 'name' in data:
+            c.execute('UPDATE users SET name = ? WHERE id = ?', (data['name'], user_id))
+        if 'avatar_color' in data:
+            c.execute('UPDATE users SET avatar_color = ? WHERE id = ?', (data['avatar_color'], user_id))
+
+        conn.commit()
+
+        # Aktualisierten User zurückgeben
+        c.execute('SELECT id, email, name, avatar_color, created_at FROM users WHERE id = ?', (user_id,))
+        user = dict(c.fetchone())
+        conn.close()
+
+        return jsonify(user), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    """User löschen (optional, für später)"""
+    try:
+        # Natalie (user_id=1) kann nicht gelöscht werden
+        if user_id == 1:
+            return jsonify({'error': 'Cannot delete default user'}), 403
+
+        conn = get_db()
+        c = conn.cursor()
+
+        # Prüfen ob User existiert
+        c.execute('SELECT id FROM users WHERE id = ?', (user_id,))
+        if not c.fetchone():
+            conn.close()
+            return jsonify({'error': 'User not found'}), 404
+
+        # Prüfen ob User Rezepte hat
+        c.execute('SELECT COUNT(*) as count FROM recipes WHERE user_id = ?', (user_id,))
+        recipe_count = c.fetchone()['count']
+        if recipe_count > 0:
+            conn.close()
+            return jsonify({'error': f'Cannot delete user with {recipe_count} recipes'}), 409
+
+        c.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'message': 'User deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# Recipe API Endpoints
+# ============================================================================
+
 @app.route('/api/recipes', methods=['GET'])
 def get_recipes():
-    """Alle Rezepte abrufen"""
+    """Alle Rezepte abrufen (inkl. User-Info)"""
     conn = get_db()
     c = conn.cursor()
 
     # Optional: Suche nach Titel oder Notizen
     search = request.args.get('search')
 
-    query = 'SELECT * FROM recipes WHERE 1=1'
+    # JOIN mit users-Tabelle um User-Info zu bekommen
+    query = '''
+        SELECT
+            recipes.*,
+            users.name as user_name,
+            users.email as user_email,
+            users.avatar_color as user_avatar_color
+        FROM recipes
+        LEFT JOIN users ON recipes.user_id = users.id
+        WHERE 1=1
+    '''
     params = []
 
     if search:
-        query += ' AND (title LIKE ? OR notes LIKE ?)'
+        query += ' AND (recipes.title LIKE ? OR recipes.notes LIKE ?)'
         search_term = f'%{search}%'
         params.extend([search_term, search_term])
 
-    query += ' ORDER BY created_at DESC'
+    query += ' ORDER BY recipes.created_at DESC'
 
     c.execute(query, params)
     recipes = [dict(row) for row in c.fetchall()]
@@ -133,32 +325,56 @@ def get_recipes():
 
 @app.route('/api/recipes', methods=['POST'])
 def create_recipe():
-    """Neues Rezept erstellen"""
-    data = request.json
+    """Neues Rezept erstellen (user_id required)"""
+    try:
+        data = request.json
 
-    conn = get_db()
-    c = conn.cursor()
+        # user_id ist required (wird vom Frontend mitgeschickt)
+        user_id = data.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'user_id is required'}), 400
 
-    c.execute('''
-        INSERT INTO recipes (title, image, notes, duration, rating)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (
-        data.get('title'),
-        data.get('image'),
-        data.get('notes'),
-        data.get('duration'),
-        data.get('rating')
-    ))
+        conn = get_db()
+        c = conn.cursor()
 
-    conn.commit()
-    recipe_id = c.lastrowid
+        # Prüfen ob User existiert
+        c.execute('SELECT id FROM users WHERE id = ?', (user_id,))
+        if not c.fetchone():
+            conn.close()
+            return jsonify({'error': 'User not found'}), 404
 
-    # Rezept zurückgeben
-    c.execute('SELECT * FROM recipes WHERE id = ?', (recipe_id,))
-    recipe = dict(c.fetchone())
-    conn.close()
+        c.execute('''
+            INSERT INTO recipes (title, image, notes, duration, rating, user_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            data.get('title'),
+            data.get('image'),
+            data.get('notes'),
+            data.get('duration'),
+            data.get('rating'),
+            user_id
+        ))
 
-    return jsonify(recipe), 201
+        conn.commit()
+        recipe_id = c.lastrowid
+
+        # Rezept mit User-Info zurückgeben
+        c.execute('''
+            SELECT
+                recipes.*,
+                users.name as user_name,
+                users.email as user_email,
+                users.avatar_color as user_avatar_color
+            FROM recipes
+            LEFT JOIN users ON recipes.user_id = users.id
+            WHERE recipes.id = ?
+        ''', (recipe_id,))
+        recipe = dict(c.fetchone())
+        conn.close()
+
+        return jsonify(recipe), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['GET'])
 def get_recipe(recipe_id):
@@ -176,54 +392,115 @@ def get_recipe(recipe_id):
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['PUT'])
 def update_recipe(recipe_id):
-    """Rezept aktualisieren"""
-    data = request.json
+    """Rezept aktualisieren (nur Owner!)"""
+    try:
+        data = request.json
 
-    conn = get_db()
-    c = conn.cursor()
+        # user_id ist required (aktueller User)
+        user_id = data.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'user_id is required'}), 400
 
-    c.execute('''
-        UPDATE recipes
-        SET title = ?, image = ?, notes = ?,
-            duration = ?, rating = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    ''', (
-        data.get('title'),
-        data.get('image'),
-        data.get('notes'),
-        data.get('duration'),
-        data.get('rating'),
-        recipe_id
-    ))
+        conn = get_db()
+        c = conn.cursor()
 
-    conn.commit()
+        # Rezept holen und Permission prüfen
+        c.execute('SELECT user_id, is_system FROM recipes WHERE id = ?', (recipe_id,))
+        recipe = c.fetchone()
 
-    # Aktualisiertes Rezept zurückgeben
-    c.execute('SELECT * FROM recipes WHERE id = ?', (recipe_id,))
-    recipe = dict(c.fetchone())
-    conn.close()
+        if not recipe:
+            conn.close()
+            return jsonify({'error': 'Recipe not found'}), 404
 
-    return jsonify(recipe)
+        # System-Rezepte können nicht bearbeitet werden
+        if recipe['is_system']:
+            conn.close()
+            return jsonify({'error': 'Cannot edit system recipe'}), 403
+
+        # Nur Owner darf bearbeiten
+        if recipe['user_id'] != user_id:
+            conn.close()
+            return jsonify({'error': 'Permission denied. You can only edit your own recipes.'}), 403
+
+        c.execute('''
+            UPDATE recipes
+            SET title = ?, image = ?, notes = ?,
+                duration = ?, rating = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (
+            data.get('title'),
+            data.get('image'),
+            data.get('notes'),
+            data.get('duration'),
+            data.get('rating'),
+            recipe_id
+        ))
+
+        conn.commit()
+
+        # Aktualisiertes Rezept mit User-Info zurückgeben
+        c.execute('''
+            SELECT
+                recipes.*,
+                users.name as user_name,
+                users.email as user_email,
+                users.avatar_color as user_avatar_color
+            FROM recipes
+            LEFT JOIN users ON recipes.user_id = users.id
+            WHERE recipes.id = ?
+        ''', (recipe_id,))
+        recipe = dict(c.fetchone())
+        conn.close()
+
+        return jsonify(recipe)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['DELETE'])
 def delete_recipe(recipe_id):
-    """Rezept löschen"""
-    conn = get_db()
-    c = conn.cursor()
+    """Rezept löschen (nur Owner!)"""
+    try:
+        # user_id aus Query-Parameter oder Header
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'user_id is required'}), 400
 
-    # Bild löschen falls vorhanden
-    c.execute('SELECT image FROM recipes WHERE id = ?', (recipe_id,))
-    row = c.fetchone()
-    if row and row['image']:
-        image_path = os.path.join(UPLOAD_FOLDER, row['image'])
-        if os.path.exists(image_path):
-            os.remove(image_path)
+        user_id = int(user_id)
 
-    c.execute('DELETE FROM recipes WHERE id = ?', (recipe_id,))
-    conn.commit()
-    conn.close()
+        conn = get_db()
+        c = conn.cursor()
 
-    return jsonify({'success': True})
+        # Rezept holen und Permission prüfen
+        c.execute('SELECT user_id, is_system, image FROM recipes WHERE id = ?', (recipe_id,))
+        recipe = c.fetchone()
+
+        if not recipe:
+            conn.close()
+            return jsonify({'error': 'Recipe not found'}), 404
+
+        # System-Rezepte können nicht gelöscht werden
+        if recipe['is_system']:
+            conn.close()
+            return jsonify({'error': 'Cannot delete system recipe'}), 403
+
+        # Nur Owner darf löschen
+        if recipe['user_id'] != user_id:
+            conn.close()
+            return jsonify({'error': 'Permission denied. You can only delete your own recipes.'}), 403
+
+        # Bild löschen falls vorhanden
+        if recipe['image']:
+            image_path = os.path.join(UPLOAD_FOLDER, recipe['image'])
+            if os.path.exists(image_path):
+                os.remove(image_path)
+
+        c.execute('DELETE FROM recipes WHERE id = ?', (recipe_id,))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/upload', methods=['POST'])
 def upload_image():

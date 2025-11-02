@@ -44,10 +44,14 @@
             text-align: center;
             overflow: hidden;
             padding: 0 10px;
+            margin-top: 70px;
         }
 
         /* Responsive: iPhone 15 Pro Max (430px) */
         @media (max-width: 430px) {
+            header {
+                margin-top: 60px;
+            }
             header h1 {
                 font-size: 2.6em;
             }
@@ -354,6 +358,31 @@
             transform: translateY(-3px);
             box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
             border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .recipe-author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .recipe-author-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .recipe-author-name {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85em;
+            font-weight: 500;
         }
 
         .recipe-title {
@@ -1072,9 +1101,479 @@
                 height: 400px;
             }
         }
+
+        /* =================================================================
+           PROFILE SELECTION SCREEN
+           ================================================================= */
+        .profile-selection {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .profile-selection.hidden {
+            display: none;
+        }
+
+        .profile-selection.fade-out {
+            opacity: 0;
+        }
+
+        .profile-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-title {
+            font-family: 'Sacramento', cursive;
+            font-size: 3em;
+            color: #667eea;
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+
+        .profile-subtitle {
+            color: #666;
+            text-align: center;
+            margin: 0 0 30px 0;
+            font-size: 0.95em;
+        }
+
+        .profile-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .profile-card {
+            background: #f8f9fa;
+            border: 3px solid transparent;
+            border-radius: 15px;
+            padding: 20px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .profile-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .profile-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 10px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+        }
+
+        .btn-new-profile,
+        .btn-guest {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-new-profile {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-new-profile:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-guest {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-guest:hover {
+            background: #dee2e6;
+        }
+
+        /* New Profile Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h2 {
+            margin: 0 0 20px 0;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: #333;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        /* User Info in Header */
+        .user-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 8px 15px;
+            border-radius: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            z-index: 100;
+        }
+
+        .user-info.hidden {
+            display: none;
+        }
+
+        .user-avatar-small {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .btn-logout {
+            background: #ffb3ba;
+            color: #8b0000;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-logout:hover {
+            background: #ff9a9f;
+            color: #6b0000;
+        }
+
+        @media (max-width: 768px) {
+            .profile-container {
+                padding: 20px 16px;
+                max-height: 85vh;
+            }
+
+            .profile-title {
+                font-size: 2em;
+                margin: 0 0 5px 0;
+            }
+
+            .profile-subtitle {
+                font-size: 0.85em;
+                margin: 0 0 15px 0;
+            }
+
+            .profile-list {
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+
+            .profile-card {
+                padding: 15px 8px;
+            }
+
+            .profile-avatar {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+                margin-bottom: 8px;
+            }
+
+            .profile-name {
+                font-size: 0.85em;
+            }
+
+            .profile-actions {
+                gap: 8px;
+            }
+
+            .btn-new-profile,
+            .btn-guest {
+                padding: 10px 16px;
+                font-size: 0.95em;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+
+            .modal-content h2 {
+                font-size: 1.3em;
+                margin-bottom: 15px;
+            }
+
+            .form-group {
+                margin-bottom: 15px;
+            }
+
+            .user-info {
+                top: 10px;
+                left: 10px;
+                font-size: 0.9em;
+                padding: 6px 12px;
+            }
+
+            .user-avatar-small {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+
+            .btn-logout {
+                padding: 4px 10px;
+                font-size: 0.8em;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Profile Selection Screen -->
+    <div id="profile-selection" class="profile-selection hidden">
+        <div class="profile-container">
+            <h1 class="profile-title">Wer bist du?</h1>
+            <p class="profile-subtitle">Wähle dein Profil oder erstelle ein neues</p>
+
+            <div id="profile-list" class="profile-list">
+                <!-- Profiles werden hier dynamisch geladen -->
+            </div>
+
+            <div class="profile-actions">
+                <button class="btn-new-profile" onclick="showNewProfileForm()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="16"/>
+                        <line x1="8" y1="12" x2="16" y2="12"/>
+                    </svg>
+                    Neues Profil
+                </button>
+                <button class="btn-guest" onclick="loginAsGuest()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Als Gast fortfahren
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Profile Modal -->
+    <div id="new-profile-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Neues Profil erstellen</h2>
+            <form id="new-profile-form" onsubmit="createNewProfile(event)">
+                <div class="form-group">
+                    <label for="new-profile-name">Name</label>
+                    <input type="text" id="new-profile-name" required minlength="2" placeholder="z.B. Sarah">
+                </div>
+                <div class="form-group">
+                    <label for="new-profile-email">Email (eindeutig)</label>
+                    <input type="email" id="new-profile-email" required placeholder="sarah@seaser.local">
+                </div>
+                <div class="form-group">
+                    <label>Farbe wählen</label>
+                    <div class="color-picker">
+                        <button type="button" class="color-option" data-color="#FFB6C1" style="background: #FFB6C1"></button>
+                        <button type="button" class="color-option" data-color="#AED9E0" style="background: #AED9E0"></button>
+                        <button type="button" class="color-option" data-color="#E0BBE4" style="background: #E0BBE4"></button>
+                        <button type="button" class="color-option" data-color="#FFDFD3" style="background: #FFDFD3"></button>
+                        <button type="button" class="color-option" data-color="#D4F1C5" style="background: #D4F1C5"></button>
+                        <button type="button" class="color-option" data-color="#FFF4A3" style="background: #FFF4A3"></button>
+                    </div>
+                    <input type="hidden" id="new-profile-color" value="#AED9E0">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeNewProfileModal()">Abbrechen</button>
+                    <button type="submit" class="btn-primary">Profil erstellen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Info (shown when logged in) -->
+    <div id="user-info" class="user-info hidden">
+        <div id="user-avatar-display" class="user-avatar-small"></div>
+        <span id="user-name-display" class="user-name"></span>
+        <button class="btn-logout" onclick="logout()">Abmelden</button>
+    </div>
+
     <!-- Refresh Button -->
     <button class="refresh-button" onclick="hardRefresh()" aria-label="Seite neu laden">
         <svg viewBox="0 0 24 24" fill="none" stroke="#B4C5D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1083,13 +1582,6 @@
     </button>
 
     <div class="container">
-        <!-- Breadcrumbs -->
-        <div class="breadcrumbs">
-            <a href="/">home</a>
-            <span>›</span>
-            <span class="current">natalies rezept tagebuch</span>
-        </div>
-
         <header>
             <h1><span class="word-natalies">natalies</span> <span class="word-rezept">rezept</span> <span class="word-tagebuch">tagebuch</span></h1>
         </header>
@@ -1266,9 +1758,188 @@
         let currentRecipeId = null;
         let deleteCallback = null;
         let panelMode = 'detail'; // 'detail' or 'edit'
+        let currentUser = null; // {id, name, email, avatar_color} or {guest: true}
+
+        // =================================================================
+        // MULTI-USER FUNKTIONEN
+        // =================================================================
+
+        // Check if user is logged in
+        function checkAuth() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showMainApp();
+                updateUserDisplay();
+            } else {
+                showProfileSelection();
+            }
+        }
+
+        // Load all users for profile selection
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users`);
+                const users = await response.json();
+                // Filter out test users (from pytest)
+                const realUsers = users.filter(u => !u.email.includes('@test.local'));
+                displayUserProfiles(realUsers);
+            } catch (error) {
+                console.error('Fehler beim Laden der User:', error);
+            }
+        }
+
+        // Display user profiles in selection screen
+        function displayUserProfiles(users) {
+            const container = document.getElementById('profile-list');
+            container.innerHTML = users.map(user => `
+                <div class="profile-card" onclick="selectUser(${user.id})">
+                    <div class="profile-avatar" style="background: ${user.avatar_color}">
+                        ${user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="profile-name">${user.name}</div>
+                </div>
+            `).join('');
+        }
+
+        // Select a user profile
+        async function selectUser(userId) {
+            try {
+                const response = await fetch(`${API_BASE}/users/${userId}`);
+                const user = await response.json();
+                currentUser = user;
+                localStorage.setItem('currentUser', JSON.stringify(user));
+
+                // Smooth fade-out transition
+                const profileScreen = document.getElementById('profile-selection');
+                profileScreen.classList.add('fade-out');
+                setTimeout(() => {
+                    showMainApp();
+                    updateUserDisplay();
+                }, 300);
+            } catch (error) {
+                console.error('Fehler beim Laden des Users:', error);
+                alert('Fehler beim Anmelden');
+            }
+        }
+
+        // Login as guest (read-only)
+        function loginAsGuest() {
+            currentUser = { guest: true, name: 'Gast', avatar_color: '#999' };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+            const profileScreen = document.getElementById('profile-selection');
+            profileScreen.classList.add('fade-out');
+            setTimeout(() => {
+                showMainApp();
+                updateUserDisplay();
+            }, 300);
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('currentUser');
+            currentUser = null;
+            location.reload();
+        }
+
+        // Show profile selection screen
+        function showProfileSelection() {
+            document.getElementById('profile-selection').classList.remove('hidden');
+            loadUsers();
+        }
+
+        // Show main app
+        function showMainApp() {
+            document.getElementById('profile-selection').classList.add('hidden');
+            document.getElementById('user-info').classList.remove('hidden');
+        }
+
+        // Update user display in header
+        function updateUserDisplay() {
+            if (!currentUser) return;
+
+            const avatarEl = document.getElementById('user-avatar-display');
+            const nameEl = document.getElementById('user-name-display');
+
+            avatarEl.style.background = currentUser.avatar_color;
+            avatarEl.textContent = currentUser.name.charAt(0).toUpperCase();
+            nameEl.textContent = currentUser.name;
+        }
+
+        // Show new profile form
+        function showNewProfileForm() {
+            document.getElementById('new-profile-modal').classList.remove('hidden');
+
+            // Setup color picker
+            document.querySelectorAll('.color-option').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.color-option').forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                    document.getElementById('new-profile-color').value = this.dataset.color;
+                });
+            });
+
+            // Select default color
+            document.querySelector('.color-option[data-color="#AED9E0"]').classList.add('selected');
+        }
+
+        // Close new profile modal
+        function closeNewProfileModal() {
+            document.getElementById('new-profile-modal').classList.add('hidden');
+            document.getElementById('new-profile-form').reset();
+            document.querySelectorAll('.color-option').forEach(b => b.classList.remove('selected'));
+        }
+
+        // Create new profile
+        async function createNewProfile(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('new-profile-name').value;
+            const email = document.getElementById('new-profile-email').value;
+            const color = document.getElementById('new-profile-color').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/users`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        email: email,
+                        avatar_color: color
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Fehler beim Erstellen');
+                }
+
+                const newUser = await response.json();
+                closeNewProfileModal();
+                await loadUsers();
+                selectUser(newUser.id);
+            } catch (error) {
+                console.error('Fehler beim Erstellen:', error);
+                alert(error.message || 'Fehler beim Erstellen des Profils');
+            }
+        }
+
+        // Get user initial for avatar
+        function getUserInitial(name) {
+            return name ? name.charAt(0).toUpperCase() : '?';
+        }
+
+        // =================================================================
+        // MODIFIZIERTE INITIAL-FUNKTION
+        // =================================================================
 
         // Initial laden
         document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication first
+            checkAuth();
+
+            // Then load data
             loadRecipes();
             loadTodos();
             loadDiaryEntries();
@@ -1325,8 +1996,16 @@
 
             container.innerHTML = recipes.map(recipe => {
                 const hasMeta = recipe.duration || recipe.rating;
+                const userInitial = recipe.user_name ? recipe.user_name.charAt(0).toUpperCase() : 'N';
+                const userColor = recipe.user_avatar_color || '#FFB6C1';
                 return `
                 <div class="recipe-card" onclick="showDetailPanel(${recipe.id})">
+                    ${recipe.user_name ? `
+                        <div class="recipe-author">
+                            <div class="recipe-author-avatar" style="background: ${userColor}">${userInitial}</div>
+                            <span class="recipe-author-name">${escapeHtml(recipe.user_name)}</span>
+                        </div>
+                    ` : ''}
                     <div class="recipe-title">${escapeHtml(recipe.title)}</div>
                     ${hasMeta ? `<div class="recipe-meta">
                         ${recipe.duration ? `<div class="recipe-duration">⏱️ ${formatDuration(recipe.duration)}</div>` : ''}
@@ -1417,7 +2096,22 @@
                 }
             }
 
+            // Check if current user owns this recipe
+            const isOwner = currentUser && !currentUser.guest && recipe.user_id === currentUser.id;
+
             content.innerHTML = `
+                ${recipe.user_name ? `
+                    <div class="detail-section">
+                        <div class="detail-label">Erstellt von</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="recipe-author-avatar" style="background: ${recipe.user_avatar_color || '#FFB6C1'}">
+                                ${recipe.user_name.charAt(0).toUpperCase()}
+                            </div>
+                            <span style="color: #D0D0D0; font-weight: 500;">${escapeHtml(recipe.user_name)}</span>
+                        </div>
+                    </div>
+                ` : ''}
+
                 <div class="detail-section">
                     <div class="detail-label">Rezept-Name</div>
                     <div class="detail-value">${escapeHtml(recipe.title)}</div>
@@ -1447,10 +2141,25 @@
                 ` : ''}
             `;
 
+            // Only show edit/delete for owner
             const actions = document.getElementById('panel-actions');
-            actions.innerHTML = `
-                <button class="primary" onclick="showEditPanel(${recipe.id})">Bearbeiten</button>
-            `;
+            if (isOwner) {
+                actions.innerHTML = `
+                    <button class="primary" onclick="showEditPanel(${recipe.id})">Bearbeiten</button>
+                `;
+            } else if (currentUser && currentUser.guest) {
+                actions.innerHTML = `
+                    <div style="color: rgba(255,255,255,0.6); font-size: 0.9em; text-align: center; padding: 10px;">
+                        Als Gast können Sie keine Rezepte bearbeiten
+                    </div>
+                `;
+            } else {
+                actions.innerHTML = `
+                    <div style="color: rgba(255,255,255,0.6); font-size: 0.9em; text-align: center; padding: 10px;">
+                        Nur ${escapeHtml(recipe.user_name || 'der Ersteller')} kann dieses Rezept bearbeiten
+                    </div>
+                `;
+            }
         }
 
         // Edit-Ansicht rendern
@@ -1726,12 +2435,19 @@
         async function saveRecipe(event) {
             event.preventDefault();
 
+            // Prevent guests from creating/editing
+            if (currentUser && currentUser.guest) {
+                alert('Als Gast können Sie keine Rezepte erstellen oder bearbeiten');
+                return;
+            }
+
             const recipeData = {
                 title: document.getElementById('recipe-title').value,
                 image: document.getElementById('recipe-image-filename').value,
                 notes: document.getElementById('recipe-notes').value,
                 duration: document.getElementById('recipe-duration').value || null,
-                rating: document.getElementById('recipe-rating').value || null
+                rating: document.getElementById('recipe-rating').value || null,
+                user_id: currentUser ? currentUser.id : 1  // Fallback to Natalie
             };
 
             try {
@@ -1765,12 +2481,19 @@
 
         // Rezept löschen
         function deleteRecipe() {
+            // Prevent guests from deleting
+            if (currentUser && currentUser.guest) {
+                alert('Als Gast können Sie keine Rezepte löschen');
+                return;
+            }
+
             showConfirm(
                 'Rezept löschen?',
                 'Diese Aktion kann nicht rückgängig gemacht werden.',
                 async () => {
                     try {
-                        const response = await fetch(`${API_BASE}/recipes/${currentRecipeId}`, {
+                        const userId = currentUser ? currentUser.id : 1;
+                        const response = await fetch(`${API_BASE}/recipes/${currentRecipeId}?user_id=${userId}`, {
                             method: 'DELETE'
                         });
 
@@ -1778,6 +2501,8 @@
                             closePanel();
                             loadRecipes();
                             loadStats();
+                        } else if (response.status === 403) {
+                            alert('Sie können nur Ihre eigenen Rezepte löschen');
                         } else {
                             alert('Fehler beim Löschen des Rezepts');
                         }
