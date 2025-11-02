@@ -115,6 +115,7 @@
         .tabs {
             display: flex;
             gap: 10px;
+            margin-top: 25px;
             margin-bottom: 30px;
             background: rgba(40, 50, 60, 0.5);
             backdrop-filter: blur(10px);
@@ -136,14 +137,38 @@
         }
 
         .tab:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
         }
 
-        .tab.active {
-            background: linear-gradient(135deg, #FFB6C1 0%, #FFD4E5 50%, #E0BBE4 100%);
+        /* Tab 1: Rezepte - Rosa/Pink */
+        .tab:nth-child(1) {
+            background: rgba(255, 182, 193, 0.3);
+        }
+
+        .tab:nth-child(1):hover {
+            background: rgba(255, 182, 193, 0.4);
+        }
+
+        .tab:nth-child(1).active {
+            background: linear-gradient(135deg, #FFB6C1 0%, #FFC9D6 100%);
             color: #4a4a4a;
             box-shadow: 0 4px 15px rgba(255, 182, 193, 0.4);
+        }
+
+        /* Tab 2: TODOs - Grün */
+        .tab:nth-child(2) {
+            background: rgba(180, 231, 206, 0.3);
+        }
+
+        .tab:nth-child(2):hover {
+            background: rgba(180, 231, 206, 0.4);
+        }
+
+        .tab:nth-child(2).active {
+            background: linear-gradient(135deg, #B4E7CE 0%, #C9F4AA 100%);
+            color: #2d5016;
+            box-shadow: 0 4px 15px rgba(180, 231, 206, 0.4);
         }
 
         .tab-content {
@@ -965,8 +990,8 @@
         <main>
             <!-- Tab Navigation -->
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('rezepte')">📖 Rezepte</button>
-                <button class="tab" onclick="switchTab('todos')">✅ TODOs</button>
+                <button class="tab active" onclick="switchTab('rezepte')">Rezepte</button>
+                <button class="tab" onclick="switchTab('todos')">TODOs</button>
             </div>
 
             <!-- Rezepte Tab -->
