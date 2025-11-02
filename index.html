@@ -34,6 +34,10 @@
             max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
+            /* Macht die Schrift visuell fetter */
+            -webkit-text-stroke: 0.5px currentColor;
+            text-stroke: 0.5px currentColor;
+            letter-spacing: 0.02em;
         }
 
         header {
@@ -75,10 +79,11 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            filter: drop-shadow(0.5px 0.5px 0 #FFB6C1)
-                    drop-shadow(-0.5px -0.5px 0 #FFC9D6)
-                    drop-shadow(0.5px -0.5px 0 #FFB6C1)
-                    drop-shadow(-0.5px 0.5px 0 #FFC9D6);
+            filter: drop-shadow(1px 1px 0 #FFB6C1)
+                    drop-shadow(-1px -1px 0 #FFC9D6)
+                    drop-shadow(1px -1px 0 #FFB6C1)
+                    drop-shadow(-1px 1px 0 #FFC9D6)
+                    drop-shadow(0 0 8px rgba(255, 182, 193, 0.5));
         }
 
         .word-rezept {
@@ -86,10 +91,11 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            filter: drop-shadow(0.5px 0.5px 0 #E0BBE4)
-                    drop-shadow(-0.5px -0.5px 0 #D5AAFF)
-                    drop-shadow(0.5px -0.5px 0 #E0BBE4)
-                    drop-shadow(-0.5px 0.5px 0 #D5AAFF);
+            filter: drop-shadow(1px 1px 0 #E0BBE4)
+                    drop-shadow(-1px -1px 0 #D5AAFF)
+                    drop-shadow(1px -1px 0 #E0BBE4)
+                    drop-shadow(-1px 1px 0 #D5AAFF)
+                    drop-shadow(0 0 8px rgba(224, 187, 228, 0.5));
         }
 
         .word-tagebuch {
@@ -97,10 +103,11 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            filter: drop-shadow(0.5px 0.5px 0 #AED9E0)
-                    drop-shadow(-0.5px -0.5px 0 #C2E9FB)
-                    drop-shadow(0.5px -0.5px 0 #AED9E0)
-                    drop-shadow(-0.5px 0.5px 0 #C2E9FB);
+            filter: drop-shadow(1px 1px 0 #AED9E0)
+                    drop-shadow(-1px -1px 0 #C2E9FB)
+                    drop-shadow(1px -1px 0 #AED9E0)
+                    drop-shadow(-1px 1px 0 #C2E9FB)
+                    drop-shadow(0 0 8px rgba(174, 217, 224, 0.5));
         }
 
 
