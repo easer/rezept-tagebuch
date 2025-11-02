@@ -976,6 +976,11 @@
 
             <!-- TODOs Tab -->
             <div id="tab-todos" class="tab-content">
+                <!-- TODO Controls -->
+                <div class="controls" style="margin-bottom: 25px;">
+                    <button onclick="showAddTodoDialog()">➕ Neues TODO</button>
+                </div>
+
                 <!-- Priorität I -->
                 <div class="todo-section">
                     <h3>
@@ -1055,6 +1060,36 @@
             </div>
             <div class="document-viewer-content">
                 <iframe id="document-viewer-iframe" src=""></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- TODO Dialog -->
+    <div id="todo-dialog" class="confirm-dialog">
+        <div class="confirm-content">
+            <div class="confirm-icon">📝</div>
+            <div class="confirm-title">Neues TODO</div>
+            <div style="margin-bottom: 20px;">
+                <form id="todo-form" onsubmit="saveTodo(event)">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="todo-text" style="display: block; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">Beschreibung</label>
+                        <input type="text" id="todo-text" required placeholder="Was möchtest du erledigen?"
+                               style="width: 100%; padding: 12px; background: rgba(50, 60, 70, 0.7); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: white; font-size: 1em;">
+                    </div>
+                    <div class="form-group">
+                        <label for="todo-priority" style="display: block; color: rgba(255, 255, 255, 0.8); margin-bottom: 8px;">Priorität</label>
+                        <select id="todo-priority" required
+                                style="width: 100%; padding: 12px; background: rgba(50, 60, 70, 0.7); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: white; font-size: 1em;">
+                            <option value="1">Priorität I (Hoch)</option>
+                            <option value="2" selected>Priorität II (Mittel)</option>
+                            <option value="3">Priorität III (Niedrig)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="confirm-actions">
+                <button class="btn-cancel" onclick="closeTodoDialog()">Abbrechen</button>
+                <button class="btn-danger" style="background: linear-gradient(135deg, #B4E7CE 0%, #C9F4AA 100%); color: #2d5016;" onclick="document.getElementById('todo-form').requestSubmit()">Speichern</button>
             </div>
         </div>
     </div>
@@ -1709,9 +1744,9 @@
 
         function renderTodoSection(priority, todos) {
             const sectionMap = {
-                1: document.querySelector('.todo-section:nth-child(1) .todo-list'),
-                2: document.querySelector('.todo-section:nth-child(2) .todo-list'),
-                3: document.querySelector('.todo-section:nth-child(3) .todo-list')
+                1: document.querySelector('.todo-section:nth-child(2) .todo-list'),
+                2: document.querySelector('.todo-section:nth-child(3) .todo-list'),
+                3: document.querySelector('.todo-section:nth-child(4) .todo-list')
             };
 
             const list = sectionMap[priority];
@@ -1725,6 +1760,10 @@
                         ${todo.completed ? '✓' : ''}
                     </div>
                     <div class="todo-text" style="${todo.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${escapeHtml(todo.text)}</div>
+                    <button onclick="deleteTodo(${todo.id})"
+                            style="margin-left: auto; background: linear-gradient(135deg, #FFB5C0 0%, #FFC9D6 100%); color: #8b3a46; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 0.85em; font-weight: 600; transition: all 0.3s; flex-shrink: 0;">
+                        🗑️ Löschen
+                    </button>
                 </li>
             `).join('');
         }
@@ -1749,6 +1788,67 @@
                 }
             } catch (error) {
                 console.error('Fehler beim Aktualisieren des TODOs:', error);
+            }
+        }
+
+        // TODO Dialog öffnen
+        function showAddTodoDialog() {
+            document.getElementById('todo-text').value = '';
+            document.getElementById('todo-priority').value = '2';
+            document.getElementById('todo-dialog').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // TODO Dialog schließen
+        function closeTodoDialog() {
+            document.getElementById('todo-dialog').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // TODO speichern
+        async function saveTodo(event) {
+            event.preventDefault();
+            const text = document.getElementById('todo-text').value;
+            const priority = parseInt(document.getElementById('todo-priority').value);
+
+            try {
+                const response = await fetch(`${API_BASE}/todos`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text, priority, completed: 0})
+                });
+
+                if (response.ok) {
+                    closeTodoDialog();
+                    loadTodos();
+                } else {
+                    alert('Fehler beim Speichern des TODOs');
+                }
+            } catch (error) {
+                console.error('Fehler beim Speichern:', error);
+                alert('Fehler beim Speichern des TODOs');
+            }
+        }
+
+        // TODO löschen
+        async function deleteTodo(id) {
+            if (!confirm('Möchtest du dieses TODO wirklich löschen?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/todos/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadTodos();
+                } else {
+                    alert('Fehler beim Löschen des TODOs');
+                }
+            } catch (error) {
+                console.error('Fehler beim Löschen:', error);
+                alert('Fehler beim Löschen des TODOs');
             }
         }
 
