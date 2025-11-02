@@ -23,6 +23,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Datenbank initialisieren
 def init_db():
     conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS recipes (
