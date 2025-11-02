@@ -996,7 +996,7 @@
             if (recipe.image) {
                 const fileExt = recipe.image.split('.').pop().toLowerCase();
                 const isPdf = fileExt === 'pdf';
-                const isDoc = ['doc', 'docx', 'odt'].includes(fileExt);
+                const isDoc = ['doc', 'docx', 'odt', 'txt'].includes(fileExt);
                 const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt);
 
                 if (isPdf || isDoc) {
@@ -1005,7 +1005,7 @@
                             <div class="detail-label">REZEPT</div>
                             <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
                                 <input type="checkbox" checked disabled style="width: 20px; height: 20px; cursor: default;">
-                                <button type="button" onclick="showDocumentViewer('${API_BASE}/uploads/${recipe.image}', '${escapeHtml(recipe.title)}')" style="width: 120px; background: linear-gradient(135deg, #A8E6CF 0%, #DCEDC8 100%); color: #2d5016; border: none; border-radius: 8px; padding: 0 12px; cursor: pointer; font-size: 0.9em; font-weight: 600; height: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(168, 230, 207, 0.4); transition: all 0.3s;">Öffnen</button>
+                                <button type="button" onclick="openDocumentViewer('${recipe.image}', '${escapeHtml(recipe.title)}')" style="width: 120px; background: linear-gradient(135deg, #A8E6CF 0%, #DCEDC8 100%); color: #2d5016; border: none; border-radius: 8px; padding: 0 12px; cursor: pointer; font-size: 0.9em; font-weight: 600; height: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(168, 230, 207, 0.4); transition: all 0.3s;">Öffnen</button>
                             </div>
                         </div>
                     `;
@@ -1119,7 +1119,7 @@
 
                     <div class="form-group file-group">
                         <label for="recipe-image">UPLOADER</label>
-                        <input type="file" id="recipe-image" accept="image/*,.pdf,.doc,.docx,.odt" onchange="previewFile(event)">
+                        <input type="file" id="recipe-image" accept="image/*,.pdf,.doc,.docx,.odt,.txt" onchange="previewFile(event)">
                     </div>
 
                     <div id="file-preview" class="image-preview">
@@ -1148,7 +1148,7 @@
                 // PDF-Status initialisieren falls bereits eine Datei vorhanden ist
                 if (isEdit && recipe.image) {
                     const fileExt = recipe.image.split('.').pop().toLowerCase();
-                    const isPdfOrDoc = ['pdf', 'doc', 'docx', 'odt'].includes(fileExt);
+                    const isPdfOrDoc = ['pdf', 'doc', 'docx', 'odt', 'txt'].includes(fileExt);
                     if (isPdfOrDoc) {
                         updatePDFStatus(true, recipe.image, recipe.title);
                     } else {
@@ -1171,7 +1171,7 @@
         function renderFilePreview(filename, title) {
             const fileExt = filename.split('.').pop().toLowerCase();
             const isPdf = fileExt === 'pdf';
-            const isDoc = ['doc', 'docx', 'odt'].includes(fileExt);
+            const isDoc = ['doc', 'docx', 'odt', 'txt'].includes(fileExt);
             const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt);
 
             if (isImage) {
@@ -1190,7 +1190,7 @@
         }
 
         // PDF-Status aktualisieren
-        let currentPDFUrl = '';
+        let currentPDFFilename = '';
         let currentPDFTitle = '';
 
         function updatePDFStatus(hasPDF, filename = '', title = '') {
@@ -1209,7 +1209,7 @@
                 openBtn.style.cursor = 'pointer';
                 deleteBtn.style.opacity = '1';
                 deleteBtn.style.cursor = 'pointer';
-                currentPDFUrl = `${API_BASE}/uploads/${filename}`;
+                currentPDFFilename = filename;
                 currentPDFTitle = title;
             } else {
                 checkbox.checked = false;
@@ -1219,14 +1219,14 @@
                 openBtn.style.cursor = 'not-allowed';
                 deleteBtn.style.opacity = '0.5';
                 deleteBtn.style.cursor = 'not-allowed';
-                currentPDFUrl = '';
+                currentPDFFilename = '';
                 currentPDFTitle = '';
             }
         }
 
         function openCurrentPDF() {
-            if (currentPDFUrl) {
-                showDocumentViewer(currentPDFUrl, currentPDFTitle);
+            if (currentPDFFilename) {
+                openDocumentViewer(currentPDFFilename, currentPDFTitle);
             }
         }
 
@@ -1238,7 +1238,7 @@
             const fileExt = file.name.split('.').pop().toLowerCase();
             const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt);
             const isPdf = fileExt === 'pdf';
-            const isDoc = ['doc', 'docx', 'odt'].includes(fileExt);
+            const isDoc = ['doc', 'docx', 'odt', 'txt'].includes(fileExt);
 
             // Lokale Vorschau für Bilder (mit X-Button zum Entfernen)
             if (isImage) {
@@ -1461,6 +1461,14 @@
         function showDocumentViewer(url, title) {
             document.getElementById('document-viewer-title').textContent = title;
             document.getElementById('document-viewer-iframe').src = url;
+            document.getElementById('document-viewer-overlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Document Viewer öffnen
+        function openDocumentViewer(filename, title) {
+            document.getElementById('document-viewer-title').textContent = title || 'Dokument';
+            document.getElementById('document-viewer-iframe').src = API_BASE + '/uploads/' + filename;
             document.getElementById('document-viewer-overlay').classList.add('active');
             document.body.style.overflow = 'hidden';
         }
