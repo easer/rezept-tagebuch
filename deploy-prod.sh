@@ -30,8 +30,7 @@ podman tag seaser-rezept-tagebuch:v$VERSION seaser-rezept-tagebuch:latest
 echo ""
 echo "🔄 Step 4/5: Running database migrations..."
 export DB_PATH="/home/gabor/data/rezept-tagebuch/rezepte.db"
-python3 -m pip install --quiet alembic==1.13.1 2>/dev/null || true
-alembic upgrade head
+python3 -m alembic upgrade head
 echo "  ✅ Migrations completed"
 
 # 4. Prod Container neu starten

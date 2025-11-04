@@ -50,7 +50,7 @@ case "$1" in
         ENV=${2:-dev}
         set_db_path "$ENV"
         echo "📈 Applying migrations..."
-        alembic upgrade head
+        python3 -m alembic upgrade head
         echo -e "${GREEN}✅ Migrations applied successfully${NC}"
         ;;
 
@@ -58,7 +58,7 @@ case "$1" in
         ENV=${2:-dev}
         set_db_path "$ENV"
         echo "📉 Rolling back last migration..."
-        alembic downgrade -1
+        python3 -m alembic downgrade -1
         echo -e "${GREEN}✅ Migration rolled back${NC}"
         ;;
 
@@ -66,14 +66,14 @@ case "$1" in
         ENV=${2:-dev}
         set_db_path "$ENV"
         echo "📍 Current migration version:"
-        alembic current
+        python3 -m alembic current
         ;;
 
     history)
         ENV=${2:-dev}
         set_db_path "$ENV"
         echo "📜 Migration history:"
-        alembic history
+        python3 -m alembic history
         ;;
 
     create)
@@ -83,7 +83,7 @@ case "$1" in
             exit 1
         fi
         echo "📝 Creating new migration: $2"
-        alembic revision -m "$2"
+        python3 -m alembic revision -m "$2"
         echo -e "${GREEN}✅ Migration file created in migrations/versions/${NC}"
         ;;
 
