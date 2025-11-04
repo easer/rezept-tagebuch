@@ -321,6 +321,277 @@ def delete_[entität](id):
 - Zeigt nur: Name, Datum
 - Bilder und Notizen werden ausgeblendet
 
+## TODO Liste UX Pattern
+
+### Swipe-to-Delete Geste
+
+TODOs können durch Wischen nach links gelöscht werden. Dies bietet eine intuitive mobile-first UX.
+
+**Implementierung:**
+```javascript
+function initSwipeToDelete(item) {
+    const content = item.querySelector('.todo-content');
+    let startX = 0;
+    let currentX = 0;
+    let isSwiping = false;
+    let hasMoved = false;
+    const deleteThreshold = -100;  // Pixel nach links zum Löschen
+    const moveThreshold = 10;      // Minimum Bewegung für Geste
+
+    // Touch und Mouse Events registrieren
+    content.addEventListener('touchstart', handleTouchStart);
+    content.addEventListener('touchmove', handleTouchMove);
+    content.addEventListener('touchend', handleTouchEnd);
+
+    // Mouse-Support für Desktop
+    content.addEventListener('mousedown', handleMouseStart);
+}
+```
+
+**Wichtige Parameter:**
+- `deleteThreshold: -100px` - Wie weit nach links gewischt werden muss
+- `moveThreshold: 10px` - Verhindert versehentliches Löschen bei einfachem Touch
+- `hasMoved: boolean` - Nur löschen wenn echte Swipe-Bewegung stattfand
+
+**Visuelle Feedback:**
+- Roter Hintergrund mit "Löschen" Text erscheint beim Wischen
+- Smooth transitions mit CSS `transform: translateX()`
+
+### Prioritäten mit Pastellfarben
+
+TODOs haben keine separaten Sektionen mehr. Stattdessen wird die Priorität durch farbige Borders visualisiert.
+
+**Border-Farben:**
+```css
+.todo-item[data-priority="1"] {
+    border-left: 4px solid #FFB5C0; /* Rosa Pastell - Hoch */
+}
+
+.todo-item[data-priority="2"] {
+    border-left: 4px solid #FFE66D; /* Gelb Pastell - Mittel */
+}
+
+.todo-item[data-priority="3"] {
+    border-left: 4px solid #AED9E0; /* Blau Pastell - Niedrig */
+}
+```
+
+**Sortierung:**
+- TODOs werden nach Priorität sortiert (1 → 2 → 3)
+- Innerhalb gleicher Priorität nach Erstellungsdatum
+
+**Vorteile:**
+- Kompaktere Darstellung ohne Sektions-Header
+- Visuelle Gruppierung durch Farbe
+- Schneller Überblick über wichtige Aufgaben
+
+### Kompakte TODO-Darstellung
+
+Alle TODOs haben eine feste Höhe für konsistente Darstellung.
+
+**CSS:**
+```css
+.todo-item {
+    height: 56px;
+    overflow: hidden;
+    touch-action: pan-y;  /* Nur vertikales Scrollen erlauben */
+}
+
+.todo-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;  /* Maximal 2 Zeilen */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+```
+
+**Vorteile:**
+- Alle TODO-Items haben gleiche Höhe (56px)
+- Maximale 2 Zeilen Text sichtbar
+- Lange Texte werden mit "..." gekürzt
+- Voller Text im Detail-View sichtbar
+
+### TODO Detail-View
+
+Click auf TODO öffnet Slide-Panel mit vollständigem Text und Bearbeitungsmöglichkeit.
+
+**Features:**
+- Vollständiger TODO-Text lesbar
+- In-Place Bearbeitung (kein separates Edit-Formular)
+- Priorität ändern
+- Erledigt-Status togglen
+- Löschen mit Bestätigung
+
+**API-Endpoint:**
+```python
+@app.route('/api/todos/<int:todo_id>', methods=['GET'])
+def get_todo(todo_id):
+    """Einzelnes TODO abrufen"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM todos WHERE id = ?', (todo_id,))
+    todo = c.fetchone()
+    if todo:
+        return jsonify(dict(todo))
+    return jsonify({'error': 'TODO not found'}), 404
+```
+
+## Sticky Header & Scrolling Layout
+
+### Architektur
+
+Die App verwendet ein flexbox-basiertes Layout mit sticky Header und scrollbarem Content.
+
+**Container-Struktur:**
+```css
+.container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+header {
+    padding-top: 40px;  /* Abstand von oben */
+    flex: 0 0 auto;     /* Nimmt nur benötigten Platz */
+    z-index: 10;
+}
+
+.tabs {
+    flex: 0 0 auto;
+    margin-top: 25px;
+}
+
+.tab-content {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;   /* Nur Content scrollt */
+    flex: 1;            /* Nimmt restlichen Platz */
+    min-height: 0;      /* Wichtig für Flexbox-Shrinking */
+}
+```
+
+**Wichtige Regeln:**
+1. `overflow: hidden` auf Container verhindert doppeltes Scrollen
+2. `flex: 0 0 auto` auf Header/Tabs verhindert Shrinking
+3. `flex: 1` auf Content füllt restlichen Raum
+4. `overflow-y: auto` nur auf Content aktiviert Scrollen
+5. `min-height: 0` ermöglicht korrektes Shrinking
+
+### Globale Suchleiste
+
+Die Suchleiste ist sticky und bleibt beim Scrollen sichtbar.
+
+**Position:**
+```css
+.global-search {
+    background: rgba(40, 50, 60, 0.7);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 15px 20px;
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 50;  /* Über Content, unter Modals */
+}
+```
+
+**Input-Field Best Practices:**
+```html
+<input type="text"
+       id="global-search-input"
+       autocomplete="off"
+       autocorrect="off"
+       autocapitalize="off"
+       spellcheck="false">
+```
+
+**Wichtig:**
+- `autocomplete="off"` verhindert Browser-Autofill-Dropdown
+- `z-index: 50` sorgt dafür, dass Input über Content liegt
+- `box-sizing: border-box` für korrekte Breiten-Berechnung
+- `caret-color: white` für sichtbaren Cursor
+
+### Floating Action Button (FAB)
+
+Ein globaler Plus-Button ersetzt die individuellen "Neu"-Buttons in jedem Tab.
+
+**CSS:**
+```css
+.floating-add-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFB5C0 0%, #FFC9D6 100%);
+    box-shadow: 0 4px 20px rgba(255, 181, 192, 0.5);
+    z-index: 100;
+    transition: transform 0.3s ease;
+}
+
+.floating-add-btn:hover {
+    transform: scale(1.1) rotate(90deg);
+}
+```
+
+**Context-Aware Behavior:**
+```javascript
+function handleFloatingAdd() {
+    switch(currentTab) {
+        case 'tagebuch': showAddDiaryPanel(); break;
+        case 'rezepte': showAddPanel(); break;
+        case 'todos': showAddTodoDialog(); break;
+    }
+}
+```
+
+**Vorteile:**
+- Ein Button für alle Tabs
+- Immer an gleicher Position (Muskelgedächtnis)
+- Freier Content-Bereich (keine Button-Zeile)
+- Smooth hover-Animation
+
+## Globale Kontext-Suche
+
+Die Suche passt sich automatisch an den aktiven Tab an.
+
+**Implementierung:**
+```javascript
+function handleGlobalSearch() {
+    const searchTerm = document.getElementById('global-search-input').value;
+
+    switch(currentTab) {
+        case 'tagebuch': loadDiaryEntries(searchTerm); break;
+        case 'rezepte': filterRecipes(searchTerm); break;
+        case 'todos': filterTodos(searchTerm); break;
+    }
+}
+```
+
+**TODO-Filterung:**
+```javascript
+function filterTodos(searchTerm) {
+    if (!searchTerm.trim()) {
+        renderTodos(allTodos);  // Alle anzeigen
+        return;
+    }
+    const filtered = allTodos.filter(todo =>
+        todo.text.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    renderTodos(filtered);
+}
+```
+
+**Tab-Switch Behavior:**
+- Suchfeld wird beim Tab-Wechsel geleert
+- Verhindert verwirrende Suchergebnisse in falschem Tab
+
+**Placeholder:**
+- Universell: "🔍 Suchen..."
+- Context-Aware Suche durch Tab-Erkennung
+
 ## Entwicklungs-Workflow
 
 1. **Immer globales CSS nutzen** - Keine inline-styles für Layout-Properties
@@ -330,3 +601,6 @@ def delete_[entität](id):
 5. **CRUD-Pattern befolgen** - Alle Entitäten verwenden das gleiche Pattern
 6. **Pastellfarben verwenden** - Alle visuellen Elemente folgen dem Pastellfarben-Schema
 7. **Kompakt halten** - Karten und Übersichten sollen kompakt und übersichtlich sein
+8. **Swipe-Gesten testen** - Mindestens 10px Bewegung vor Aktion erforderlich
+9. **Autocomplete deaktivieren** - Bei Suchfeldern immer `autocomplete="off"` setzen
+10. **Z-Index Management** - Header: 10, Search: 50, FAB: 100, Modals: 1000

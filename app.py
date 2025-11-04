@@ -574,6 +574,18 @@ def create_todo():
     conn.close()
     return jsonify(todo), 201
 
+@app.route('/api/todos/<int:todo_id>', methods=['GET'])
+def get_todo(todo_id):
+    """Einzelnes TODO abrufen"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM todos WHERE id = ?', (todo_id,))
+    todo = c.fetchone()
+    conn.close()
+    if todo:
+        return jsonify(dict(todo))
+    return jsonify({'error': 'TODO not found'}), 404
+
 @app.route('/api/todos/<int:todo_id>', methods=['PUT'])
 def update_todo(todo_id):
     """TODO aktualisieren"""
