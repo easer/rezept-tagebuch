@@ -20,6 +20,21 @@ Development → Test in Dev → Deploy to Prod → (Rollback if needed)
 - **Versionierung**: Datum-basierte Tags (z.B. v25.11.04)
 - **Rollback**: Zurück zu jeder getaggten Version
 
+### Git Branch-Strategie
+
+Das Projekt verwendet zwei Haupt-Branches:
+
+| Branch       | Zweck                                    | Deploy-Ziel |
+|--------------|------------------------------------------|-------------|
+| `main`       | Aktive Entwicklung, neue Features       | DEV         |
+| `production` | Stabile, getestete Releases              | PROD        |
+
+**Workflow:**
+1. Entwickle auf `main` Branch
+2. Teste in Dev-Environment (`./build-dev.sh`)
+3. Merge `main` → `production` für Prod-Deployment
+4. Deploy Production (`./deploy-prod.sh`)
+
 ---
 
 ## 📦 Container & Images
@@ -129,6 +144,40 @@ podman logs --tail 20 seaser-rezept-tagebuch
 # App erreichbar?
 # Browser: http://192.168.2.139:8000/rezept-tagebuch/
 ```
+
+---
+
+### Workflow 2a: Production Release (mit Branch-Merge)
+
+**Szenario:** Du möchtest stabile Features von `main` nach `production` bringen.
+
+```bash
+cd /home/gabor/easer_projekte/rezept-tagebuch
+
+# 1. Stelle sicher, dass main aktuell ist
+git checkout main
+git pull origin main
+
+# 2. Wechsle zu production Branch
+git checkout production
+
+# 3. Merge main in production
+git merge main
+
+# 4. Push production Branch
+git push origin production
+
+# 5. Deploy auf Production
+./deploy-prod.sh 25.11.05
+
+# App ist jetzt live: http://192.168.2.139:8000/rezept-tagebuch/
+```
+
+**Vorteile:**
+- ✅ `production` Branch spiegelt exakt den Prod-Stand
+- ✅ Klare Trennung zwischen Dev (`main`) und Prod (`production`)
+- ✅ Einfaches Rollback zu vorherigen production-Commits
+- ✅ Git-History zeigt deutlich, was in Prod deployed ist
 
 ---
 
