@@ -1,0 +1,12 @@
+[Unit]
+Description=Rezept Tagebuch Daily TheMealDB Import
+After=network.target seaser-rezept-tagebuch.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/curl -X POST http://localhost/rezept-tagebuch/api/recipes/daily-import
+ExecStartPost=/usr/bin/curl -X POST http://localhost/rezept-tagebuch/api/recipes/cleanup-old-imports
+User=gabor
+
+[Install]
+WantedBy=multi-user.target

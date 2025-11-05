@@ -8,8 +8,10 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
+import requests
+import shutil
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
@@ -45,6 +47,14 @@ def init_db():
             VALUES ('natalie@seaser.local', 'Natalie', '#FFB6C1')
         ''')
 
+    # Migration: System Import User erstellen (für TheMealDB Rezepte)
+    c.execute("SELECT COUNT(*) as count FROM users WHERE email = 'import@seaser.local'")
+    if c.fetchone()['count'] == 0:
+        c.execute('''
+            INSERT INTO users (email, name, avatar_color)
+            VALUES ('import@seaser.local', 'Rezept Import', '#64C8FF')
+        ''')
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS recipes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,6 +83,12 @@ def init_db():
         c.execute('UPDATE recipes SET user_id = 1 WHERE user_id IS NULL')
     if 'is_system' not in columns:
         c.execute('ALTER TABLE recipes ADD COLUMN is_system BOOLEAN DEFAULT 0')
+
+    # Migration: Add auto_imported and imported_at for daily TheMealDB imports
+    if 'auto_imported' not in columns:
+        c.execute('ALTER TABLE recipes ADD COLUMN auto_imported BOOLEAN DEFAULT 0')
+    if 'imported_at' not in columns:
+        c.execute('ALTER TABLE recipes ADD COLUMN imported_at DATE')
 
     # TODOs Tabelle erstellen
     c.execute('''
@@ -956,6 +972,137 @@ def global_search():
         'todos': todos,
         'query': query
     })
+
+# TheMealDB Daily Import
+THEMEALDB_API = 'https://www.themealdb.com/api/json/v1/1'
+
+@app.route('/api/recipes/daily-import', methods=['POST'])
+def daily_recipe_import():
+    """Import ein zufälliges Rezept von TheMealDB"""
+    try:
+        # 1. Fetch random recipe from TheMealDB
+        response = requests.get(f'{THEMEALDB_API}/random.php', timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        if not data.get('meals'):
+            return jsonify({'error': 'No recipe found'}), 404
+
+        meal = data['meals'][0]
+
+        # 2. Download image
+        image_url = meal.get('strMealThumb')
+        image_filename = None
+
+        if image_url:
+            try:
+                img_response = requests.get(image_url, timeout=10, stream=True)
+                img_response.raise_for_status()
+
+                # Generate unique filename
+                image_filename = f"{uuid.uuid4()}.jpg"
+                image_path = os.path.join(UPLOAD_FOLDER, image_filename)
+
+                # Save image
+                with open(image_path, 'wb') as f:
+                    shutil.copyfileobj(img_response.raw, f)
+            except Exception as e:
+                print(f"Image download failed: {e}")
+                image_filename = None
+
+        # 3. Parse ingredients and instructions
+        ingredients = []
+        for i in range(1, 21):
+            ingredient = meal.get(f'strIngredient{i}', '').strip()
+            measure = meal.get(f'strMeasure{i}', '').strip()
+            if ingredient:
+                ingredients.append(f"{measure} {ingredient}".strip())
+
+        notes = f"{meal.get('strInstructions', '')}\n\n"
+        if ingredients:
+            notes += "Zutaten:\n" + "\n".join(f"- {ing}" for ing in ingredients)
+
+        # Add source info
+        notes += f"\n\nQuelle: TheMealDB\nKategorie: {meal.get('strCategory', 'N/A')}\nRegion: {meal.get('strArea', 'N/A')}"
+
+        # 4. Save to database
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Get import user ID (should be 2)
+        cursor.execute("SELECT id FROM users WHERE email = 'import@seaser.local'")
+        import_user = cursor.fetchone()
+        import_user_id = import_user['id'] if import_user else 1
+
+        cursor.execute('''
+            INSERT INTO recipes (title, image, notes, user_id, auto_imported, imported_at, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 1, DATE('now'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ''', (meal.get('strMeal', 'Imported Recipe'), image_filename, notes, import_user_id))
+
+        recipe_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'recipe_id': recipe_id,
+            'title': meal.get('strMeal'),
+            'source': 'TheMealDB',
+            'imported_at': datetime.now().date().isoformat()
+        })
+
+    except Exception as e:
+        print(f"Daily import failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/recipes/cleanup-old-imports', methods=['POST'])
+def cleanup_old_imports():
+    """Lösche auto-importierte Rezepte älter als 7 Tage ohne Tagebuch-Eintrag"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Find old auto-imported recipes without diary entries
+        cutoff_date = (datetime.now() - timedelta(days=7)).date().isoformat()
+
+        cursor.execute('''
+            SELECT r.id, r.title, r.image
+            FROM recipes r
+            WHERE r.auto_imported = 1
+            AND r.imported_at < ?
+            AND NOT EXISTS (
+                SELECT 1 FROM diary_entries d WHERE d.recipe_id = r.id
+            )
+        ''', (cutoff_date,))
+
+        old_recipes = cursor.fetchall()
+        deleted_count = 0
+
+        for recipe in old_recipes:
+            recipe_id, title, image = recipe
+
+            # Delete image file if exists
+            if image:
+                image_path = os.path.join(UPLOAD_FOLDER, image)
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+
+            # Delete recipe
+            cursor.execute('DELETE FROM recipes WHERE id = ?', (recipe_id,))
+            deleted_count += 1
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'deleted_count': deleted_count,
+            'cutoff_date': cutoff_date
+        })
+
+    except Exception as e:
+        print(f"Cleanup failed: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # Server starten
 if __name__ == '__main__':
