@@ -850,6 +850,113 @@ def get_version():
 
     return jsonify({'version': version})
 
+@app.route('/api/search')
+def global_search():
+    """Globale Suche über Rezepte, Tagebuch und TODOs"""
+    query = request.args.get('q', '').strip()
+
+    if not query or len(query) < 2:
+        return jsonify({
+            'recipes': [],
+            'diary_entries': [],
+            'todos': []
+        })
+
+    conn = get_db()
+    c = conn.cursor()
+
+    # Wildcard für LIKE-Suche
+    search_pattern = f'%{query}%'
+
+    # Suche in Rezepten
+    c.execute('''
+        SELECT id, title, notes, image, rating, duration
+        FROM recipes
+        WHERE title LIKE ? OR notes LIKE ?
+        ORDER BY
+            CASE
+                WHEN title LIKE ? THEN 1
+                ELSE 2
+            END,
+            title
+        LIMIT 20
+    ''', (search_pattern, search_pattern, f'{query}%'))
+
+    recipes = []
+    for row in c.fetchall():
+        # Snippet aus notes erstellen (erste 100 Zeichen)
+        notes = row['notes'] or ''
+        snippet = notes[:100] + '...' if len(notes) > 100 else notes
+
+        recipes.append({
+            'id': row['id'],
+            'title': row['title'],
+            'snippet': snippet if notes else None,
+            'image': row['image'],
+            'rating': row['rating'],
+            'duration': row['duration'],
+            'type': 'recipe'
+        })
+
+    # Suche in Tagebuch-Einträgen
+    c.execute('''
+        SELECT d.id, d.notes, d.dish_name, d.created_at,
+               r.title as recipe_title, r.image as recipe_image
+        FROM diary_entries d
+        LEFT JOIN recipes r ON d.recipe_id = r.id
+        WHERE d.notes LIKE ? OR d.dish_name LIKE ? OR r.title LIKE ?
+        ORDER BY d.created_at DESC
+        LIMIT 20
+    ''', (search_pattern, search_pattern, search_pattern))
+
+    diary_entries = []
+    for row in c.fetchall():
+        # Snippet aus notes erstellen (erste 100 Zeichen)
+        notes = row['notes'] or ''
+        snippet = notes[:100] + '...' if len(notes) > 100 else notes
+
+        # Anzeige-Titel: dish_name falls vorhanden, sonst recipe_title
+        display_title = row['dish_name'] or row['recipe_title'] or 'Ohne Titel'
+
+        diary_entries.append({
+            'id': row['id'],
+            'snippet': snippet,
+            'recipe_title': display_title,
+            'recipe_image': row['recipe_image'],
+            'created_at': row['created_at'],
+            'type': 'diary'
+        })
+
+    # Suche in TODOs
+    c.execute('''
+        SELECT id, text, priority, completed
+        FROM todos
+        WHERE text LIKE ?
+        ORDER BY
+            CASE WHEN completed = 1 THEN 2 ELSE 1 END,
+            priority DESC
+        LIMIT 20
+    ''', (search_pattern,))
+
+    todos = []
+    for row in c.fetchall():
+        todos.append({
+            'id': row['id'],
+            'text': row['text'],
+            'priority': row['priority'],
+            'completed': row['completed'],
+            'type': 'todo'
+        })
+
+    conn.close()
+
+    return jsonify({
+        'recipes': recipes,
+        'diary_entries': diary_entries,
+        'todos': todos,
+        'query': query
+    })
+
 # Server starten
 if __name__ == '__main__':
     init_db()

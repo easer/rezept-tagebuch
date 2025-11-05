@@ -17,13 +17,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Sacramento&display=swap" rel="stylesheet">
 
     <style>
+        /* Prevent scroll bounce on iOS */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        body {
+            position: relative;
+        }
+
         .container {
             max-width: 1200px;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            padding-top: 200px; /* Platz für fixed header + tabs */
+            padding-top: 285px; /* Platz für fixed header + tabs + suchfeld */
         }
 
         main {
@@ -36,39 +52,103 @@
 
         /* Globale Suchleiste */
         .global-search {
-            background: rgba(40, 50, 60, 0.7);
-            backdrop-filter: blur(20px);
+            position: fixed;
+            top: 215px; /* Unter Header + Tabs (mit Abstand) */
+            left: 20px;
+            right: 20px;
+            max-width: 1160px;
+            margin: 0 auto;
+            z-index: 98; /* Unter Header (100) und Tabs (99), aber über Content */
+            padding: 0;
+        }
+
+        /* Search Dropdown */
+        .search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 8px;
+            background: rgba(30, 40, 50, 0.98);
+            backdrop-filter: blur(40px);
             border-radius: 16px;
-            padding: 15px 20px;
-            margin: 0;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            flex: 0 0 auto;
-            position: relative;
-            z-index: 50;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+            z-index: 100;
+        }
+
+        .search-dropdown.active {
+            display: block;
+        }
+
+        .search-category {
+            padding: 16px 20px 8px;
+        }
+
+        .search-category-title {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .search-result {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .search-result:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-left-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .search-result-title {
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .search-result-snippet {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.6);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .search-result-meta {
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 4px;
+        }
+
+        .search-no-results {
+            padding: 24px 20px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
         }
 
         .global-search input {
             width: 100%;
             background: rgba(50, 60, 70, 0.7) !important;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
             color: white !important;
             padding: 12px 16px;
             border: 2px solid rgba(255, 255, 255, 0.2);
             border-radius: 12px;
-            font-size: 1em;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.5;
-            transition: all 0.3s;
+            font-size: 17px;
             box-sizing: border-box;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            margin: 0;
-            vertical-align: middle;
-            text-indent: 0;
-            caret-color: white;
+            caret-color: white !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            touch-action: manipulation; /* Verbessert Touch-Handling */
+            -webkit-user-select: text;
+            user-select: text;
         }
 
         .global-search input:focus {
@@ -120,16 +200,22 @@
             width: 100%;
             max-width: 1200px;
             text-align: center;
-            padding: 65px 10px 10px 10px;
-            background: linear-gradient(to bottom, rgba(20, 30, 40, 0.95) 0%, rgba(20, 30, 40, 0.85) 80%, transparent 100%);
-            backdrop-filter: blur(20px);
+            padding: 65px 10px 20px 10px;
+            background: linear-gradient(to bottom, rgba(20, 30, 40, 1) 0%, rgba(20, 30, 40, 0.95) 80%, transparent 100%);
+            /* backdrop-filter entfernt - verursacht iOS Input-Focus Bug */
             z-index: 100;
+            pointer-events: none; /* Header selbst nicht clickbar */
+        }
+
+        header h1 {
+            pointer-events: auto; /* Nur Text ist clickbar falls nötig */
+            margin-top: 10px; /* Titel weiter nach unten */
         }
 
         /* Responsive: iPhone 15 Pro Max (430px) */
         @media (max-width: 430px) {
             .container {
-                padding-top: 180px;
+                padding-top: 270px; /* Angepasst für Header + Tabs + Suchfeld */
             }
 
             header {
@@ -142,6 +228,12 @@
 
             .tabs {
                 top: 130px;
+            }
+
+            .global-search {
+                top: 200px; /* Angepasst für mobile */
+                left: 10px;
+                right: 10px;
             }
         }
 
@@ -289,8 +381,8 @@
             display: flex;
             gap: 10px;
             margin: 0;
-            background: rgba(40, 50, 60, 0.5);
-            backdrop-filter: blur(10px);
+            background: rgba(40, 50, 60, 0.95);
+            /* backdrop-filter entfernt - verursacht iOS Input-Focus Bug */
             border-radius: 16px;
             padding: 8px;
             z-index: 99;
@@ -1546,7 +1638,7 @@
             padding: 8px 15px;
             border-radius: 25px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            z-index: 100;
+            z-index: 101; /* Höher als Header (100) */
             height: 48px;
             box-sizing: border-box;
         }
@@ -1602,7 +1694,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            z-index: 1000;
+            z-index: 101; /* Gleiche Ebene wie user-info */
             cursor: default;
             transition: all 0.3s;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -1644,7 +1736,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 1000;
+            z-index: 101; /* Gleiche Ebene wie user-info und version-badge */
             transition: all 0.3s;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
@@ -1862,31 +1954,34 @@
         </svg>
     </button>
 
+    <!-- Fixed Header außerhalb von container -->
+    <header>
+        <h1><span class="word-natalies">natalies</span> <span class="word-rezept">rezept</span> <span class="word-tagebuch">tagebuch</span></h1>
+    </header>
+
+    <!-- Fixed Tab Navigation außerhalb von container -->
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('tagebuch')">Tagebuch</button>
+        <button class="tab" onclick="switchTab('rezepte')">Rezepte</button>
+        <button class="tab" onclick="switchTab('todos')">TODOs</button>
+    </div>
+
+    <!-- Fixed Globale Suchleiste außerhalb von container -->
+    <div class="global-search">
+        <input type="text"
+               id="global-search-input"
+               placeholder="Suchen..."
+               oninput="handleGlobalSearch()"
+               autocomplete="off"
+               autocorrect="off"
+               autocapitalize="off"
+               spellcheck="false"
+               inputmode="search">
+        <div id="search-dropdown" class="search-dropdown"></div>
+    </div>
+
     <div class="container">
-        <header>
-            <h1><span class="word-natalies">natalies</span> <span class="word-rezept">rezept</span> <span class="word-tagebuch">tagebuch</span></h1>
-        </header>
-
         <main>
-            <!-- Tab Navigation -->
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('tagebuch')">Tagebuch</button>
-                <button class="tab" onclick="switchTab('rezepte')">Rezepte</button>
-                <button class="tab" onclick="switchTab('todos')">TODOs</button>
-            </div>
-
-            <!-- Globale Suchleiste -->
-            <div class="global-search">
-                <input type="text"
-                       id="global-search-input"
-                       placeholder="🔍 Suchen..."
-                       oninput="handleGlobalSearch()"
-                       autocomplete="off"
-                       autocorrect="off"
-                       autocapitalize="off"
-                       spellcheck="false">
-            </div>
-
             <!-- Tagebuch Tab -->
             <div id="tab-tagebuch" class="tab-content active">
                 <!-- Tagebuch Liste -->
@@ -2895,8 +2990,8 @@
                 content.classList.remove('active');
             });
 
-            // Aktiven Tab aktivieren
-            event.target.classList.add('active');
+            // Aktiven Tab aktivieren (FIX: Query by tabName, nicht event.target)
+            document.querySelector(`[onclick*="switchTab('${tabName}')"]`)?.classList.add('active');
             document.getElementById('tab-' + tabName).classList.add('active');
 
             // Suche leeren beim Tab-Wechsel
@@ -2918,22 +3013,154 @@
             }
         }
 
-        // Globale Suche Handler
-        function handleGlobalSearch() {
-            const searchTerm = document.getElementById('global-search-input').value;
+        // Globale Suche Handler mit Dropdown
+        let searchTimeout;
+        async function handleGlobalSearch() {
+            const searchInput = document.getElementById('global-search-input');
+            const searchTerm = searchInput.value.trim();
+            const dropdown = document.getElementById('search-dropdown');
 
-            switch(currentTab) {
-                case 'tagebuch':
-                    loadDiaryEntries(searchTerm);
-                    break;
-                case 'rezepte':
-                    filterRecipes(searchTerm);
-                    break;
-                case 'todos':
-                    filterTodos(searchTerm);
-                    break;
+            // Debounce: Warte 300ms nach letzter Eingabe
+            clearTimeout(searchTimeout);
+
+            if (searchTerm.length < 2) {
+                dropdown.classList.remove('active');
+                dropdown.innerHTML = '';
+                return;
             }
+
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(searchTerm)}`);
+                    const data = await response.json();
+
+                    renderSearchResults(data);
+                } catch (error) {
+                    console.error('Search error:', error);
+                    dropdown.classList.remove('active');
+                }
+            }, 300);
         }
+
+        function renderSearchResults(data) {
+            const dropdown = document.getElementById('search-dropdown');
+            const hasResults = data.recipes.length > 0 || data.diary_entries.length > 0 || data.todos.length > 0;
+
+            if (!hasResults) {
+                dropdown.innerHTML = '<div class="search-no-results">Keine Ergebnisse gefunden</div>';
+                dropdown.classList.add('active');
+                return;
+            }
+
+            let html = '';
+
+            // Rezepte
+            if (data.recipes.length > 0) {
+                html += '<div class="search-category">';
+                html += '<div class="search-category-title">Rezepte</div>';
+                data.recipes.forEach(recipe => {
+                    html += `
+                        <div class="search-result" onclick="openRecipeFromSearch(${recipe.id})">
+                            <div class="search-result-title">${escapeHtml(recipe.title)}</div>
+                            ${recipe.snippet ? `<div class="search-result-snippet">${escapeHtml(recipe.snippet)}</div>` : ''}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            // Tagebuch-Einträge
+            if (data.diary_entries.length > 0) {
+                html += '<div class="search-category">';
+                html += '<div class="search-category-title">Tagebuch</div>';
+                data.diary_entries.forEach(entry => {
+                    const date = new Date(entry.created_at);
+                    const dateStr = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    html += `
+                        <div class="search-result" onclick="openDiaryEntryFromSearch(${entry.id})">
+                            <div class="search-result-title">${escapeHtml(entry.recipe_title)}</div>
+                            ${entry.snippet ? `<div class="search-result-snippet">${escapeHtml(entry.snippet)}</div>` : ''}
+                            <div class="search-result-meta">${dateStr}</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            // TODOs
+            if (data.todos.length > 0) {
+                html += '<div class="search-category">';
+                html += '<div class="search-category-title">TODOs</div>';
+                data.todos.forEach(todo => {
+                    html += `
+                        <div class="search-result" onclick="openTodoFromSearch(${todo.id})">
+                            <div class="search-result-snippet">${escapeHtml(todo.text)}</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            dropdown.innerHTML = html;
+            dropdown.classList.add('active');
+        }
+
+        // Helper: HTML escaping
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Click-Handler: Rezept öffnen
+        async function openRecipeFromSearch(recipeId) {
+            closeSearchDropdown();
+            switchTab('rezepte');
+
+            // Warte kurz bis Tab gewechselt ist
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Öffne Detail-Panel mit Recipe-ID
+            showDetailPanel(recipeId);
+        }
+
+        // Click-Handler: Tagebuch-Eintrag öffnen
+        async function openDiaryEntryFromSearch(entryId) {
+            closeSearchDropdown();
+            switchTab('tagebuch');
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Öffne Edit-Panel mit Entry-ID
+            showEditDiaryPanel(entryId);
+        }
+
+        // Click-Handler: TODO öffnen
+        async function openTodoFromSearch(todoId) {
+            closeSearchDropdown();
+            switchTab('todos');
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Lade TODO und fokussiere es
+            await loadTodos();
+            // TODO-Item hervorheben könnte man später noch implementieren
+        }
+
+        // Dropdown schließen
+        function closeSearchDropdown() {
+            const dropdown = document.getElementById('search-dropdown');
+            dropdown.classList.remove('active');
+            document.getElementById('global-search-input').value = '';
+        }
+
+        // Dropdown schließen bei Klick außerhalb
+        document.addEventListener('click', (e) => {
+            const searchContainer = document.querySelector('.global-search');
+            if (searchContainer && !searchContainer.contains(e.target)) {
+                closeSearchDropdown();
+            }
+        });
 
         // TODOs filtern
         function filterTodos(searchTerm) {
