@@ -39,7 +39,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            padding-top: 285px; /* Platz für fixed header + tabs + suchfeld */
+            padding-top: 220px; /* Platz für fixed header + tabs */
         }
 
         main {
@@ -48,40 +48,6 @@
             flex-direction: column;
             overflow: hidden;
             min-height: 0; /* Wichtig für Flex-Scrolling */
-        }
-
-        /* Globale Suchleiste */
-        .global-search {
-            position: fixed;
-            top: 215px; /* Unter Header + Tabs (mit Abstand) */
-            left: 20px;
-            right: 20px;
-            max-width: 1160px;
-            margin: 0 auto;
-            z-index: 98; /* Unter Header (100) und Tabs (99), aber über Content */
-            padding: 0;
-        }
-
-        /* Search Dropdown */
-        .search-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            margin-top: 8px;
-            background: rgba(30, 40, 50, 0.98);
-            backdrop-filter: blur(40px);
-            border-radius: 16px;
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            max-height: 400px;
-            overflow-y: auto;
-            display: none;
-            z-index: 100;
-        }
-
-        .search-dropdown.active {
-            display: block;
         }
 
         .search-category {
@@ -135,44 +101,6 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
-        .global-search input {
-            width: 100%;
-            background: rgba(50, 60, 70, 0.7) !important;
-            color: white !important;
-            padding: 12px 16px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            font-size: 17px;
-            box-sizing: border-box;
-            caret-color: white !important;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            touch-action: manipulation; /* Verbessert Touch-Handling */
-            -webkit-user-select: text;
-            user-select: text;
-        }
-
-        .global-search input:focus {
-            outline: none;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-            background: rgba(50, 60, 70, 0.7) !important;
-        }
-
-        .global-search input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        /* Autofill Styles überschreiben */
-        .global-search input:-webkit-autofill,
-        .global-search input:-webkit-autofill:hover,
-        .global-search input:-webkit-autofill:focus {
-            -webkit-text-fill-color: white !important;
-            -webkit-box-shadow: 0 0 0 1000px rgba(50, 60, 70, 0.7) inset !important;
-            box-shadow: 0 0 0 1000px rgba(50, 60, 70, 0.7) inset !important;
-            background-color: rgba(50, 60, 70, 0.7) !important;
-            transition: background-color 5000s ease-in-out 0s;
-        }
-
         /* Überschrift mit Sacramento Font */
         header h1 {
             font-family: 'Sacramento', cursive;
@@ -215,7 +143,7 @@
         /* Responsive: iPhone 15 Pro Max (430px) */
         @media (max-width: 430px) {
             .container {
-                padding-top: 270px; /* Angepasst für Header + Tabs + Suchfeld */
+                padding-top: 200px; /* Angepasst für Header + Tabs */
             }
 
             header {
@@ -228,12 +156,6 @@
 
             .tabs {
                 top: 130px;
-            }
-
-            .global-search {
-                top: 200px; /* Angepasst für mobile */
-                left: 10px;
-                right: 10px;
             }
         }
 
@@ -1685,7 +1607,7 @@
         .version-badge {
             position: fixed;
             top: 20px;
-            right: 80px;
+            right: 78px; /* Neben Refresh-Button (48px + 10px gap) */
             background: rgba(40, 50, 60, 0.5);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.15);
@@ -1728,9 +1650,9 @@
             right: 20px;
             width: 48px;
             height: 48px;
-            background: rgba(40, 50, 60, 0.5);
+            background: linear-gradient(135deg, rgba(255, 182, 193, 0.4) 0%, rgba(255, 224, 235, 0.4) 100%);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -1738,14 +1660,14 @@
             cursor: pointer;
             z-index: 101; /* Gleiche Ebene wie user-info und version-badge */
             transition: all 0.3s;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 20px rgba(255, 182, 193, 0.3);
         }
 
         .refresh-button:hover {
-            background: rgba(40, 50, 60, 0.65);
-            border-color: rgba(255, 255, 255, 0.25);
+            background: linear-gradient(135deg, rgba(255, 182, 193, 0.6) 0%, rgba(255, 224, 235, 0.6) 100%);
+            border-color: rgba(255, 255, 255, 0.3);
             transform: scale(1.05);
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 6px 25px rgba(255, 182, 193, 0.5);
         }
 
         .refresh-button:active {
@@ -1755,6 +1677,151 @@
         .refresh-button svg {
             width: 24px;
             height: 24px;
+        }
+
+        /* Search Toggle Button */
+        .search-toggle-button {
+            position: fixed;
+            top: 20px;
+            right: 170px; /* Links vom Version-Badge */
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(255, 248, 180, 0.4) 0%, rgba(255, 235, 153, 0.4) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 101;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(255, 248, 180, 0.3);
+        }
+
+        .search-toggle-button:hover {
+            background: linear-gradient(135deg, rgba(255, 248, 180, 0.6) 0%, rgba(255, 235, 153, 0.6) 100%);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(255, 248, 180, 0.5);
+        }
+
+        .search-toggle-button:active {
+            transform: scale(0.95);
+        }
+
+        .search-toggle-button svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Search Panel */
+        .search-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .search-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .search-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 90%;
+            max-width: 450px;
+            height: 100vh;
+            background: rgba(30, 40, 50, 0.98);
+            backdrop-filter: blur(40px);
+            box-shadow: -10px 0 60px rgba(0, 0, 0, 0.5);
+            border-left: 1px solid rgba(255, 255, 255, 0.15);
+            z-index: 1001;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-panel.active {
+            transform: translateX(0);
+        }
+
+        .search-panel-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .search-panel-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+            color: white;
+        }
+
+        .panel-close-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .panel-close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .panel-close-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .search-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+        }
+
+        #search-panel-input {
+            width: 100%;
+            background: rgba(50, 60, 70, 0.7);
+            color: white;
+            padding: 14px 18px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            font-size: 17px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        #search-panel-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        #search-panel-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .search-results-container {
+            margin-top: 10px;
         }
 
         @media (max-width: 768px) {
@@ -1947,12 +2014,47 @@
         <span id="version-text">...</span>
     </div>
 
+    <!-- Search Button -->
+    <button class="search-toggle-button" onclick="toggleSearchPanel()" aria-label="Suche öffnen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+        </svg>
+    </button>
+
     <!-- Refresh Button -->
     <button class="refresh-button" onclick="hardRefresh()" aria-label="Seite neu laden">
         <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
         </svg>
     </button>
+
+    <!-- Search Panel Backdrop -->
+    <div id="search-backdrop" class="search-backdrop" onclick="closeSearchPanel()"></div>
+
+    <!-- Search Panel -->
+    <div id="search-panel" class="search-panel">
+        <div class="search-panel-header">
+            <h2>Suche</h2>
+            <button onclick="closeSearchPanel()" class="panel-close-btn" aria-label="Schließen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="search-panel-content">
+            <input type="text"
+                   id="search-panel-input"
+                   placeholder="Suchen..."
+                   oninput="handleSearchPanelInput()"
+                   autocomplete="off"
+                   autocorrect="off"
+                   autocapitalize="off"
+                   spellcheck="false">
+            <div id="search-panel-results" class="search-results-container"></div>
+        </div>
+    </div>
 
     <!-- Fixed Header außerhalb von container -->
     <header>
@@ -1964,20 +2066,6 @@
         <button class="tab active" onclick="switchTab('tagebuch')">Tagebuch</button>
         <button class="tab" onclick="switchTab('rezepte')">Rezepte</button>
         <button class="tab" onclick="switchTab('todos')">TODOs</button>
-    </div>
-
-    <!-- Fixed Globale Suchleiste außerhalb von container -->
-    <div class="global-search">
-        <input type="text"
-               id="global-search-input"
-               placeholder="Suchen..."
-               oninput="handleGlobalSearch()"
-               autocomplete="off"
-               autocorrect="off"
-               autocapitalize="off"
-               spellcheck="false"
-               inputmode="search">
-        <div id="search-dropdown" class="search-dropdown"></div>
     </div>
 
     <div class="container">
@@ -2993,9 +3081,6 @@
             // Aktiven Tab aktivieren (FIX: Query by tabName, nicht event.target)
             document.querySelector(`[onclick*="switchTab('${tabName}')"]`)?.classList.add('active');
             document.getElementById('tab-' + tabName).classList.add('active');
-
-            // Suche leeren beim Tab-Wechsel
-            document.getElementById('global-search-input').value = '';
         }
 
         // Globaler Floating Add Button Handler
@@ -3011,6 +3096,145 @@
                     showAddTodoDialog();
                     break;
             }
+        }
+
+        // Search Panel Functions
+        function toggleSearchPanel() {
+            const panel = document.getElementById('search-panel');
+            const backdrop = document.getElementById('search-backdrop');
+
+            panel.classList.add('active');
+            backdrop.classList.add('active');
+
+            // Focus input after animation
+            setTimeout(() => {
+                document.getElementById('search-panel-input').focus();
+            }, 300);
+        }
+
+        function closeSearchPanel() {
+            const panel = document.getElementById('search-panel');
+            const backdrop = document.getElementById('search-backdrop');
+            const input = document.getElementById('search-panel-input');
+            const results = document.getElementById('search-panel-results');
+
+            panel.classList.remove('active');
+            backdrop.classList.remove('active');
+
+            // Clear search
+            input.value = '';
+            results.innerHTML = '';
+        }
+
+        // Search Panel Input Handler
+        let searchPanelTimeout;
+        async function handleSearchPanelInput() {
+            const searchInput = document.getElementById('search-panel-input');
+            const searchTerm = searchInput.value.trim();
+            const resultsContainer = document.getElementById('search-panel-results');
+
+            // Debounce
+            clearTimeout(searchPanelTimeout);
+
+            if (searchTerm.length < 2) {
+                resultsContainer.innerHTML = '';
+                return;
+            }
+
+            searchPanelTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(searchTerm)}`);
+                    const data = await response.json();
+
+                    renderSearchPanelResults(data);
+                } catch (error) {
+                    console.error('Search error:', error);
+                    resultsContainer.innerHTML = '<div style="color: rgba(255,255,255,0.5); padding: 20px;">Fehler bei der Suche</div>';
+                }
+            }, 300);
+        }
+
+        function renderSearchPanelResults(data) {
+            const container = document.getElementById('search-panel-results');
+            const hasResults = data.recipes.length > 0 || data.diary_entries.length > 0 || data.todos.length > 0;
+
+            if (!hasResults) {
+                container.innerHTML = '<div style="color: rgba(255,255,255,0.5); padding: 20px;">Keine Ergebnisse gefunden</div>';
+                return;
+            }
+
+            let html = '';
+
+            // Rezepte
+            if (data.recipes.length > 0) {
+                html += '<div class="search-category">';
+                html += '<div class="search-category-title">Rezepte</div>';
+                data.recipes.forEach(recipe => {
+                    html += `
+                        <div class="search-result" onclick="openRecipeFromSearchPanel(${recipe.id})">
+                            <div class="search-result-title">${escapeHtml(recipe.title)}</div>
+                            ${recipe.snippet ? `<div class="search-result-snippet">${escapeHtml(recipe.snippet)}</div>` : ''}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            // Tagebuch-Einträge
+            if (data.diary_entries.length > 0) {
+                html += '<div class="search-category">';
+                html += '<div class="search-category-title">Tagebuch</div>';
+                data.diary_entries.forEach(entry => {
+                    const date = new Date(entry.created_at);
+                    const dateStr = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    html += `
+                        <div class="search-result" onclick="openDiaryEntryFromSearchPanel(${entry.id})">
+                            <div class="search-result-title">${escapeHtml(entry.recipe_title)}</div>
+                            ${entry.snippet ? `<div class="search-result-snippet">${escapeHtml(entry.snippet)}</div>` : ''}
+                            <div class="search-result-meta">${dateStr}</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            // TODOs
+            if (data.todos.length > 0) {
+                html += '<div class="search-category">';
+                html += '<div class="search-category-title">TODOs</div>';
+                data.todos.forEach(todo => {
+                    html += `
+                        <div class="search-result" onclick="openTodoFromSearchPanel(${todo.id})">
+                            <div class="search-result-snippet">${escapeHtml(todo.text)}</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Click-Handler für Search Panel Results
+        async function openRecipeFromSearchPanel(recipeId) {
+            closeSearchPanel();
+            switchTab('rezepte');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            showDetailPanel(recipeId);
+        }
+
+        async function openDiaryEntryFromSearchPanel(entryId) {
+            closeSearchPanel();
+            switchTab('tagebuch');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            showEditDiaryPanel(entryId);
+        }
+
+        async function openTodoFromSearchPanel(todoId) {
+            closeSearchPanel();
+            switchTab('todos');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await loadTodos();
         }
 
         // Globale Suche Handler mit Dropdown
