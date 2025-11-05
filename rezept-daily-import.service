@@ -4,6 +4,7 @@ After=network.target seaser-rezept-tagebuch.service
 
 [Service]
 Type=oneshot
+EnvironmentFile=-/home/gabor/easer_projekte/rezept-tagebuch/.env
 ExecStart=/usr/bin/curl -X POST http://localhost/rezept-tagebuch/api/recipes/daily-import
 ExecStartPost=/usr/bin/curl -X POST http://localhost/rezept-tagebuch/api/recipes/cleanup-old-imports
 User=gabor

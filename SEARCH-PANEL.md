@@ -6,6 +6,10 @@ Die globale Suche wurde von einem permanent sichtbaren fixed Suchfeld zu einem S
 - Mehr Platz für Content zu schaffen
 - Eine fokussierte Suche-Erfahrung zu bieten
 
+**Siehe auch:**
+- [TheMealDB Import & DeepL Übersetzung](DEEPL-TRANSLATION.md)
+- [System Import User Protection](DEEPL-TRANSLATION.md#funktionsweise)
+
 ## Design-Konzept
 
 ### Slide-In Panel von rechts

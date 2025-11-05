@@ -975,6 +975,38 @@ def global_search():
 
 # TheMealDB Daily Import
 THEMEALDB_API = 'https://www.themealdb.com/api/json/v1/1'
+DEEPL_API_KEY = os.getenv('DEEPL_API_KEY', '')  # Set via environment variable
+DEEPL_API_URL = 'https://api-free.deepl.com/v2/translate'
+
+def translate_to_german(text):
+    """Translate text from English to German using DeepL API"""
+    if not DEEPL_API_KEY:
+        print("Warning: No DeepL API key configured, skipping translation")
+        return text
+
+    if not text or text.strip() == '':
+        return text
+
+    try:
+        response = requests.post(DEEPL_API_URL, data={
+            'auth_key': DEEPL_API_KEY,
+            'text': text,
+            'source_lang': 'EN',
+            'target_lang': 'DE'
+        }, timeout=10)
+
+        response.raise_for_status()
+        result = response.json()
+
+        if 'translations' in result and len(result['translations']) > 0:
+            return result['translations'][0]['text']
+        else:
+            print(f"DeepL translation failed: {result}")
+            return text
+
+    except Exception as e:
+        print(f"DeepL translation error: {e}")
+        return text  # Fallback to original text
 
 @app.route('/api/recipes/daily-import', methods=['POST'])
 def daily_recipe_import():
@@ -1010,22 +1042,42 @@ def daily_recipe_import():
                 print(f"Image download failed: {e}")
                 image_filename = None
 
-        # 3. Parse ingredients and instructions
+        # 3. Translate title and instructions to German
+        original_title = meal.get('strMeal', 'Imported Recipe')
+        translated_title = translate_to_german(original_title)
+
+        original_instructions = meal.get('strInstructions', '')
+        translated_instructions = translate_to_german(original_instructions)
+
+        # 4. Parse and translate ingredients
         ingredients = []
+        ingredients_en = []
         for i in range(1, 21):
             ingredient = meal.get(f'strIngredient{i}', '').strip()
             measure = meal.get(f'strMeasure{i}', '').strip()
             if ingredient:
-                ingredients.append(f"{measure} {ingredient}".strip())
+                ing_en = f"{measure} {ingredient}".strip()
+                ingredients_en.append(ing_en)
+                # Translate ingredient
+                ing_de = translate_to_german(ing_en)
+                ingredients.append(ing_de)
 
-        notes = f"{meal.get('strInstructions', '')}\n\n"
+        # Build notes with translated content
+        notes = f"{translated_instructions}\n\n"
         if ingredients:
             notes += "Zutaten:\n" + "\n".join(f"- {ing}" for ing in ingredients)
 
-        # Add source info
-        notes += f"\n\nQuelle: TheMealDB\nKategorie: {meal.get('strCategory', 'N/A')}\nRegion: {meal.get('strArea', 'N/A')}"
+        # Add source info (bilingual)
+        category = meal.get('strCategory', 'N/A')
+        area = meal.get('strArea', 'N/A')
+        notes += f"\n\n─────────────────────────"
+        notes += f"\n🌍 Quelle: TheMealDB"
+        notes += f"\n📖 Original: {original_title}"
+        notes += f"\n🏷️ Kategorie: {category}"
+        notes += f"\n🌎 Region: {area}"
+        notes += f"\n🤖 Übersetzt mit DeepL"
 
-        # 4. Save to database
+        # 5. Save to database
         conn = get_db()
         cursor = conn.cursor()
 
@@ -1037,7 +1089,7 @@ def daily_recipe_import():
         cursor.execute('''
             INSERT INTO recipes (title, image, notes, user_id, auto_imported, imported_at, created_at, updated_at)
             VALUES (?, ?, ?, ?, 1, DATE('now'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        ''', (meal.get('strMeal', 'Imported Recipe'), image_filename, notes, import_user_id))
+        ''', (translated_title, image_filename, notes, import_user_id))
 
         recipe_id = cursor.lastrowid
         conn.commit()
