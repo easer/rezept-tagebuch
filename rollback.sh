@@ -1,35 +1,61 @@
 #!/bin/bash
-# Rollback to previous version
+# Rollback to previous version (Git-Tag-basiert)
 
 set -e
 
-# Version als Parameter
-VERSION=$1
+# Farben
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-if [ -z "$VERSION" ]; then
-    echo "❌ Fehler: Keine Version angegeben!"
+# Git-Tag als Parameter
+GIT_TAG=$1
+
+if [ -z "$GIT_TAG" ]; then
+    echo -e "${RED}❌ Fehler: Kein Git-Tag angegeben!${NC}"
     echo ""
-    echo "Usage: ./rollback.sh <version>"
+    echo "Usage: ./rollback.sh <GIT_TAG>"
     echo ""
-    echo "Verfügbare Versionen:"
+    echo "Verfügbare Git-Tags:"
+    git tag | grep "^rezept_version_" || echo "  (keine Tags gefunden)"
+    echo ""
+    echo "Verfügbare Container-Images:"
     podman images | grep seaser-rezept-tagebuch | grep -v latest | grep -v dev
     exit 1
 fi
 
-# Prüfe ob Version existiert
-if ! podman image exists seaser-rezept-tagebuch:$VERSION; then
-    echo "❌ Version $VERSION existiert nicht!"
+# Prüfe ob Container-Image existiert
+if ! podman image exists seaser-rezept-tagebuch:$GIT_TAG; then
+    echo -e "${RED}❌ Container-Image für '$GIT_TAG' existiert nicht!${NC}"
     echo ""
-    echo "Verfügbare Versionen:"
+    echo "Das Image muss erst gebaut werden. Nutze:"
+    echo "  ./deploy-prod.sh $GIT_TAG"
+    echo ""
+    echo "Verfügbare Images:"
     podman images | grep seaser-rezept-tagebuch
     exit 1
 fi
 
-echo "⏮️  Rollback zu Version: $VERSION"
+echo "⏮️  Rollback zu Git-Tag: $GIT_TAG"
+echo ""
+
+# Warnung anzeigen
+echo -e "${YELLOW}⚠️  WARNUNG: Rollback wird durchgeführt!${NC}"
+echo "   Stelle sicher, dass die Datenbank kompatibel ist."
+echo "   Bei Schema-Änderungen ggf. erst DB-Backup wiederherstellen."
+echo ""
+read -p "Fortfahren? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Abgebrochen."
+    exit 1
+fi
+echo ""
 
 # Tag alte Version als latest
-echo "🏷️  Tagging v$VERSION as latest..."
-podman tag seaser-rezept-tagebuch:$VERSION seaser-rezept-tagebuch:latest
+echo "🏷️  Tagging $GIT_TAG as latest..."
+podman tag seaser-rezept-tagebuch:$GIT_TAG seaser-rezept-tagebuch:latest
 
 # Prod Container neu starten
 echo "🔄 Restarting Production Container..."
@@ -43,6 +69,6 @@ podman run -d \
   localhost/seaser-rezept-tagebuch:latest
 
 echo ""
-echo "✅ Rollback zu v$VERSION erfolgreich!"
+echo -e "${GREEN}✅ Rollback zu $GIT_TAG erfolgreich!${NC}"
 echo "📍 URL: http://192.168.2.139:8000/rezept-tagebuch/"
 podman ps | grep seaser-rezept-tagebuch

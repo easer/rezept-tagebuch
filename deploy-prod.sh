@@ -1,30 +1,106 @@
 #!/bin/bash
-# Deploy to Production with Version Tag, Auto-Backup & Migrations
+# Deploy to Production - Git-Tag-basiert
+# Nur versionierte Git-Tags werden deployed!
+# Tag-Pattern: rezept_version_DD_MM_YYYY
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Version aus Parameter oder aktuelles Datum
-VERSION=${1:-$(date +%y.%m.%d)}
+# Farben für Output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-echo "🚀 Deploying Version: v$VERSION"
+# Funktion: Git-Tag validieren
+validate_git_tag() {
+    local tag=$1
+    if [[ ! "$tag" =~ ^rezept_version_[0-9]{2}_[0-9]{2}_[0-9]{4}$ ]]; then
+        echo -e "${RED}❌ Ungültiges Tag-Format!${NC}"
+        echo "   Erwartet: rezept_version_DD_MM_YYYY"
+        echo "   Beispiel: rezept_version_05_11_2025"
+        exit 1
+    fi
+}
+
+# Prüfen ob Working Directory clean ist
+echo "🔍 Checking Git status..."
+if [[ -n $(git status --porcelain) ]]; then
+    echo -e "${RED}❌ Working Directory ist nicht clean!${NC}"
+    echo ""
+    git status --short
+    echo ""
+    echo -e "${YELLOW}Du musst alle Änderungen committen, bevor du auf Prod deployen kannst.${NC}"
+    echo ""
+    echo "Uncommittete Änderungen können NICHT auf Prod deployed werden."
+    echo "Das garantiert, dass nur versionierte Snapshots auf Prod landen."
+    echo ""
+    echo "Nächste Schritte:"
+    echo "  1. git add <files>"
+    echo "  2. git commit -m 'deine message'"
+    echo "  3. ./tag-version.sh  (erstellt automatisch einen Tag)"
+    echo "  4. ./deploy-prod.sh rezept_version_DD_MM_YYYY"
+    exit 1
+fi
+
+# Git-Tag aus Parameter (required!)
+if [[ -z "$1" ]]; then
+    echo -e "${RED}❌ Kein Git-Tag angegeben!${NC}"
+    echo ""
+    echo "Usage: ./deploy-prod.sh <GIT_TAG>"
+    echo ""
+    echo "Verfügbare Tags:"
+    git tag | grep "^rezept_version_" || echo "  (noch keine Tags vorhanden)"
+    echo ""
+    echo "Neuen Tag erstellen:"
+    echo "  ./tag-version.sh"
+    exit 1
+fi
+
+GIT_TAG=$1
+validate_git_tag "$GIT_TAG"
+
+# Prüfen ob Tag existiert
+if ! git rev-parse "$GIT_TAG" >/dev/null 2>&1; then
+    echo -e "${RED}❌ Git-Tag '$GIT_TAG' existiert nicht!${NC}"
+    echo ""
+    echo "Verfügbare Tags:"
+    git tag | grep "^rezept_version_" || echo "  (noch keine Tags vorhanden)"
+    echo ""
+    echo "Neuen Tag erstellen:"
+    echo "  ./tag-version.sh"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Git-Tag gefunden: $GIT_TAG${NC}"
+echo ""
+
+# Checkout des Git-Tags in temporäres Verzeichnis
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf $TEMP_DIR" EXIT
+
+echo "📦 Exporting Git-Tag to temporary directory..."
+git archive "$GIT_TAG" | tar -x -C "$TEMP_DIR"
+echo ""
+
+echo "🚀 Deploying Version: $GIT_TAG"
 echo ""
 
 # 1. Create automatic backup BEFORE deployment
 echo "📦 Step 1/5: Creating automatic backup..."
-./backup-db.sh prod "before-v$VERSION"
+./backup-db.sh prod "before-$GIT_TAG"
 echo ""
 
-# 2. Build mit Version-Tag
-echo "🔨 Step 2/5: Building Image v$VERSION..."
-podman build -t seaser-rezept-tagebuch:v$VERSION -f Containerfile .
+# 2. Build aus dem exportierten Git-Tag (nicht aus Working Directory!)
+echo "🔨 Step 2/5: Building Image from Git-Tag..."
+podman build -t seaser-rezept-tagebuch:$GIT_TAG -f "$TEMP_DIR/Containerfile" "$TEMP_DIR"
 
 # Tag als latest
 echo ""
 echo "🏷️  Step 3/5: Tagging as latest..."
-podman tag seaser-rezept-tagebuch:v$VERSION seaser-rezept-tagebuch:latest
+podman tag seaser-rezept-tagebuch:$GIT_TAG seaser-rezept-tagebuch:latest
 
 # 3. Run migrations BEFORE starting new container
 echo ""
@@ -54,8 +130,8 @@ systemctl --user enable container-seaser-rezept-tagebuch.service
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✅ Production Deployment erfolgreich!"
-echo "📦 Version: v$VERSION"
+echo -e "${GREEN}✅ Production Deployment erfolgreich!${NC}"
+echo "📦 Git-Tag: $GIT_TAG"
 echo "📍 URL: http://192.168.2.139:8000/rezept-tagebuch/"
 echo "🗄️  Database: Migrated to latest schema"
 echo ""
@@ -63,7 +139,7 @@ echo "Container Status:"
 podman ps | grep seaser-rezept-tagebuch
 echo ""
 echo "Available versions:"
-podman images | grep seaser-rezept-tagebuch
+podman images | grep seaser-rezept-tagebuch | head -5
 echo ""
-echo "💡 Rollback available via: ./rollback.sh v$VERSION"
+echo "💡 Rollback available via: ./rollback.sh $GIT_TAG"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

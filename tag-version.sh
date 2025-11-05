@@ -1,0 +1,98 @@
+#!/bin/bash
+# Erstellt einen neuen Git-Tag im Format: rezept_version_DD_MM_YYYY
+# Prüft vorher ob Working Directory clean ist
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Farben
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo "🏷️  Git-Tag Creator für Rezept-Tagebuch"
+echo ""
+
+# Prüfen ob Working Directory clean ist
+if [[ -n $(git status --porcelain) ]]; then
+    echo -e "${RED}❌ Working Directory ist nicht clean!${NC}"
+    echo ""
+    git status --short
+    echo ""
+    echo -e "${YELLOW}Bitte erst alle Änderungen committen:${NC}"
+    echo "  git add <files>"
+    echo "  git commit -m 'deine message'"
+    echo ""
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Working Directory ist clean${NC}"
+echo ""
+
+# Tag-Name generieren
+DEFAULT_TAG="rezept_version_$(date +%d_%m_%Y)"
+
+# Custom Tag oder Default?
+if [[ -n "$1" ]]; then
+    # Custom Tag aus Parameter (muss im richtigen Format sein)
+    CUSTOM_TAG=$1
+    if [[ ! "$CUSTOM_TAG" =~ ^rezept_version_[0-9]{2}_[0-9]{2}_[0-9]{4}$ ]]; then
+        echo -e "${RED}❌ Ungültiges Tag-Format!${NC}"
+        echo "   Erwartet: rezept_version_DD_MM_YYYY"
+        echo "   Beispiel: rezept_version_05_11_2025"
+        exit 1
+    fi
+    GIT_TAG=$CUSTOM_TAG
+else
+    GIT_TAG=$DEFAULT_TAG
+fi
+
+# Prüfen ob Tag bereits existiert
+if git rev-parse "$GIT_TAG" >/dev/null 2>&1; then
+    echo -e "${RED}❌ Tag '$GIT_TAG' existiert bereits!${NC}"
+    echo ""
+    echo "Möchtest du einen anderen Tag-Namen verwenden?"
+    echo "Usage: ./tag-version.sh rezept_version_DD_MM_YYYY"
+    echo ""
+    echo "Existierende Tags:"
+    git tag | grep "^rezept_version_"
+    exit 1
+fi
+
+# Commit-Info anzeigen
+echo -e "${BLUE}Aktueller Commit:${NC}"
+git log -1 --oneline
+echo ""
+
+# Tag-Message eingeben
+echo -e "${YELLOW}Tag-Message (optional, Enter für Standard-Message):${NC}"
+read -r TAG_MESSAGE
+
+if [[ -z "$TAG_MESSAGE" ]]; then
+    TAG_MESSAGE="Release $GIT_TAG"
+fi
+
+# Tag erstellen
+echo ""
+echo "Erstelle Git-Tag: $GIT_TAG"
+git tag -a "$GIT_TAG" -m "$TAG_MESSAGE"
+
+echo ""
+echo -e "${GREEN}✅ Tag erfolgreich erstellt!${NC}"
+echo ""
+echo "📦 Tag: $GIT_TAG"
+echo "💬 Message: $TAG_MESSAGE"
+echo ""
+echo "Nächste Schritte:"
+echo "  1. Tag zum Remote pushen:"
+echo "     ${BLUE}git push origin $GIT_TAG${NC}"
+echo ""
+echo "  2. Auf Prod deployen:"
+echo "     ${BLUE}./deploy-prod.sh $GIT_TAG${NC}"
+echo ""
+echo "Alle Tags anzeigen:"
+echo "  git tag | grep rezept_version"
