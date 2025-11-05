@@ -525,6 +525,7 @@
             -webkit-backdrop-filter: blur(20px);
             border-radius: 12px;
             padding: 14px;
+            min-height: 70px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.15);
             cursor: pointer;
@@ -537,36 +538,40 @@
             border-color: rgba(255, 255, 255, 0.3);
         }
 
-        .recipe-author {
+        .recipe-header {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             margin-bottom: 10px;
         }
 
         .recipe-author-avatar {
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
-        }
-
-        .recipe-author-name {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.85em;
-            font-weight: 500;
+            flex-shrink: 0;
         }
 
         .recipe-title {
             font-size: 0.95em;
             font-weight: 600;
             color: white;
-            margin-bottom: 8px;
+            flex: 1;
+        }
+
+        .recipe-thumbnail {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+            margin-left: auto;
         }
 
         .recipe-date {
@@ -2465,15 +2470,14 @@
                 const hasMeta = recipe.duration || recipe.rating;
                 const userInitial = recipe.user_name ? recipe.user_name.charAt(0).toUpperCase() : 'N';
                 const userColor = recipe.user_avatar_color || '#FFB6C1';
+                const hasImage = recipe.image && recipe.image.trim() !== '';
                 return `
                 <div class="recipe-card" onclick="showDetailPanel(${recipe.id})">
-                    ${recipe.user_name ? `
-                        <div class="recipe-author">
-                            <div class="recipe-author-avatar" style="background: ${userColor}">${userInitial}</div>
-                            <span class="recipe-author-name">${escapeHtml(recipe.user_name)}</span>
-                        </div>
-                    ` : ''}
-                    <div class="recipe-title">${escapeHtml(recipe.title)}</div>
+                    <div class="recipe-header">
+                        <div class="recipe-author-avatar" style="background: ${userColor}">${userInitial}</div>
+                        <div class="recipe-title">${escapeHtml(recipe.title)}</div>
+                        ${hasImage ? `<img src="${API_BASE}/uploads/${recipe.image}" class="recipe-thumbnail" alt="${escapeHtml(recipe.title)}">` : ''}
+                    </div>
                     ${hasMeta ? `<div class="recipe-meta">
                         ${recipe.duration ? `<div class="recipe-duration">⏱️ ${formatDuration(recipe.duration)}</div>` : ''}
                         ${recipe.rating ? `<div class="recipe-rating">${'★'.repeat(recipe.rating)}${'☆'.repeat(5 - recipe.rating)}</div>` : ''}
@@ -3797,12 +3801,30 @@
             container.style.display = 'grid';
             emptyState.style.display = 'none';
 
-            container.innerHTML = entries.map(entry => `
+            container.innerHTML = entries.map(entry => {
+                const userInitial = entry.user_name ? entry.user_name.charAt(0).toUpperCase() : 'N';
+                const userColor = entry.user_avatar_color || '#FFB6C1';
+                // Parse images JSON array
+                let firstImage = null;
+                if (entry.images) {
+                    try {
+                        const images = JSON.parse(entry.images);
+                        if (Array.isArray(images) && images.length > 0) {
+                            firstImage = images[0];
+                        }
+                    } catch(e) {}
+                }
+                return `
                 <div class="recipe-card" onclick="showDiaryDetail(${entry.id})">
-                    <div class="recipe-title">${entry.dish_name || entry.recipe_title || 'Ohne Name'}</div>
-                    <p class="recipe-date">${formatDate(entry.date)}</p>
+                    <div class="recipe-header">
+                        <div class="recipe-author-avatar" style="background: ${userColor}">${userInitial}</div>
+                        <div class="recipe-title">${entry.dish_name || entry.recipe_title || 'Ohne Name'}</div>
+                        ${firstImage ? `<img src="${API_BASE}/uploads/${firstImage}" class="recipe-thumbnail" alt="${entry.dish_name || entry.recipe_title || 'Ohne Name'}">` : ''}
+                    </div>
+                    <div class="recipe-date">${formatDate(entry.date)}</div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Datum formatieren
