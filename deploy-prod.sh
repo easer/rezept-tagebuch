@@ -17,10 +17,10 @@ NC='\033[0m' # No Color
 # Funktion: Git-Tag validieren
 validate_git_tag() {
     local tag=$1
-    if [[ ! "$tag" =~ ^rezept_version_[0-9]{2}_[0-9]{2}_[0-9]{4}$ ]]; then
+    if [[ ! "$tag" =~ ^rezept_version_[0-9]{2}_[0-9]{2}_[0-9]{4}_[0-9]{3}$ ]]; then
         echo -e "${RED}❌ Ungültiges Tag-Format!${NC}"
-        echo "   Erwartet: rezept_version_DD_MM_YYYY"
-        echo "   Beispiel: rezept_version_05_11_2025"
+        echo "   Erwartet: rezept_version_DD_MM_YYYY_NNN"
+        echo "   Beispiel: rezept_version_05_11_2025_001"
         exit 1
     fi
 }
@@ -95,7 +95,7 @@ echo ""
 
 # 2. Build aus dem exportierten Git-Tag (nicht aus Working Directory!)
 echo "🔨 Step 2/5: Building Image from Git-Tag..."
-podman build -t seaser-rezept-tagebuch:$GIT_TAG -f "$TEMP_DIR/Containerfile" "$TEMP_DIR"
+podman build --build-arg APP_VERSION=$GIT_TAG -t seaser-rezept-tagebuch:$GIT_TAG -f "$TEMP_DIR/Containerfile" "$TEMP_DIR"
 
 # Tag als latest
 echo ""

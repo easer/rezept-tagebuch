@@ -1,5 +1,5 @@
 #!/bin/bash
-# Erstellt einen neuen Git-Tag im Format: rezept_version_DD_MM_YYYY
+# Erstellt einen neuen Git-Tag im Format: rezept_version_DD_MM_YYYY_NNN
 # Prüft vorher ob Working Directory clean ist
 
 set -e
@@ -33,22 +33,35 @@ fi
 echo -e "${GREEN}✅ Working Directory ist clean${NC}"
 echo ""
 
-# Tag-Name generieren
-DEFAULT_TAG="rezept_version_$(date +%d_%m_%Y)"
-
-# Custom Tag oder Default?
+# Custom Tag oder Auto-Increment?
 if [[ -n "$1" ]]; then
     # Custom Tag aus Parameter (muss im richtigen Format sein)
     CUSTOM_TAG=$1
-    if [[ ! "$CUSTOM_TAG" =~ ^rezept_version_[0-9]{2}_[0-9]{2}_[0-9]{4}$ ]]; then
+    if [[ ! "$CUSTOM_TAG" =~ ^rezept_version_[0-9]{2}_[0-9]{2}_[0-9]{4}_[0-9]{3}$ ]]; then
         echo -e "${RED}❌ Ungültiges Tag-Format!${NC}"
-        echo "   Erwartet: rezept_version_DD_MM_YYYY"
-        echo "   Beispiel: rezept_version_05_11_2025"
+        echo "   Erwartet: rezept_version_DD_MM_YYYY_NNN"
+        echo "   Beispiel: rezept_version_05_11_2025_001"
         exit 1
     fi
     GIT_TAG=$CUSTOM_TAG
 else
-    GIT_TAG=$DEFAULT_TAG
+    # Auto-Increment: Finde höchste Nummer für heutiges Datum
+    TODAY="rezept_version_$(date +%d_%m_%Y)"
+    EXISTING_TAGS=$(git tag | grep "^${TODAY}_" 2>/dev/null || true)
+
+    if [[ -z "$EXISTING_TAGS" ]]; then
+        # Erster Tag für heute
+        BUILD_NUM="001"
+    else
+        # Finde höchste Nummer und inkrementiere
+        HIGHEST=$(echo "$EXISTING_TAGS" | sed "s/^${TODAY}_//" | sort -n | tail -1)
+        BUILD_NUM=$(printf "%03d" $((10#$HIGHEST + 1)))
+    fi
+
+    GIT_TAG="${TODAY}_${BUILD_NUM}"
+
+    echo -e "${BLUE}Auto-generierter Tag:${NC} $GIT_TAG"
+    echo ""
 fi
 
 # Prüfen ob Tag bereits existiert
@@ -56,7 +69,7 @@ if git rev-parse "$GIT_TAG" >/dev/null 2>&1; then
     echo -e "${RED}❌ Tag '$GIT_TAG' existiert bereits!${NC}"
     echo ""
     echo "Möchtest du einen anderen Tag-Namen verwenden?"
-    echo "Usage: ./tag-version.sh rezept_version_DD_MM_YYYY"
+    echo "Usage: ./tag-version.sh rezept_version_DD_MM_YYYY_NNN"
     echo ""
     echo "Existierende Tags:"
     git tag | grep "^rezept_version_"

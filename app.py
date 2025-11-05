@@ -822,6 +822,34 @@ def delete_diary_entry(entry_id):
 
     return jsonify({'success': True})
 
+@app.route('/api/version')
+def get_version():
+    """Gibt die aktuelle App-Version zurück (aus Git-Tag oder env var)"""
+    import subprocess
+
+    version = os.environ.get('APP_VERSION', None)
+
+    # Falls keine ENV var, versuche aus Git zu lesen
+    if not version:
+        try:
+            result = subprocess.run(
+                ['git', 'describe', '--tags', '--exact-match'],
+                cwd='/app',
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            if result.returncode == 0:
+                version = result.stdout.strip()
+        except:
+            pass
+
+    # Fallback
+    if not version:
+        version = "unknown"
+
+    return jsonify({'version': version})
+
 # Server starten
 if __name__ == '__main__':
     init_db()
