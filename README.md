@@ -163,6 +163,84 @@ Rollback zu vorheriger Version.
 2. Tagged alte Version als `:latest`
 3. Startet Prod-Container mit alter Version neu
 
+### Test-Scripts
+
+#### test-deepl.sh
+
+Testet DeepL API Integration.
+
+```bash
+./test-deepl.sh
+```
+
+**Was wird getestet:**
+- DeepL API Key Validierung
+- Übersetzung von Englisch nach Deutsch
+
+#### test-recipe-import-e2e.sh
+
+End-to-End Test für den Recipe Import Flow.
+
+```bash
+./test-recipe-import-e2e.sh
+```
+
+**Was wird getestet:**
+1. Dev-Container Status
+2. DeepL API Konfiguration
+3. TheMealDB API Import
+4. DeepL Translation
+5. SCHRITT Formatting
+6. Zutaten Section
+7. DB Storage
+8. API Endpoint
+9. Parser Config
+
+#### run-tests.sh (pytest Test-Suite)
+
+Automatisierte CRUD Tests für Recipe & Diary API.
+
+```bash
+./run-tests.sh
+```
+
+**Was wird getestet:**
+- Recipe CRUD (Create, Read, Update, Delete)
+- Diary Entry CRUD
+- Search Funktionalität
+- Parser Integration
+- Image Upload
+- API Validierung
+
+**Beispiele:**
+```bash
+# Nur Recipe Tests
+./run-tests.sh tests/test_recipes_crud.py
+
+# Einzelner Test
+./run-tests.sh -k test_create_recipe
+
+# Verbose Output
+./run-tests.sh -v
+```
+
+Siehe `tests/README.md` für Details.
+
+### Git Pre-Commit Hook
+
+Automatisch Tests vor jedem Commit ausführen:
+
+```bash
+./install-git-hooks.sh
+```
+
+**Was passiert:**
+- Pytest läuft automatisch vor jedem Commit
+- Commit wird blockiert wenn Tests fehlschlagen
+- Hook kann übersprungen werden: `git commit --no-verify`
+
+**Hook ist bereits installiert!** Der Pre-Commit Hook ist bereits aktiv.
+
 ---
 
 ## 🐳 Container-Management

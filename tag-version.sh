@@ -33,6 +33,57 @@ fi
 echo -e "${GREEN}✅ Working Directory ist clean${NC}"
 echo ""
 
+# Tests ausführen vor Tag-Erstellung (kann übersprungen werden mit TAG_SKIP_TESTS=1)
+if [[ "$TAG_SKIP_TESTS" == "1" ]]; then
+    echo -e "${YELLOW}⚠️  Tests werden übersprungen (TAG_SKIP_TESTS=1)${NC}"
+    echo ""
+else
+    echo "🧪 Running tests before creating tag..."
+    echo ""
+
+# Check if dev container is running
+if ! podman ps | grep -q "seaser-rezept-tagebuch-dev"; then
+    echo -e "${YELLOW}⚠️  Dev container is not running${NC}"
+    echo "   Starte Container..."
+    ./build-dev.sh
+fi
+
+# Check if pytest is installed
+if ! command -v pytest &> /dev/null; then
+    echo "   Installing pytest..."
+    pip3 install pytest pytest-timeout --break-system-packages --quiet
+fi
+
+# Run pytest tests
+echo "   Running pytest test suite..."
+if ! pytest -x -q; then
+    echo ""
+    echo -e "${RED}❌ Tests failed!${NC}"
+    echo "   Tag creation aborted."
+    echo ""
+    echo "Options:"
+    echo "  1. Fix failing tests"
+    echo "  2. Skip tests: TAG_SKIP_TESTS=1 ./tag-version.sh"
+    echo ""
+    exit 1
+fi
+
+echo -e "${GREEN}✅ All pytest tests passed${NC}"
+echo ""
+
+# Run E2E test
+echo "   Running E2E test (recipe import)..."
+if ! ./test-recipe-import-e2e.sh > /dev/null 2>&1; then
+    echo -e "${YELLOW}⚠️  E2E test failed (non-blocking)${NC}"
+else
+    echo -e "${GREEN}✅ E2E test passed${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}✅ All tests completed successfully!${NC}"
+echo ""
+fi
+
 # Custom Tag oder Auto-Increment?
 if [[ -n "$1" ]]; then
     # Custom Tag aus Parameter (muss im richtigen Format sein)

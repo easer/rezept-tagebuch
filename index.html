@@ -895,30 +895,36 @@
             width: 100%;
         }
 
-        /* Strukturierte Rezept-Darstellung */
+        /* Strukturierte Rezept-Darstellung - Mobile Optimiert (iPhone 15 Pro Max) */
         .recipe-section-title {
-            font-size: 1.1em;
+            font-size: 1.15em;
             font-weight: 700;
             color: #FFD700;
-            margin-top: 20px;
-            margin-bottom: 12px;
+            margin-top: 24px;
+            margin-bottom: 16px;
             border-bottom: 2px solid rgba(255, 215, 0, 0.3);
-            padding-bottom: 6px;
+            padding-bottom: 8px;
+            letter-spacing: 0.3px;
+        }
+
+        .recipe-section-title:first-child {
+            margin-top: 8px;
         }
 
         .recipe-steps {
             list-style-type: decimal;
-            padding-left: 24px;
-            margin: 0 0 16px 0;
+            padding-left: 20px;
+            margin: 0 0 20px 0;
             color: #D0D0D0;
         }
 
         .recipe-steps li {
-            margin-bottom: 24px;
-            line-height: 1.8;
-            padding-left: 8px;
-            padding-bottom: 12px;
+            margin-bottom: 28px;
+            line-height: 1.7;
+            padding-left: 12px;
+            padding-bottom: 16px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 1em;
         }
 
         .recipe-steps li:last-child {
@@ -926,37 +932,48 @@
             border-bottom: none;
         }
 
+        .recipe-steps li::marker {
+            color: #FFD700;
+            font-weight: 600;
+        }
+
         .recipe-ingredients {
             list-style-type: disc;
-            padding-left: 24px;
-            margin: 0 0 16px 0;
+            padding-left: 20px;
+            margin: 0 0 20px 0;
             color: #D0D0D0;
         }
 
         .recipe-ingredients li {
-            margin-bottom: 6px;
-            line-height: 1.4;
-            padding-left: 8px;
+            margin-bottom: 10px;
+            line-height: 1.5;
+            padding-left: 12px;
             display: list-item;
+            font-size: 1em;
         }
 
         .recipe-ingredients li:last-child {
             margin-bottom: 0;
         }
 
+        .recipe-ingredients li::marker {
+            color: #A8E6CF;
+            font-size: 1.1em;
+        }
+
         .recipe-metadata {
-            margin: 16px 0;
-            padding: 12px;
+            margin: 20px 0;
+            padding: 16px;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            border-left: 3px solid rgba(255, 215, 0, 0.5);
+            border-radius: 10px;
+            border-left: 4px solid rgba(255, 215, 0, 0.5);
         }
 
         .metadata-line {
             color: #B0B0B0;
             font-size: 0.95em;
-            margin-bottom: 6px;
-            line-height: 1.5;
+            margin-bottom: 8px;
+            line-height: 1.6;
         }
 
         .metadata-line:last-child {
@@ -2702,7 +2719,7 @@
             if (recipeFormatConfig) return recipeFormatConfig;
 
             try {
-                const response = await fetch('/recipe-format-config.json');
+                const response = await fetch(`${API_BASE}/recipe-format-config.json`);
                 recipeFormatConfig = await response.json();
                 console.log('Recipe format config loaded:', recipeFormatConfig);
                 return recipeFormatConfig;
@@ -2726,6 +2743,7 @@
             const normalizedNotes = notes.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
             const lines = normalizedNotes.split('\n');
             console.log('Total lines:', lines.length);
+
             const sections = {
                 'Zubereitung': [],
                 'Zutaten': [],
@@ -2733,67 +2751,84 @@
                 'Sonstiges': []
             };
 
-            let inIngredientsSection = false;
+            // State-based parser: Track current section and accumulate content
+            let currentSection = null;
+            let currentStepContent = [];
 
-            for (const line of lines) {
+            const stepRegex = recipeFormatConfig.patterns.steps ?
+                new RegExp(recipeFormatConfig.patterns.steps.regex) : null;
+            const metaPatterns = recipeFormatConfig.patterns.metadata?.patterns || [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
                 const trimmedLine = line.trim();
+
+                // Skip empty lines
                 if (!trimmedLine) continue;
 
-                // Check if this is the "Zutaten:" header line
+                // Check if this is a new STEP header
+                if (stepRegex && stepRegex.test(trimmedLine)) {
+                    // Save previous step if exists
+                    if (currentSection === 'Zubereitung' && currentStepContent.length > 0) {
+                        sections['Zubereitung'].push(currentStepContent.join(' '));
+                    }
+
+                    // Start new step
+                    currentSection = 'Zubereitung';
+                    currentStepContent = [trimmedLine]; // Include step header
+                    continue;
+                }
+
+                // Check if this is "Zutaten:" header
                 if (/^Zutaten:\s*$/i.test(trimmedLine)) {
-                    inIngredientsSection = true;
+                    // Save previous step if exists
+                    if (currentSection === 'Zubereitung' && currentStepContent.length > 0) {
+                        sections['Zubereitung'].push(currentStepContent.join(' '));
+                        currentStepContent = [];
+                    }
+                    currentSection = 'Zutaten';
                     continue;
                 }
 
-                let matched = false;
-
-                // Check for Zubereitung (Steps) - stops ingredients section
-                if (recipeFormatConfig.patterns.steps) {
-                    const stepRegex = new RegExp(recipeFormatConfig.patterns.steps.regex);
-                    if (stepRegex.test(trimmedLine)) {
-                        sections['Zubereitung'].push(trimmedLine);
-                        inIngredientsSection = false;
-                        matched = true;
-                        continue;
-                    }
-                }
-
-                // Check for Zutaten (Ingredients) - either in section or matches pattern
-                if (inIngredientsSection && trimmedLine.startsWith('-')) {
-                    sections['Zutaten'].push(trimmedLine);
-                    matched = true;
-                    continue;
-                }
-
-                if (recipeFormatConfig.patterns.ingredients) {
-                    const ingredientRegex = new RegExp(recipeFormatConfig.patterns.ingredients.regex);
-                    if (ingredientRegex.test(trimmedLine)) {
-                        sections['Zutaten'].push(trimmedLine);
-                        matched = true;
-                        continue;
-                    }
-                }
-
-                // Check for Metadaten - stops ingredients section
-                if (recipeFormatConfig.patterns.metadata) {
-                    const metaPatterns = recipeFormatConfig.patterns.metadata.patterns;
-                    for (const pattern of metaPatterns) {
-                        const metaRegex = new RegExp(pattern);
-                        if (metaRegex.test(trimmedLine)) {
-                            sections['Metadaten'].push(trimmedLine);
-                            inIngredientsSection = false;
-                            matched = true;
-                            break;
+                // Check for metadata patterns
+                let isMetadata = false;
+                for (const pattern of metaPatterns) {
+                    const metaRegex = new RegExp(pattern);
+                    if (metaRegex.test(trimmedLine)) {
+                        // Save previous step if exists
+                        if (currentSection === 'Zubereitung' && currentStepContent.length > 0) {
+                            sections['Zubereitung'].push(currentStepContent.join(' '));
+                            currentStepContent = [];
                         }
+                        currentSection = 'Metadaten';
+                        sections['Metadaten'].push(trimmedLine);
+                        isMetadata = true;
+                        break;
                     }
-                    if (matched) continue;
                 }
+                if (isMetadata) continue;
 
-                // Wenn keine Struktur gefunden, zu Sonstiges
-                if (!matched) {
-                    inIngredientsSection = false;
+                // Handle content based on current section
+                if (currentSection === 'Zubereitung') {
+                    // Accumulate step content
+                    currentStepContent.push(trimmedLine);
+                } else if (currentSection === 'Zutaten') {
+                    // Ingredients: each line starting with - is an ingredient
+                    if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•') || trimmedLine.startsWith('*')) {
+                        sections['Zutaten'].push(trimmedLine);
+                    }
+                } else if (currentSection === 'Metadaten') {
+                    // Metadata continues until next section
+                    sections['Metadaten'].push(trimmedLine);
+                } else {
+                    // No section yet - goes to Sonstiges
                     sections['Sonstiges'].push(trimmedLine);
                 }
+            }
+
+            // Save last step if exists
+            if (currentSection === 'Zubereitung' && currentStepContent.length > 0) {
+                sections['Zubereitung'].push(currentStepContent.join(' '));
             }
 
             // Prüfen ob überhaupt Struktur gefunden wurde
@@ -2808,6 +2843,9 @@
                 sonstiges: sections['Sonstiges'].length,
                 hasStructure
             });
+
+            console.log('Zubereitung content:', sections['Zubereitung']);
+            console.log('Zutaten content:', sections['Zutaten']);
 
             return {
                 hasStructure,
@@ -2845,8 +2883,8 @@
                 if (style === 'steps') {
                     html += '<ol class="recipe-steps">';
                     for (const line of lines) {
-                        // Entferne "SCHRITT X:" oder "X." am Anfang
-                        const cleaned = line.replace(/^(SCHRITT\s+\d+[:.]\s*|\d+\.\s*)/i, '');
+                        // Entferne "SCHRITT X" oder "X." am Anfang (mit optionalem :)
+                        const cleaned = line.replace(/^(SCHRITT\s+\d+[\s:]*|Step\s+\d+[\s:]*|\d+\.\s*)/i, '').trim();
                         html += `<li>${escapeHtml(cleaned)}</li>`;
                     }
                     html += '</ol>';

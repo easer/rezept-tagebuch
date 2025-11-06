@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parser Test</title>
+</head>
+<body>
+    <h1>Parser Test</h1>
+    <div id="output"></div>
+    
+    <script>
+    const testNotes = `SCHRITT 1
+
+Eine kleine Prise Salz und Sesamöl zum Rinderhackfleisch geben. Gut mischen und beiseite stellen.
+
+SCHRITT 2
+
+1 Esslöffel Maisstärke mit 2 ½ Esslöffeln Wasser in einer kleinen Schüssel mischen.
+
+Zutaten:
+- 1kg Tofu
+- 2 TL Salz
+- 3 EL Öl
+
+─────────────────────────
+🌍 Quelle: TheMealDB`;
+
+    document.getElementById('output').innerHTML = '<pre>' + testNotes + '</pre>';
+    console.log('Test notes loaded');
+    </script>
+</body>
+</html>

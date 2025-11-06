@@ -168,7 +168,7 @@ def get_db():
 def index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/recipe-format-config.json')
+@app.route('/api/recipe-format-config.json')
 def recipe_format_config():
     return send_from_directory('.', 'recipe-format-config.json')
 
@@ -1068,6 +1068,29 @@ def daily_recipe_import():
         original_instructions = meal.get('strInstructions', '')
         translated_instructions = translate_to_german(original_instructions)
 
+        # 3a. Format instructions into SCHRITT structure for parser
+        # Check if instructions already have SCHRITT/STEP markers
+        instruction_text = translated_instructions.replace('\r\n', '\n').strip()
+
+        # Check if already formatted (contains "SCHRITT X" or "Step X")
+        import re
+        has_steps = bool(re.search(r'(SCHRITT\s+\d+|Step\s+\d+)', instruction_text, re.IGNORECASE))
+
+        if has_steps:
+            # Already formatted - just use as-is
+            formatted_instructions = instruction_text
+        else:
+            # Not formatted - split by newlines and add SCHRITT markers
+            instruction_lines = instruction_text.split('\n')
+            formatted_steps = []
+            step_num = 1
+            for line in instruction_lines:
+                line = line.strip()
+                if line:  # Skip empty lines
+                    formatted_steps.append(f"SCHRITT {step_num}\n\n{line}")
+                    step_num += 1
+            formatted_instructions = "\n\n".join(formatted_steps)
+
         # 4. Parse and translate ingredients
         ingredients = []
         ingredients_en = []
@@ -1081,8 +1104,8 @@ def daily_recipe_import():
                 ing_de = translate_to_german(ing_en)
                 ingredients.append(ing_de)
 
-        # Build notes with translated content
-        notes = f"{translated_instructions}\n\n"
+        # Build notes with structured SCHRITT format
+        notes = formatted_instructions + "\n\n"
         if ingredients:
             notes += "Zutaten:\n" + "\n".join(f"- {ing}" for ing in ingredients)
 

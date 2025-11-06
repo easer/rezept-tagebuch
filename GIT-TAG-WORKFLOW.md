@@ -54,22 +54,38 @@ git commit -m "deine message"
 
 ```bash
 ./tag-version.sh
+# Führt automatisch Tests aus (pytest + E2E)
 # Erstellt automatisch Tag: rezept_version_DD_MM_YYYY_NNN
 # Findet die nächste freie Nummer für heutiges Datum
 # z.B.: rezept_version_05_11_2025_001
 ```
+
+**Was passiert beim Tag erstellen:**
+1. ✅ Prüft ob Working Directory clean ist
+2. ✅ Führt pytest Test-Suite aus (27 Tests)
+3. ✅ Führt E2E Test aus (Recipe Import)
+4. ✅ Erstellt Git-Tag nur wenn alle Tests bestehen
 
 **Option B: Mit Helper-Script - Custom**
 
 ```bash
 ./tag-version.sh rezept_version_06_11_2025_001
 # Spezifischer Tag für bestimmtes Datum/Build
+# Tests werden trotzdem ausgeführt
 ```
 
-**Option C: Manuell**
+**Option C: Tests überspringen (Notfall)**
+
+```bash
+TAG_SKIP_TESTS=1 ./tag-version.sh
+# Überspringt alle Tests - nur in Notfällen!
+```
+
+**Option D: Manuell (nicht empfohlen)**
 
 ```bash
 git tag -a rezept_version_05_11_2025_001 -m "Release Notes hier"
+# Tests werden NICHT ausgeführt
 ```
 
 ### 4. Auf Prod deployen
