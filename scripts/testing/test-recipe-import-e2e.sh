@@ -40,7 +40,7 @@ if podman ps | grep -q "$CONTAINER"; then
     test_pass "Container '$CONTAINER' is running"
 else
     test_fail "Container '$CONTAINER' is NOT running"
-    echo "   → Run: ./build-dev.sh"
+    echo "   → Run: ./scripts/deployment/build-dev.sh"
     exit 1
 fi
 echo ""
@@ -52,7 +52,7 @@ if [ -n "$DEEPL_CHECK" ]; then
     test_pass "DEEPL_API_KEY is configured"
 else
     test_fail "DEEPL_API_KEY is NOT configured"
-    echo "   → Set in .env file and rebuild: ./build-dev.sh"
+    echo "   → Set in .env file and rebuild: ./scripts/deployment/build-dev.sh"
     exit 1
 fi
 echo ""

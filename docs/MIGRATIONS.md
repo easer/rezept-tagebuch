@@ -24,26 +24,26 @@ Das Rezept-Tagebuch nutzt **Alembic** für versionierte Datenbank-Migrationen. D
 cd /home/gabor/easer_projekte/rezept-tagebuch
 
 # Aktuelle Version anzeigen
-./migrate.sh current prod
+./scripts/database/migrate.sh current prod
 
 # Alle Migrations anwenden
-./migrate.sh upgrade prod
+./scripts/database/migrate.sh upgrade prod
 
 # Letzte Migration rückgängig machen
-./migrate.sh downgrade prod
+./scripts/database/migrate.sh downgrade prod
 
 # Migration-Historie ansehen
-./migrate.sh history prod
+./scripts/database/migrate.sh history prod
 ```
 
 ### Dev-Datenbank migrieren
 
 ```bash
 # Alle Migrations anwenden
-./migrate.sh upgrade dev
+./scripts/database/migrate.sh upgrade dev
 
 # Aktuelle Version anzeigen
-./migrate.sh current dev
+./scripts/database/migrate.sh current dev
 ```
 
 ---
@@ -56,7 +56,7 @@ cd /home/gabor/easer_projekte/rezept-tagebuch
 
 ```bash
 cd /home/gabor/easer_projekte/rezept-tagebuch
-./migrate.sh create add_kategorie_field
+./scripts/database/migrate.sh create add_kategorie_field
 ```
 
 Erstellt: `migrations/versions/YYYYMMDD_HHMM_002_add_kategorie_field.py`
@@ -85,18 +85,18 @@ def downgrade() -> None:
 
 ```bash
 # Migration anwenden
-./migrate.sh upgrade dev
+./scripts/database/migrate.sh upgrade dev
 
 # App testen: http://192.168.2.139:8000/rezept-tagebuch-dev/
 
 # Bei Problemen: Rollback
-./migrate.sh downgrade dev
+./scripts/database/migrate.sh downgrade dev
 ```
 
 #### 4. Nach Prod deployen
 
 ```bash
-./deploy-prod.sh 25.11.05
+./scripts/deployment/deploy-prod.sh 25.11.05
 ```
 
 **Das Script macht automatisch:**
@@ -113,10 +113,10 @@ def downgrade() -> None:
 
 ```bash
 # Automatisches Backup (inkl. Migration-Version)
-./backup-db.sh prod
+./scripts/database/backup-db.sh prod
 
 # Manuelles Backup mit Beschreibung
-./backup-db.sh prod "before kategorie feature"
+./scripts/database/backup-db.sh prod "before kategorie feature"
 ```
 
 **Backup-Format:**
@@ -131,10 +131,10 @@ rezepte-20251104-210530-001-before-v25.11.05.db
 
 ```bash
 # Verfügbare Backups anzeigen
-./restore-db.sh prod
+./scripts/database/restore-db.sh prod
 
 # Restore (mit Migration-Check)
-./restore-db.sh prod rezepte-20251104-210530-001-auto.db
+./scripts/database/restore-db.sh prod rezepte-20251104-210530-001-auto.db
 ```
 
 **Das Script warnt automatisch:**
@@ -176,14 +176,14 @@ podman exec seaser-rezept-tagebuch pip install alembic==1.13.1
 
 ```bash
 # 1. Aktuelle Version prüfen
-./migrate.sh current prod
+./scripts/database/migrate.sh current prod
 
 # 2. Backup mit passender Version finden
-./restore-db.sh prod
+./scripts/database/restore-db.sh prod
 
 # 3. Restore + Migrations neu anwenden
-./restore-db.sh prod rezepte-TIMESTAMP-001-*.db
-./migrate.sh upgrade prod
+./scripts/database/restore-db.sh prod rezepte-TIMESTAMP-001-*.db
+./scripts/database/migrate.sh upgrade prod
 ```
 
 ### Problem: SQLite "table already exists"
@@ -245,18 +245,18 @@ def upgrade() -> None:
 
 ```bash
 # IMMER zuerst in Dev testen!
-./migrate.sh upgrade dev
+./scripts/database/migrate.sh upgrade dev
 # App testen
-# Rollback testen: ./migrate.sh downgrade dev
-# Dann erst Prod: ./deploy-prod.sh
+# Rollback testen: ./scripts/database/migrate.sh downgrade dev
+# Dann erst Prod: ./scripts/deployment/deploy-prod.sh
 ```
 
 ### 4. Backup vor großen Änderungen
 
 ```bash
 # Manuelles Backup vor Schema-Änderung
-./backup-db.sh prod "before major schema change"
-./deploy-prod.sh 25.11.05
+./scripts/database/backup-db.sh prod "before major schema change"
+./scripts/deployment/deploy-prod.sh 25.11.05
 ```
 
 ---
@@ -266,18 +266,18 @@ def upgrade() -> None:
 ```
 ┌─────────────────────────────────────────┐
 │  1. Code-Änderung + neue Migration      │
-│     ./migrate.sh create add_feature     │
+│     ./scripts/database/migrate.sh create add_feature     │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
 │  2. Dev testen                          │
-│     ./migrate.sh upgrade dev            │
+│     ./scripts/database/migrate.sh upgrade dev            │
 │     Test App, Test Rollback             │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
 │  3. Prod deployen                       │
-│     ./deploy-prod.sh 25.11.05           │
+│     ./scripts/deployment/deploy-prod.sh 25.11.05           │
 │     ├─ Auto-Backup (mit Migration-Ver) │
 │     ├─ Image bauen                      │
 │     ├─ Migrations anwenden              │
@@ -286,8 +286,8 @@ def upgrade() -> None:
                │
 ┌──────────────▼──────────────────────────┐
 │  4. Bei Problemen: Rollback             │
-│     ./rollback.sh v25.11.04             │
-│     ./restore-db.sh prod (if needed)    │
+│     ./scripts/deployment/rollback.sh v25.11.04             │
+│     ./scripts/database/restore-db.sh prod (if needed)    │
 └─────────────────────────────────────────┘
 ```
 
@@ -297,7 +297,7 @@ def upgrade() -> None:
 
 - [Alembic Dokumentation](https://alembic.sqlalchemy.org/)
 - [SQLite Batch Operations](https://alembic.sqlalchemy.org/en/latest/batch.html)
-- `./migrate.sh help` - Alle verfügbaren Befehle
+- `./scripts/database/migrate.sh help` - Alle verfügbaren Befehle
 
 ---
 

@@ -36,7 +36,7 @@ if ! podman ps | grep -q "seaser-rezept-tagebuch-dev"; then
     echo "   Tests cannot run without container"
     echo ""
     echo "Options:"
-    echo "  1. Start container: ./build-dev.sh"
+    echo "  1. Start container: ./scripts/deployment/build-dev.sh"
     echo "  2. Skip tests: git commit --no-verify"
     echo ""
     exit 1

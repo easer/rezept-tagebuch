@@ -267,8 +267,8 @@ Jetzt wird standardmäßig nach Kategorie gefiltert (aus favorite_categories).
 ### 4. Container neu bauen
 
 ```bash
-./build-dev.sh    # Für Dev
-./deploy-prod.sh <TAG>  # Für Production
+./scripts/deployment/build-dev.sh    # Für Dev
+./scripts/deployment/deploy-prod.sh <TAG>  # Für Production
 ```
 
 **Wichtig:** Config-Änderungen erfordern Container-Rebuild, da die Datei beim Build kopiert wird.
@@ -325,7 +325,7 @@ systemctl --user list-timers | grep rezept
 
 **Lösung:** Container neu bauen:
 ```bash
-./build-dev.sh
+./scripts/deployment/build-dev.sh
 ```
 
 Die Config-Datei wird beim Build kopiert und muss bei Änderungen neu gebaut werden.

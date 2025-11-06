@@ -81,7 +81,7 @@ cd /home/gabor/easer_projekte/rezept-tagebuch
 vim app.py
 
 # Dev-Container neu bauen und starten
-./build-dev.sh
+./scripts/deployment/build-dev.sh
 
 # Testen auf: http://192.168.2.139:8000/rezept-tagebuch-dev/
 ```
@@ -90,10 +90,10 @@ vim app.py
 
 ```bash
 # Git-Tag erstellen (automatisch mit heutigem Datum)
-./tag-version.sh
+./scripts/tools/tag-version.sh
 
 # Mit Git-Tag deployen
-./deploy-prod.sh rezept_version_06_11_2025_001
+./scripts/deployment/deploy-prod.sh rezept_version_06_11_2025_001
 
 # Prod-App ist nun auf: http://192.168.2.139:8000/rezept-tagebuch/
 ```
@@ -107,7 +107,7 @@ vim app.py
 git tag | grep rezept_version
 
 # Zurück zu alter Version
-./rollback.sh rezept_version_05_11_2025_001
+./scripts/deployment/rollback.sh rezept_version_05_11_2025_001
 ```
 
 ---
@@ -119,7 +119,7 @@ git tag | grep rezept_version
 Baut Dev-Image und startet Dev-Container neu.
 
 ```bash
-./build-dev.sh
+./scripts/deployment/build-dev.sh
 ```
 
 **Was passiert:**
@@ -132,10 +132,10 @@ Baut Dev-Image und startet Dev-Container neu.
 Deployed Git-Tag auf Production.
 
 ```bash
-./deploy-prod.sh <GIT_TAG>
+./scripts/deployment/deploy-prod.sh <GIT_TAG>
 
 # Beispiel:
-./deploy-prod.sh rezept_version_06_11_2025_001
+./scripts/deployment/deploy-prod.sh rezept_version_06_11_2025_001
 ```
 
 **Was passiert:**
@@ -152,10 +152,10 @@ Deployed Git-Tag auf Production.
 Rollback zu vorheriger Version.
 
 ```bash
-./rollback.sh <GIT_TAG>
+./scripts/deployment/rollback.sh <GIT_TAG>
 
 # Beispiel:
-./rollback.sh rezept_version_05_11_2025_001
+./scripts/deployment/rollback.sh rezept_version_05_11_2025_001
 ```
 
 **Was passiert:**
@@ -170,7 +170,7 @@ Rollback zu vorheriger Version.
 Testet DeepL API Integration.
 
 ```bash
-./test-deepl.sh
+./scripts/testing/test-deepl.sh
 ```
 
 **Was wird getestet:**
@@ -182,7 +182,7 @@ Testet DeepL API Integration.
 End-to-End Test für den Recipe Import Flow.
 
 ```bash
-./test-recipe-import-e2e.sh
+./scripts/testing/test-recipe-import-e2e.sh
 ```
 
 **Was wird getestet:**
@@ -201,12 +201,12 @@ End-to-End Test für den Recipe Import Flow.
 Automatisierte CRUD Tests für Recipe & Diary API (**27 Tests**).
 
 ```bash
-./run-tests.sh
+./scripts/testing/run-tests.sh
 ```
 
 **Empfohlen**: Isolierte Test-Datenbank nutzen:
 ```bash
-./run-tests-isolated.sh
+./scripts/testing/run-tests-isolated.sh
 ```
 
 **Was wird getestet:**
@@ -220,16 +220,16 @@ Automatisierte CRUD Tests für Recipe & Diary API (**27 Tests**).
 **Beispiele:**
 ```bash
 # Nur Recipe Tests
-./run-tests.sh tests/test_recipes_crud.py
+./scripts/testing/run-tests.sh tests/test_recipes_crud.py
 
 # Einzelner Test
-./run-tests.sh -k test_create_recipe
+./scripts/testing/run-tests.sh -k test_create_recipe
 
 # Verbose Output
-./run-tests.sh -v
+./scripts/testing/run-tests.sh -v
 
 # Mit isolierter Test-DB
-./run-tests-isolated.sh -v
+./scripts/testing/run-tests-isolated.sh -v
 ```
 
 **Hinweis**: Bei vollständigem Test-Run können SQLite Lock-Fehler auftreten (nur Test-Problem, nicht Production).
@@ -241,7 +241,7 @@ Siehe `tests/README.md` für Details.
 Automatisch Tests vor jedem Commit ausführen:
 
 ```bash
-./install-git-hooks.sh
+./scripts/setup/install-git-hooks.sh
 ```
 
 **Was passiert:**
@@ -309,11 +309,11 @@ sqlite3 /home/gabor/easer_projekte/rezept-tagebuch/data/prod/rezepte.db
 ### Backup erstellen
 
 ```bash
-# Dev Backup (empfohlen: ./backup-db.sh dev)
-./backup-db.sh dev
+# Dev Backup (empfohlen: ./scripts/database/backup-db.sh dev)
+./scripts/database/backup-db.sh dev
 
-# Prod Backup (empfohlen: ./backup-db.sh prod)
-./backup-db.sh prod
+# Prod Backup (empfohlen: ./scripts/database/backup-db.sh prod)
+./scripts/database/backup-db.sh prod
 ```
 
 **Hinweis:** Alle Datenbanken und Uploads sind jetzt im Projektverzeichnis unter `./data/` organisiert.
@@ -367,7 +367,7 @@ Siehe **docs/UX-GUIDE.md** für:
 podman logs seaser-rezept-tagebuch-dev
 
 # Container neu starten
-./build-dev.sh
+./scripts/deployment/build-dev.sh
 ```
 
 ### Prod-App lädt nicht

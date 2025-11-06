@@ -15,7 +15,7 @@ GIT_TAG=$1
 if [ -z "$GIT_TAG" ]; then
     echo -e "${RED}❌ Fehler: Kein Git-Tag angegeben!${NC}"
     echo ""
-    echo "Usage: ./rollback.sh <GIT_TAG>"
+    echo "Usage: ./scripts/deployment/rollback.sh <GIT_TAG>"
     echo ""
     echo "Verfügbare Git-Tags:"
     git tag | grep "^rezept_version_" || echo "  (keine Tags gefunden)"
@@ -30,7 +30,7 @@ if ! podman image exists seaser-rezept-tagebuch:$GIT_TAG; then
     echo -e "${RED}❌ Container-Image für '$GIT_TAG' existiert nicht!${NC}"
     echo ""
     echo "Das Image muss erst gebaut werden. Nutze:"
-    echo "  ./deploy-prod.sh $GIT_TAG"
+    echo "  ./scripts/deployment/deploy-prod.sh $GIT_TAG"
     echo ""
     echo "Verfügbare Images:"
     podman images | grep seaser-rezept-tagebuch

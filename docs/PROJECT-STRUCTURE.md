@@ -264,7 +264,7 @@ source /etc/rezept-tagebuch/config.sh
 
 ```bash
 # Backup Script nutzt Projekt-Verzeichnis
-./backup-db.sh prod  # Erstellt Backup in ./data/prod/backups/
+./scripts/database/backup-db.sh prod  # Erstellt Backup in ./data/prod/backups/
 
 # Upload-Verzeichnis im Projekt
 UPLOAD_DIR="./data/prod/uploads"

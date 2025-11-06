@@ -37,10 +37,10 @@ main Branch → Git-Tag erstellen → Prod Deployment
 
 **Workflow:**
 1. Entwickle und teste auf `main` Branch
-2. Teste in Dev-Environment (`./build-dev.sh`)
+2. Teste in Dev-Environment (`./scripts/deployment/build-dev.sh`)
 3. Committe alle Änderungen
-4. Erstelle Git-Tag (`./tag-version.sh`)
-5. Deploy auf Prod (`./deploy-prod.sh <GIT_TAG>`)
+4. Erstelle Git-Tag (`./scripts/tools/tag-version.sh`)
+5. Deploy auf Prod (`./scripts/deployment/deploy-prod.sh <GIT_TAG>`)
 
 ---
 
@@ -77,7 +77,7 @@ vim app.py
 vim index.html
 
 # 2. Dev-Build & Deploy
-./build-dev.sh
+./scripts/deployment/build-dev.sh
 
 # 3. Testen
 # Browser: http://192.168.2.139:8000/rezept-tagebuch-dev/
@@ -98,10 +98,10 @@ podman logs --tail 50 seaser-rezept-tagebuch-dev
 cd /home/gabor/easer_projekte/rezept-tagebuch
 
 # 1. Git-Tag erstellen (automatisch mit heutigem Datum)
-./tag-version.sh
+./scripts/tools/tag-version.sh
 
 # 2. Production-Deployment mit Git-Tag
-./deploy-prod.sh rezept_version_06_11_2025_001
+./scripts/deployment/deploy-prod.sh rezept_version_06_11_2025_001
 ```
 
 **Wichtig:** Nur noch Git-Tag-basiertes Deployment seit v25.11.05! Siehe **GIT-TAG-WORKFLOW.md** für Details.
@@ -181,7 +181,7 @@ podman images | grep seaser-rezept-tagebuch
 # localhost/seaser-rezept-tagebuch  latest                          abc123...
 
 # 2. Rollback zu alter Version
-./rollback.sh rezept_version_05_11_2025_004
+./scripts/deployment/rollback.sh rezept_version_05_11_2025_004
 ```
 
 **Was passiert beim Rollback:**
@@ -238,7 +238,7 @@ podman logs --tail 50 seaser-proxy
 
 ```bash
 # Empfohlen: Backup-Script verwenden
-./backup-db.sh prod "before-deployment"
+./scripts/database/backup-db.sh prod "before-deployment"
 ```
 
 **Hinweis:** Das Deployment-Script `deploy-prod.sh` erstellt automatisch ein Backup vor jedem Deployment.
@@ -249,7 +249,7 @@ podman logs --tail 50 seaser-proxy
 
 ```bash
 # Restore mit Script (empfohlen)
-./restore-db.sh prod
+./scripts/database/restore-db.sh prod
 
 # Wähle Backup aus der Liste
 ```
@@ -263,7 +263,7 @@ Siehe auch: **MIGRATIONS.md** für Details zu Backup & Restore mit Migration-Ver
 cp data/prod/rezepte.db data/dev/rezepte.db
 
 # Dev-Container neu starten
-./build-dev.sh
+./scripts/deployment/build-dev.sh
 ```
 
 ---
@@ -399,7 +399,7 @@ ls -lh /home/gabor/data/rezept-tagebuch/
 
 ### Während Deployment:
 
-- [ ] `./deploy-prod.sh <VERSION>` ausführen
+- [ ] `./scripts/deployment/deploy-prod.sh <VERSION>` ausführen
 - [ ] Container-Start erfolgreich
 - [ ] Logs prüfen (keine Errors)
 - [ ] App im Browser testen
@@ -473,10 +473,10 @@ git add CHANGELOG.md
 git commit -m "docs: update CHANGELOG for v06.11.2025"
 
 # 4. Git-Tag erstellen
-./tag-version.sh
+./scripts/tools/tag-version.sh
 
 # 5. Deployen
-./deploy-prod.sh rezept_version_06_11_2025_001
+./scripts/deployment/deploy-prod.sh rezept_version_06_11_2025_001
 ```
 
 ### Format-Richtlinien
@@ -532,10 +532,10 @@ git add .
 git commit -m "feat: Add new feature XYZ"
 
 # Git-Tag erstellen (automatisch)
-./tag-version.sh
+./scripts/tools/tag-version.sh
 
 # Deployen mit Git-Tag
-./deploy-prod.sh rezept_version_06_11_2025_001
+./scripts/deployment/deploy-prod.sh rezept_version_06_11_2025_001
 ```
 
 ---

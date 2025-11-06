@@ -40,8 +40,8 @@ if [[ -n $(git status --porcelain) ]]; then
     echo "Nächste Schritte:"
     echo "  1. git add <files>"
     echo "  2. git commit -m 'deine message'"
-    echo "  3. ./tag-version.sh  (erstellt automatisch einen Tag)"
-    echo "  4. ./deploy-prod.sh rezept_version_DD_MM_YYYY"
+    echo "  3. ./scripts/tools/tag-version.sh  (erstellt automatisch einen Tag)"
+    echo "  4. ./scripts/deployment/deploy-prod.sh rezept_version_DD_MM_YYYY"
     exit 1
 fi
 
@@ -49,13 +49,13 @@ fi
 if [[ -z "$1" ]]; then
     echo -e "${RED}❌ Kein Git-Tag angegeben!${NC}"
     echo ""
-    echo "Usage: ./deploy-prod.sh <GIT_TAG>"
+    echo "Usage: ./scripts/deployment/deploy-prod.sh <GIT_TAG>"
     echo ""
     echo "Verfügbare Tags:"
     git tag | grep "^rezept_version_" || echo "  (noch keine Tags vorhanden)"
     echo ""
     echo "Neuen Tag erstellen:"
-    echo "  ./tag-version.sh"
+    echo "  ./scripts/tools/tag-version.sh"
     exit 1
 fi
 
@@ -70,7 +70,7 @@ if ! git rev-parse "$GIT_TAG" >/dev/null 2>&1; then
     git tag | grep "^rezept_version_" || echo "  (noch keine Tags vorhanden)"
     echo ""
     echo "Neuen Tag erstellen:"
-    echo "  ./tag-version.sh"
+    echo "  ./scripts/tools/tag-version.sh"
     exit 1
 fi
 
@@ -90,7 +90,7 @@ echo ""
 
 # 1. Create automatic backup BEFORE deployment
 echo "📦 Step 1/5: Creating automatic backup..."
-./backup-db.sh prod "before-$GIT_TAG"
+./scripts/database/backup-db.sh prod "before-$GIT_TAG"
 echo ""
 
 # 2. Build aus dem exportierten Git-Tag (nicht aus Working Directory!)
@@ -143,5 +143,5 @@ echo ""
 echo "Available versions:"
 podman images | grep seaser-rezept-tagebuch | head -5
 echo ""
-echo "💡 Rollback available via: ./rollback.sh $GIT_TAG"
+echo "💡 Rollback available via: ./scripts/deployment/rollback.sh $GIT_TAG"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

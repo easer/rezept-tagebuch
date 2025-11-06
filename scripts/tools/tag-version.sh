@@ -45,7 +45,7 @@ else
 if ! podman ps | grep -q "seaser-rezept-tagebuch-dev"; then
     echo -e "${YELLOW}⚠️  Dev container is not running${NC}"
     echo "   Starte Container..."
-    ./build-dev.sh
+    ./scripts/deployment/build-dev.sh
 fi
 
 # Check if pytest is installed
@@ -63,7 +63,7 @@ if ! pytest -x -q; then
     echo ""
     echo "Options:"
     echo "  1. Fix failing tests"
-    echo "  2. Skip tests: TAG_SKIP_TESTS=1 ./tag-version.sh"
+    echo "  2. Skip tests: TAG_SKIP_TESTS=1 ./scripts/tools/tag-version.sh"
     echo ""
     exit 1
 fi
@@ -73,7 +73,7 @@ echo ""
 
 # Run E2E test
 echo "   Running E2E test (recipe import)..."
-if ! ./test-recipe-import-e2e.sh > /dev/null 2>&1; then
+if ! ./scripts/testing/test-recipe-import-e2e.sh > /dev/null 2>&1; then
     echo -e "${YELLOW}⚠️  E2E test failed (non-blocking)${NC}"
 else
     echo -e "${GREEN}✅ E2E test passed${NC}"
@@ -120,7 +120,7 @@ if git rev-parse "$GIT_TAG" >/dev/null 2>&1; then
     echo -e "${RED}❌ Tag '$GIT_TAG' existiert bereits!${NC}"
     echo ""
     echo "Möchtest du einen anderen Tag-Namen verwenden?"
-    echo "Usage: ./tag-version.sh rezept_version_DD_MM_YYYY_NNN"
+    echo "Usage: ./scripts/tools/tag-version.sh rezept_version_DD_MM_YYYY_NNN"
     echo ""
     echo "Existierende Tags:"
     git tag | grep "^rezept_version_"
@@ -156,7 +156,7 @@ echo "  1. Tag zum Remote pushen:"
 echo "     ${BLUE}git push origin $GIT_TAG${NC}"
 echo ""
 echo "  2. Auf Prod deployen:"
-echo "     ${BLUE}./deploy-prod.sh $GIT_TAG${NC}"
+echo "     ${BLUE}./scripts/deployment/deploy-prod.sh $GIT_TAG${NC}"
 echo ""
 echo "Alle Tags anzeigen:"
 echo "  git tag | grep rezept_version"

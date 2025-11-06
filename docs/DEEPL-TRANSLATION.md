@@ -56,7 +56,7 @@ Environment="DEEPL_API_KEY=your-key"
 
 **Test-Script ausführen:**
 ```bash
-./test-deepl.sh
+./scripts/deployment/test-deepl.sh
 # Gibt API Key ein wenn gefragt
 ```
 
@@ -137,7 +137,7 @@ Zutaten:
 ### API Key funktioniert nicht
 ```bash
 # Test ob Key korrekt ist
-./test-deepl.sh
+./scripts/deployment/test-deepl.sh
 
 # Prüfe Logs
 podman logs seaser-rezept-tagebuch-dev | grep DeepL

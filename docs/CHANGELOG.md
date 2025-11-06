@@ -40,8 +40,8 @@ All notable changes to this project will be documented in this file.
 #### README.md
 - Volume Mount Pfade aktualisiert (Tabelle `data/prod/` und `data/dev/`)
 - Deployment-Workflow auf Git-Tag Format angepasst
-  - Von: `./deploy-prod.sh 25.11.05`
-  - Zu: `./deploy-prod.sh rezept_version_06_11_2025_001`
+  - Von: `./scripts/deployment/deploy-prod.sh 25.11.05`
+  - Zu: `./scripts/deployment/deploy-prod.sh rezept_version_06_11_2025_001`
 - Rollback-Beispiele mit Git-Tag Format
 
 #### DEPLOYMENT.md

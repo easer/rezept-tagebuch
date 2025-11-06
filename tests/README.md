@@ -15,7 +15,7 @@ Die Test-Suite besteht aus:
 ### Standard: Mit Dev-Datenbank
 
 ```bash
-./run-tests.sh
+./scripts/testing/run-tests.sh
 ```
 
 **Hinweis**: Tests nutzen die Dev-Datenbank und können bei paralleler Ausführung SQLite Lock-Errors verursachen.
@@ -23,7 +23,7 @@ Die Test-Suite besteht aus:
 ### Empfohlen: Mit isolierter Test-Datenbank
 
 ```bash
-./run-tests-isolated.sh
+./scripts/testing/run-tests-isolated.sh
 ```
 
 Startet Container im TESTING_MODE mit separater Test-DB (`data/test/rezepte.db`).
@@ -32,35 +32,35 @@ Startet Container im TESTING_MODE mit separater Test-DB (`data/test/rezepte.db`)
 
 ```bash
 # Nur Recipe Tests
-./run-tests.sh tests/test_recipes_crud.py
+./scripts/testing/run-tests.sh tests/test_recipes_crud.py
 
 # Nur Diary Tests
-./run-tests.sh tests/test_diary_crud.py
+./scripts/testing/run-tests.sh tests/test_diary_crud.py
 
 # Einzelner Test
-./run-tests.sh -k test_create_recipe_success
+./scripts/testing/run-tests.sh -k test_create_recipe_success
 
 # Tests mit bestimmtem Marker
-./run-tests.sh -m crud
+./scripts/testing/run-tests.sh -m crud
 
 # Isoliert mit spezifischen Tests
-./run-tests-isolated.sh tests/test_recipes_crud.py -v
+./scripts/testing/run-tests-isolated.sh tests/test_recipes_crud.py -v
 ```
 
 ### Test-Optionen
 
 ```bash
 # Verbose Output
-./run-tests.sh -v
+./scripts/testing/run-tests.sh -v
 
 # Stop bei erstem Fehler
-./run-tests.sh -x
+./scripts/testing/run-tests.sh -x
 
 # Letzte fehlgeschlagene Tests
-./run-tests.sh --lf
+./scripts/testing/run-tests.sh --lf
 
 # Coverage Report
-./run-tests.sh --cov=. --cov-report=html
+./scripts/testing/run-tests.sh --cov=. --cov-report=html
 ```
 
 ## 📁 Test-Struktur
@@ -92,7 +92,7 @@ pip3 install -r requirements.txt
 Tests benötigen laufenden Dev-Container:
 
 ```bash
-./build-dev.sh
+./scripts/deployment/build-dev.sh
 ```
 
 ## 📝 Test-Beschreibungen
@@ -184,7 +184,7 @@ Beispiel-Daten für Diary-Entry-Tests
 
 2. **Isolierte Test-DB nutzen**:
    ```bash
-   ./run-tests-isolated.sh
+   ./scripts/testing/run-tests-isolated.sh
    ```
 
 3. **Zukünftig: PostgreSQL Migration** (bei mehr Usern empfohlen)
@@ -196,7 +196,7 @@ Beispiel-Daten für Diary-Entry-Tests
 ### Einzelnen Test debuggen
 
 ```bash
-./run-tests.sh -k test_name -vv -s
+./scripts/testing/run-tests.sh -k test_name -vv -s
 ```
 
 `-vv` = sehr verbose
@@ -223,7 +223,7 @@ import pdb; pdb.set_trace()
 
 Dann ausführen:
 ```bash
-./run-tests.sh -k test_name -s
+./scripts/testing/run-tests.sh -k test_name -s
 ```
 
 ## ✅ Best Practices
@@ -242,12 +242,12 @@ Tests können in CI/CD Pipeline integriert werden:
 # Beispiel für GitHub Actions
 - name: Run Tests
   run: |
-    ./build-dev.sh
-    ./run-tests.sh --junitxml=test-results.xml
+    ./scripts/deployment/build-dev.sh
+    ./scripts/testing/run-tests.sh --junitxml=test-results.xml
 ```
 
 ## 🔗 Siehe auch
 
-- `../test-recipe-import-e2e.sh` - Shell-basierter E2E Test
-- `../test-deepl.sh` - DeepL API Test
+- `../scripts/testing/test-recipe-import-e2e.sh` - Shell-basierter E2E Test
+- `../scripts/testing/test-deepl.sh` - DeepL API Test
 - `../README.md` - Haupt-Dokumentation

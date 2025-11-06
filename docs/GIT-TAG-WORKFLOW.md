@@ -36,7 +36,7 @@ Seit Version `rezept_version_05_11_2025_001` werden **nur noch versionierte Git-
 ```bash
 # In Dev entwickeln
 vim app.py
-./build-dev.sh
+./scripts/deployment/build-dev.sh
 
 # Testen: http://192.168.2.139:8000/rezept-tagebuch-dev/
 ```
@@ -53,7 +53,7 @@ git commit -m "deine message"
 **Option A: Mit Helper-Script - Auto-Increment (empfohlen)**
 
 ```bash
-./tag-version.sh
+./scripts/deployment/tag-version.sh
 # Führt automatisch Tests aus (pytest + E2E)
 # Erstellt automatisch Tag: rezept_version_DD_MM_YYYY_NNN
 # Findet die nächste freie Nummer für heutiges Datum
@@ -69,7 +69,7 @@ git commit -m "deine message"
 **Option B: Mit Helper-Script - Custom**
 
 ```bash
-./tag-version.sh rezept_version_06_11_2025_001
+./scripts/deployment/tag-version.sh rezept_version_06_11_2025_001
 # Spezifischer Tag für bestimmtes Datum/Build
 # Tests werden trotzdem ausgeführt
 ```
@@ -91,7 +91,7 @@ git tag -a rezept_version_05_11_2025_001 -m "Release Notes hier"
 ### 4. Auf Prod deployen
 
 ```bash
-./deploy-prod.sh rezept_version_05_11_2025_001
+./scripts/deployment/deploy-prod.sh rezept_version_05_11_2025_001
 ```
 
 **Was passiert:**
@@ -119,13 +119,13 @@ git push origin rezept_version_05_11_2025_001
 git tag | grep rezept_version
 
 # Zu alter Version zurück
-./rollback.sh rezept_version_04_11_2025
+./scripts/deployment/rollback.sh rezept_version_04_11_2025
 ```
 
 **Hinweis:** Das Container-Image für den Tag muss existieren. Wenn nicht, erst nochmal deployen:
 
 ```bash
-./deploy-prod.sh rezept_version_04_11_2025
+./scripts/deployment/deploy-prod.sh rezept_version_04_11_2025
 ```
 
 ---
@@ -193,7 +193,7 @@ Neuen Tag erstellen:
 vim app.py
 
 # 2. In Dev testen
-./build-dev.sh
+./scripts/deployment/build-dev.sh
 # Test auf: http://192.168.2.139:8000/rezept-tagebuch-dev/
 
 # 3. Committen
@@ -201,12 +201,12 @@ git add app.py
 git commit -m "feat: neue Feature XYZ"
 
 # 4. Tag erstellen (Auto-Increment)
-./tag-version.sh
+./scripts/deployment/tag-version.sh
 # Auto-generierter Tag: rezept_version_05_11_2025_001
 # Message: Release 05.11.2025 Build 1 - Feature XYZ
 
 # 5. Deployen
-./deploy-prod.sh rezept_version_05_11_2025_001
+./scripts/deployment/deploy-prod.sh rezept_version_05_11_2025_001
 
 # ✅ Live auf: http://192.168.2.139:8000/rezept-tagebuch/
 # ✅ Version Badge zeigt: v05.11.25-1
@@ -222,7 +222,7 @@ git push origin rezept_version_05_11_2025_001
 **Q: Kann ich mehrere Tags pro Tag erstellen?**
 A: Ja! Genau dafür ist die laufende Nummer da:
 ```bash
-./tag-version.sh  # Erstellt automatisch _001, _002, _003 etc.
+./scripts/deployment/tag-version.sh  # Erstellt automatisch _001, _002, _003 etc.
 ```
 
 **Q: Was passiert mit uncommitteten Änderungen?**
