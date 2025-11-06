@@ -171,14 +171,22 @@ data/
 
 1. **SystemD User Services** (technische Notwendigkeit)
    - `~/.config/systemd/user/container-seaser-rezept-tagebuch*.service`
+   - Werden automatisch von `deploy-prod.sh` generiert via `podman generate systemd`
 
-2. **Podman Images** (wird automatisch gemanagt)
+2. **Nginx Reverse Proxy** (Shared Resource)
+   - Location: `/home/gabor/easer_projekte/nginx-proxy-oauth2.conf`
+   - Container: `seaser-proxy`
+   - **Warum außerhalb?** Nginx ist ein **shared resource** für mehrere Apps (nicht nur Rezept-Tagebuch)
+   - Routet Traffic für: `rezept-tagebuch`, `rezept-tagebuch-dev`, und andere Apps
+   - **Regel:** Nginx-Config wird nur bei Route-Änderungen bearbeitet
+
+3. **Podman Images** (wird automatisch gemanagt)
    - Container Image Storage von Podman selbst
 
-3. **Git Remote** (auf GitHub/GitLab)
+4. **Git Remote** (auf GitHub/GitLab)
    - `git@github.com:easer/rezept-tagebuch.git`
 
-4. **Archive** (nur temporär, nach Migration)
+5. **Archive** (nur temporär, nach Migration)
    - `/home/gabor/archive/rezept-*`
    - Sollten nach erfolgreichem Test gelöscht werden
 
@@ -297,6 +305,81 @@ source .env  # Im Projekt-Root
 
 ---
 
+## 🌐 Nginx Reverse Proxy (Shared Resource)
+
+### Übersicht
+
+Nginx ist **nicht Teil** der Rezept-Tagebuch App, sondern ein **shared resource** für mehrere Apps.
+
+**Location:**
+```
+/home/gabor/easer_projekte/
+├── nginx-proxy-oauth2.conf        ← Nginx Config
+├── Dockerfile.proxy-oauth2        ← Nginx Container Build
+├── rezept-tagebuch/               ← Diese App
+├── other-app-1/
+└── other-app-2/
+```
+
+### Wann Nginx-Config bearbeiten?
+
+**Nur bei:**
+- Neue Route hinzufügen (z.B. `/rezept-tagebuch-staging/`)
+- Route-Pfad ändern
+- Authentifizierungs-Regeln anpassen
+
+**NICHT bei:**
+- Normalen App-Updates
+- Container-Neustarts
+- Datenbank-Änderungen
+
+### Nginx-Update Prozess
+
+**Wenn Route-Änderung nötig:**
+
+```bash
+cd /home/gabor/easer_projekte
+
+# 1. Nginx-Config bearbeiten
+vim nginx-proxy-oauth2.conf
+
+# 2. Proxy-Image neu bauen
+podman build -t seaser-proxy:latest -f Dockerfile.proxy-oauth2 .
+
+# 3. Proxy neu starten
+systemctl --user restart container-seaser-proxy.service
+
+# 4. Nginx-Config testen
+podman exec seaser-proxy nginx -t
+
+# 5. Nginx-Logs prüfen
+podman logs --tail 50 seaser-proxy
+```
+
+**Siehe:** DEPLOYMENT.md (Zeile 224-245) für Details
+
+### Routes für Rezept-Tagebuch
+
+```nginx
+# Prod
+location /rezept-tagebuch/ {
+    proxy_pass http://seaser-rezept-tagebuch:80/;
+}
+
+# Dev
+location /rezept-tagebuch-dev/ {
+    proxy_pass http://seaser-rezept-tagebuch-dev:80/;
+}
+```
+
+### Wichtig
+
+⚠️ **Nginx-Änderungen betreffen ALLE Apps!** Vorsichtig testen!
+
+✅ **Nginx-Config ist bewusst außerhalb** des Rezept-Tagebuch Projekts, da es mehrere Apps bedient.
+
+---
+
 ## 🚨 Verstoß gegen Richtlinie
 
 ### Was tun bei Verstößen?
@@ -332,6 +415,7 @@ source .env  # Im Projekt-Root
 ---
 
 **Version History:**
+- **v1.1** (06.11.2025) - Add Nginx Reverse Proxy documentation (Shared Resource)
 - **v1.0** (06.11.2025) - Initial version nach Issue #9 Migration
 
 ---
