@@ -8,22 +8,46 @@
 
 Alle `.form-group` Elemente haben einen konsistenten `margin-bottom: 20px` für einheitliche vertikale Abstände.
 
-**Wichtig:** Bei `.form-group.textarea-group` muss `!important` verwendet werden:
+#### Textarea-Felder (Notizen)
+
+**Regel:** Textareas verwenden IMMER ein vertikales Layout mit Label oben und Textarea darunter.
+
+**Verwende die Klasse `.form-group.vertical`:**
 
 ```css
-.form-group.textarea-group {
-    align-items: flex-start;
-    margin-bottom: 20px !important;
+.form-group.vertical {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.form-group.vertical label {
+    min-width: 0;
+    margin-bottom: 8px;
+}
+
+.form-group.vertical textarea {
+    width: 100%;
+    min-height: 120px;
 }
 ```
 
-**Grund:** Ohne `!important` kann eine andere CSS-Regel mit höherer Spezifität oder durch CSS-Cascade den margin-bottom überschreiben, was dazu führt, dass die Textarea direkt am nächsten Element klebt (kein vertikaler Abstand).
+**HTML-Beispiel:**
+```html
+<div class="form-group vertical">
+    <label for="recipe-notes">NOTIZEN</label>
+    <textarea id="recipe-notes" placeholder="Besonderheiten..."></textarea>
+</div>
+```
 
-**Beispiel-Problem:**
-- NOTIZEN Textarea klebt am BILDER Input-Feld
-- Visuell sieht es aus als hätte `.form-group` keinen Abstand
+**Vorteile:**
+- Label ist oben lesbar und klar zugeordnet
+- Textarea nutzt die volle Breite für maximale Bearbeitungsfläche
+- Konsistent mit Detail-Ansichten (`.detail-section.notes`)
 
-**Lösung:** Das `!important` Flag erzwingt, dass diese Regel immer angewendet wird, unabhängig von anderen CSS-Regeln.
+**Gilt für:**
+- Rezept-Formulare (neu/bearbeiten): "NOTIZEN"
+- Tagebuch-Formulare (neu/bearbeiten): "Notizen"
+- Alle anderen mehrzeiligen Textfelder
 
 ### Responsive Design (iPhone)
 
@@ -93,6 +117,42 @@ button {
     /* ... */
 }
 ```
+
+### Detail-Ansichten (Read-Only Views)
+
+#### Notizen in Detail-Ansichten
+
+**Regel:** Auch in Detail-Ansichten (Rezept/Tagebuch Details) wird das Notizen-Feld vertikal dargestellt.
+
+**Verwende die Klasse `.detail-section.notes`:**
+
+```css
+.detail-section.notes {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.detail-section.notes .detail-label {
+    margin-bottom: 8px;
+}
+
+.detail-section.notes .detail-value {
+    width: 100%;
+}
+```
+
+**HTML-Beispiel:**
+```html
+<div class="detail-section notes">
+    <div class="detail-label">Notizen</div>
+    <div class="detail-value">${escapeHtml(recipe.notes)}</div>
+</div>
+```
+
+**Konsistenz:**
+- Detail-Ansichten und Edit-Formulare nutzen das gleiche vertikale Layout
+- Label oben, Inhalt darunter mit voller Breite
+- Gleiche visuelle Hierarchie überall
 
 ### Icons und Symbole
 
