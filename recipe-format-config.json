@@ -1,0 +1,64 @@
+{
+  "name": "TheMealDB Format Parser",
+  "version": "1.0",
+  "description": "Parsing-Regeln für strukturierte Darstellung von Rezept-Notizen",
+
+  "patterns": {
+    "steps": {
+      "description": "Erkennt Zubereitungsschritte",
+      "regex": "^(SCHRITT \\d+|\\d+\\.|Step \\d+)",
+      "section": "Zubereitung"
+    },
+    "ingredients": {
+      "description": "Erkennt Zutaten-Zeilen (Mengenangaben)",
+      "regex": "^[-•*]\\s*(\\d+|\\d+[.,]\\d+)?\\s*(g|kg|ml|l|EL|TL|Esslöffel|Teelöffel|Tasse|Tassen|Prise|Stück|Scheibe|Zehe|Dose)\\s+",
+      "section": "Zutaten",
+      "location": "bottom"
+    },
+    "metadata": {
+      "description": "Erkennt Metadaten-Zeilen",
+      "patterns": [
+        "^🌍\\s*Quelle:",
+        "^📖\\s*Original:",
+        "^🏷️\\s*Kategorie:",
+        "^🌎\\s*Region:",
+        "^🤖\\s*Übersetzt",
+        "^─{5,}"
+      ],
+      "section": "Metadaten",
+      "location": "bottom"
+    }
+  },
+
+  "sections": {
+    "order": ["Zubereitung", "Zutaten", "Metadaten"],
+    "display": {
+      "Zubereitung": {
+        "showTitle": true,
+        "title": "Zubereitung",
+        "style": "steps"
+      },
+      "Zutaten": {
+        "showTitle": true,
+        "title": "Zutaten",
+        "style": "list"
+      },
+      "Metadaten": {
+        "showTitle": false,
+        "style": "compact"
+      }
+    }
+  },
+
+  "fallback": {
+    "description": "Wenn keine Struktur erkannt wird, zeige Notizen als Plaintext",
+    "enabled": true
+  },
+
+  "notes": [
+    "Diese Konfiguration wird von parseRecipeNotes() im Frontend verwendet",
+    "Regex-Patterns können angepasst werden für verschiedene Rezept-Formate",
+    "Neue Sections können hinzugefügt werden (z.B. 'Tipps', 'Variationen')",
+    "TheMealDB Format: SCHRITT X für Schritte, - für Zutaten, Emojis für Metadaten"
+  ]
+}

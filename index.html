@@ -895,6 +895,86 @@
             width: 100%;
         }
 
+        /* Strukturierte Rezept-Darstellung */
+        .recipe-section-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #FFD700;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+            padding-bottom: 6px;
+        }
+
+        .recipe-steps {
+            list-style-type: decimal;
+            padding-left: 24px;
+            margin: 0 0 16px 0;
+            color: #D0D0D0;
+        }
+
+        .recipe-steps li {
+            margin-bottom: 24px;
+            line-height: 1.8;
+            padding-left: 8px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .recipe-steps li:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+
+        .recipe-ingredients {
+            list-style-type: disc;
+            padding-left: 24px;
+            margin: 0 0 16px 0;
+            color: #D0D0D0;
+        }
+
+        .recipe-ingredients li {
+            margin-bottom: 6px;
+            line-height: 1.4;
+            padding-left: 8px;
+            display: list-item;
+        }
+
+        .recipe-ingredients li:last-child {
+            margin-bottom: 0;
+        }
+
+        .recipe-metadata {
+            margin: 16px 0;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid rgba(255, 215, 0, 0.5);
+        }
+
+        .metadata-line {
+            color: #B0B0B0;
+            font-size: 0.95em;
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+
+        .metadata-line:last-child {
+            margin-bottom: 0;
+        }
+
+        .recipe-section-other {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #C0C0C0;
+        }
+
+        .recipe-section-other div {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
         /* Form-Gruppe mit Label oben (für Textareas) */
         .form-group.vertical {
             flex-direction: column;
@@ -2586,7 +2666,7 @@
             try {
                 const response = await fetch(`${API_BASE}/recipes/${id}`);
                 const recipe = await response.json();
-                renderDetailView(recipe);
+                await renderDetailView(recipe);
                 openPanel();
             } catch (error) {
                 console.error('Fehler beim Laden des Rezepts:', error);
@@ -2615,9 +2695,199 @@
             }
         }
 
+        // Recipe Format Config laden
+        let recipeFormatConfig = null;
+
+        async function loadRecipeFormatConfig() {
+            if (recipeFormatConfig) return recipeFormatConfig;
+
+            try {
+                const response = await fetch('/recipe-format-config.json');
+                recipeFormatConfig = await response.json();
+                console.log('Recipe format config loaded:', recipeFormatConfig);
+                return recipeFormatConfig;
+            } catch (error) {
+                console.error('Fehler beim Laden der Recipe-Format-Config:', error);
+                return null;
+            }
+        }
+
+        // Rezept-Notizen analysieren und strukturieren
+        function parseRecipeNotes(notes) {
+            console.log('parseRecipeNotes called with:', notes ? notes.substring(0, 100) : 'null');
+            console.log('recipeFormatConfig:', recipeFormatConfig);
+
+            if (!notes || !recipeFormatConfig) {
+                console.log('No notes or config, returning raw');
+                return { hasStructure: false, raw: notes };
+            }
+
+            // Normalize line endings (handle \r\n and \n)
+            const normalizedNotes = notes.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const lines = normalizedNotes.split('\n');
+            console.log('Total lines:', lines.length);
+            const sections = {
+                'Zubereitung': [],
+                'Zutaten': [],
+                'Metadaten': [],
+                'Sonstiges': []
+            };
+
+            let inIngredientsSection = false;
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) continue;
+
+                // Check if this is the "Zutaten:" header line
+                if (/^Zutaten:\s*$/i.test(trimmedLine)) {
+                    inIngredientsSection = true;
+                    continue;
+                }
+
+                let matched = false;
+
+                // Check for Zubereitung (Steps) - stops ingredients section
+                if (recipeFormatConfig.patterns.steps) {
+                    const stepRegex = new RegExp(recipeFormatConfig.patterns.steps.regex);
+                    if (stepRegex.test(trimmedLine)) {
+                        sections['Zubereitung'].push(trimmedLine);
+                        inIngredientsSection = false;
+                        matched = true;
+                        continue;
+                    }
+                }
+
+                // Check for Zutaten (Ingredients) - either in section or matches pattern
+                if (inIngredientsSection && trimmedLine.startsWith('-')) {
+                    sections['Zutaten'].push(trimmedLine);
+                    matched = true;
+                    continue;
+                }
+
+                if (recipeFormatConfig.patterns.ingredients) {
+                    const ingredientRegex = new RegExp(recipeFormatConfig.patterns.ingredients.regex);
+                    if (ingredientRegex.test(trimmedLine)) {
+                        sections['Zutaten'].push(trimmedLine);
+                        matched = true;
+                        continue;
+                    }
+                }
+
+                // Check for Metadaten - stops ingredients section
+                if (recipeFormatConfig.patterns.metadata) {
+                    const metaPatterns = recipeFormatConfig.patterns.metadata.patterns;
+                    for (const pattern of metaPatterns) {
+                        const metaRegex = new RegExp(pattern);
+                        if (metaRegex.test(trimmedLine)) {
+                            sections['Metadaten'].push(trimmedLine);
+                            inIngredientsSection = false;
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (matched) continue;
+                }
+
+                // Wenn keine Struktur gefunden, zu Sonstiges
+                if (!matched) {
+                    inIngredientsSection = false;
+                    sections['Sonstiges'].push(trimmedLine);
+                }
+            }
+
+            // Prüfen ob überhaupt Struktur gefunden wurde
+            const hasStructure = sections['Zubereitung'].length > 0 ||
+                                sections['Zutaten'].length > 0 ||
+                                sections['Metadaten'].length > 0;
+
+            console.log('Parsed sections:', {
+                zubereitung: sections['Zubereitung'].length,
+                zutaten: sections['Zutaten'].length,
+                metadaten: sections['Metadaten'].length,
+                sonstiges: sections['Sonstiges'].length,
+                hasStructure
+            });
+
+            return {
+                hasStructure,
+                sections,
+                raw: notes
+            };
+        }
+
+        // Strukturierte Notizen rendern
+        function renderStructuredNotes(parsedNotes) {
+            if (!parsedNotes.hasStructure) {
+                // Fallback: Plain text anzeigen
+                return `<div class="detail-value">${escapeHtml(parsedNotes.raw)}</div>`;
+            }
+
+            const displayConfig = recipeFormatConfig?.sections?.display || {};
+            let html = '';
+
+            // Sections in definierter Reihenfolge anzeigen
+            const order = recipeFormatConfig?.sections?.order || ['Zubereitung', 'Zutaten', 'Metadaten'];
+
+            for (const sectionName of order) {
+                const lines = parsedNotes.sections[sectionName];
+                if (!lines || lines.length === 0) continue;
+
+                const config = displayConfig[sectionName] || {};
+                const showTitle = config.showTitle !== false;
+                const title = config.title || sectionName;
+                const style = config.style || 'list';
+
+                if (showTitle) {
+                    html += `<div class="recipe-section-title">${escapeHtml(title)}</div>`;
+                }
+
+                if (style === 'steps') {
+                    html += '<ol class="recipe-steps">';
+                    for (const line of lines) {
+                        // Entferne "SCHRITT X:" oder "X." am Anfang
+                        const cleaned = line.replace(/^(SCHRITT\s+\d+[:.]\s*|\d+\.\s*)/i, '');
+                        html += `<li>${escapeHtml(cleaned)}</li>`;
+                    }
+                    html += '</ol>';
+                } else if (style === 'list') {
+                    html += '<ul class="recipe-ingredients">';
+                    for (const line of lines) {
+                        // Entferne führende Bullet Points
+                        const cleaned = line.replace(/^[-•*]\s*/, '');
+                        html += `<li>${escapeHtml(cleaned)}</li>`;
+                    }
+                    html += '</ul>';
+                } else if (style === 'compact') {
+                    html += '<div class="recipe-metadata">';
+                    for (const line of lines) {
+                        html += `<div class="metadata-line">${escapeHtml(line)}</div>`;
+                    }
+                    html += '</div>';
+                }
+            }
+
+            // Sonstiges-Zeilen (falls vorhanden)
+            if (parsedNotes.sections['Sonstiges'].length > 0) {
+                html += '<div class="recipe-section-other">';
+                for (const line of parsedNotes.sections['Sonstiges']) {
+                    html += `<div>${escapeHtml(line)}</div>`;
+                }
+                html += '</div>';
+            }
+
+            return html;
+        }
+
         // Detail-Ansicht rendern
-        function renderDetailView(recipe) {
+        async function renderDetailView(recipe) {
             const content = document.getElementById('panel-content');
+
+            // Config laden falls noch nicht geschehen
+            await loadRecipeFormatConfig();
+
+            // Notizen parsen
+            const parsedNotes = recipe.notes ? parseRecipeNotes(recipe.notes) : null;
 
             let documentHtml = '';
             if (recipe.image) {
@@ -2685,10 +2955,12 @@
 
                 ${documentHtml}
 
-                ${recipe.notes ? `
-                    <div class="detail-section notes">
+                ${parsedNotes ? `
+                    <div class="detail-section notes structured-recipe">
                         <div class="detail-label">Notizen</div>
-                        <div class="detail-value">${escapeHtml(recipe.notes)}</div>
+                        <div class="detail-value">
+                            ${renderStructuredNotes(parsedNotes)}
+                        </div>
                     </div>
                 ` : ''}
             `;

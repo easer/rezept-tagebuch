@@ -168,6 +168,10 @@ def get_db():
 def index():
     return send_from_directory('.', 'index.html')
 
+@app.route('/recipe-format-config.json')
+def recipe_format_config():
+    return send_from_directory('.', 'recipe-format-config.json')
+
 # ============================================================================
 # User API Endpoints
 # ============================================================================
