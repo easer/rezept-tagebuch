@@ -48,18 +48,16 @@ http://192.168.2.139:8000/rezept-tagebuch-dev/
              ▼                    ▼
     ┌─────────────────┐  ┌─────────────────┐
     │ Prod Database   │  │ Dev Database    │
-    │ /data/rezept-   │  │ /easer_projekte/│
-    │ tagebuch/       │  │ rezept-tagebuch-│
-    │                 │  │ data/           │
+    │ ./data/prod/    │  │ ./data/dev/     │
     └─────────────────┘  └─────────────────┘
 ```
 
 ### Volumes (Datenbanken)
 
-| Environment | Volume Mount                                        | Datenbank            |
-|-------------|-----------------------------------------------------|----------------------|
-| **DEV**     | `/home/gabor/easer_projekte/rezept-tagebuch-data/` | `rezepte.db`         |
-| **PROD**    | `/home/gabor/data/rezept-tagebuch/`                 | `rezepte.db`         |
+| Environment | Volume Mount                                           | Datenbank            |
+|-------------|--------------------------------------------------------|----------------------|
+| **DEV**     | `/home/gabor/easer_projekte/rezept-tagebuch/data/dev` | `rezepte.db`         |
+| **PROD**    | `/home/gabor/easer_projekte/rezept-tagebuch/data/prod`| `rezepte.db`         |
 
 **Wichtig:** Getrennte Datenbanken = sicheres Testen ohne Risiko für Prod-Daten!
 
@@ -208,26 +206,26 @@ systemctl --user restart container-seaser-rezept-tagebuch-dev.service
 ### Dev-Datenbank
 
 ```bash
-sqlite3 /home/gabor/easer_projekte/rezept-tagebuch-data/rezepte.db
+sqlite3 /home/gabor/easer_projekte/rezept-tagebuch/data/dev/rezepte.db
 ```
 
 ### Prod-Datenbank
 
 ```bash
-sqlite3 /home/gabor/data/rezept-tagebuch/rezepte.db
+sqlite3 /home/gabor/easer_projekte/rezept-tagebuch/data/prod/rezepte.db
 ```
 
 ### Backup erstellen
 
 ```bash
-# Dev Backup
-cp /home/gabor/easer_projekte/rezept-tagebuch-data/rezepte.db \
-   /home/gabor/easer_projekte/rezept-tagebuch-data/rezepte.db.backup-$(date +%Y%m%d)
+# Dev Backup (empfohlen: ./backup-db.sh dev)
+./backup-db.sh dev
 
-# Prod Backup
-cp /home/gabor/data/rezept-tagebuch/rezepte.db \
-   /home/gabor/data/rezept-tagebuch/rezepte.db.backup-$(date +%Y%m%d)
+# Prod Backup (empfohlen: ./backup-db.sh prod)
+./backup-db.sh prod
 ```
+
+**Hinweis:** Alle Datenbanken und Uploads sind jetzt im Projektverzeichnis unter `./data/` organisiert.
 
 ---
 
