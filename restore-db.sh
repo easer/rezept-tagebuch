@@ -31,12 +31,12 @@ if [ -z "$ENV" ]; then
 fi
 
 if [ "$ENV" = "dev" ]; then
-    DB_PATH="/home/gabor/easer_projekte/rezept-tagebuch-data/rezepte.db"
-    BACKUP_DIR="/home/gabor/easer_projekte/rezept-tagebuch-data/backups"
+    DB_PATH="/home/gabor/easer_projekte/rezept-tagebuch/data/dev/rezepte.db"
+    BACKUP_DIR="/home/gabor/easer_projekte/rezept-tagebuch/data/dev/backups"
     export DB_PATH
 elif [ "$ENV" = "prod" ]; then
-    DB_PATH="/home/gabor/data/rezept-tagebuch/rezepte.db"
-    BACKUP_DIR="/home/gabor/data/rezept-tagebuch/backups"
+    DB_PATH="/home/gabor/easer_projekte/rezept-tagebuch/data/prod/rezepte.db"
+    BACKUP_DIR="/home/gabor/easer_projekte/rezept-tagebuch/data/prod/backups"
     export DB_PATH
 else
     echo -e "${RED}❌ Invalid environment: $ENV${NC}"
