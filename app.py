@@ -130,12 +130,14 @@ def init_db():
         CREATE TABLE IF NOT EXISTS diary_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             recipe_id INTEGER,
+            user_id INTEGER,
             date DATE NOT NULL,
             notes TEXT,
             images TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE SET NULL
+            FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE SET NULL,
+            FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
 
@@ -144,6 +146,12 @@ def init_db():
     diary_columns = [column[1] for column in c.fetchall()]
     if 'dish_name' not in diary_columns:
         c.execute('ALTER TABLE diary_entries ADD COLUMN dish_name TEXT')
+
+    # Migration: Add user_id column if it doesn't exist
+    if 'user_id' not in diary_columns:
+        c.execute('ALTER TABLE diary_entries ADD COLUMN user_id INTEGER REFERENCES users(id)')
+        # Set existing entries to first user (usually Natalie)
+        c.execute('UPDATE diary_entries SET user_id = 1 WHERE user_id IS NULL')
 
     conn.commit()
     conn.close()
@@ -633,16 +641,17 @@ def delete_todo(todo_id):
 
 @app.route('/api/diary', methods=['GET'])
 def get_diary_entries():
-    """Alle Tagebucheinträge abrufen"""
+    """Tagebucheinträge des aktuellen Users abrufen"""
     conn = get_db()
     c = conn.cursor()
 
-    # Optional: Suche nach Name, Notizen oder Rezept-Titel
+    # User-ID aus Query-Parameter
+    user_id = request.args.get('user_id', type=int)
     search = request.args.get('search')
 
     query = '''
         SELECT
-            d.id, d.recipe_id, d.date, d.notes, d.images, d.dish_name,
+            d.id, d.recipe_id, d.user_id, d.date, d.notes, d.images, d.dish_name,
             d.created_at, d.updated_at,
             r.title as recipe_title, r.image as recipe_image
         FROM diary_entries d
@@ -650,6 +659,11 @@ def get_diary_entries():
         WHERE 1=1
     '''
     params = []
+
+    # Filter by user_id (required)
+    if user_id:
+        query += ' AND d.user_id = ?'
+        params.append(user_id)
 
     if search:
         query += ' AND (d.dish_name LIKE ? OR d.notes LIKE ? OR r.title LIKE ?)'
@@ -688,10 +702,11 @@ def create_diary_entry():
     images_json = json.dumps(data.get('images', []))
 
     c.execute('''
-        INSERT INTO diary_entries (recipe_id, date, notes, images, dish_name)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO diary_entries (recipe_id, user_id, date, notes, images, dish_name)
+        VALUES (?, ?, ?, ?, ?, ?)
     ''', (
         data.get('recipe_id'),
+        data.get('user_id'),
         data.get('date'),
         data.get('notes'),
         images_json,
@@ -704,7 +719,7 @@ def create_diary_entry():
     # Eintrag mit Rezept-Daten zurückgeben
     c.execute('''
         SELECT
-            d.id, d.recipe_id, d.date, d.notes, d.images, d.dish_name,
+            d.id, d.recipe_id, d.user_id, d.date, d.notes, d.images, d.dish_name,
             d.created_at, d.updated_at,
             r.title as recipe_title, r.image as recipe_image
         FROM diary_entries d
@@ -734,7 +749,7 @@ def get_diary_entry(entry_id):
 
     c.execute('''
         SELECT
-            d.id, d.recipe_id, d.date, d.notes, d.images,
+            d.id, d.recipe_id, d.user_id, d.date, d.notes, d.images,
             d.created_at, d.updated_at,
             r.title as recipe_title, r.image as recipe_image
         FROM diary_entries d
@@ -791,7 +806,7 @@ def update_diary_entry(entry_id):
     # Aktualisierter Eintrag mit Rezept-Daten zurückgeben
     c.execute('''
         SELECT
-            d.id, d.recipe_id, d.date, d.notes, d.images, d.dish_name,
+            d.id, d.recipe_id, d.user_id, d.date, d.notes, d.images, d.dish_name,
             d.created_at, d.updated_at,
             r.title as recipe_title, r.image as recipe_image
         FROM diary_entries d

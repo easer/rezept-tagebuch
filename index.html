@@ -611,17 +611,27 @@
         .recipe-card.auto-imported {
             border: 2px solid rgba(100, 200, 255, 0.4);
             background: rgba(40, 50, 60, 0.85);
+            position: relative; /* Für absolutes Badge */
         }
 
         .recipe-badge {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 10px;
-            background: linear-gradient(135deg, rgba(100, 200, 255, 0.2) 0%, rgba(150, 220, 255, 0.2) 100%);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border: 1px solid rgba(100, 200, 255, 0.3);
+            gap: 4px;
+            padding: 2px 8px;
+            background: linear-gradient(135deg, rgba(100, 200, 255, 0.3) 0%, rgba(150, 220, 255, 0.3) 100%);
+            border-radius: 6px;
+            border: 1px solid rgba(100, 200, 255, 0.5);
+            font-size: 0.75em;
+            font-weight: 600;
+            color: #000000;
+            line-height: 1.2;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            z-index: 10;
         }
 
         .badge-icon {
@@ -3836,9 +3846,18 @@
         // Tagebuch laden
         async function loadDiaryEntries(search = '') {
             try {
-                const url = search
-                    ? `${API_BASE}/diary?search=${encodeURIComponent(search)}&t=${Date.now()}`
-                    : `${API_BASE}/diary?t=${Date.now()}`;
+                if (!currentUser || currentUser.guest) {
+                    console.log('No user logged in or guest user');
+                    allDiaryEntries = [];
+                    renderDiaryEntries(allDiaryEntries);
+                    return;
+                }
+
+                let url = `${API_BASE}/diary?user_id=${currentUser.id}&t=${Date.now()}`;
+                if (search) {
+                    url += `&search=${encodeURIComponent(search)}`;
+                }
+
                 const response = await fetch(url);
                 allDiaryEntries = await response.json();
                 console.log('Loaded diary entries:', allDiaryEntries);
@@ -4276,7 +4295,8 @@
                 dish_name: dishName,
                 date,
                 notes,
-                images
+                images,
+                user_id: currentUser.id
             };
 
             try {
