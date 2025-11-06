@@ -47,14 +47,21 @@ class TestRecipeCreate:
         recipe_id = response.json()["id"]
         cleanup_test_recipes(recipe_id)
 
-        # Upload image
+        # Upload image to general upload endpoint
+        # NOTE: The app uses /api/upload, not /recipes/{id}/upload
+        # Image upload is separate from recipe creation
         files = {
             'file': ('test.jpg', b'fake-image-data', 'image/jpeg')
         }
-        upload_response = api_client.post(f"/recipes/{recipe_id}/upload", files=files)
+        upload_response = api_client.post("/upload", files=files)
 
         # Accept both 200 and 201 for image upload
         assert upload_response.status_code in [200, 201]
+
+        # Check that response contains filename
+        if upload_response.status_code == 200:
+            data = upload_response.json()
+            assert "filename" in data or "url" in data
 
 
 class TestRecipeRead:
@@ -152,8 +159,8 @@ class TestRecipeDelete:
         create_response = api_client.post("/recipes", json=sample_recipe_data)
         recipe_id = create_response.json()["id"]
 
-        # Delete recipe
-        response = api_client.delete(f"/recipes/{recipe_id}")
+        # Delete recipe (requires user_id)
+        response = api_client.delete(f"/recipes/{recipe_id}?user_id=1")
 
         assert response.status_code == 200
 
@@ -163,7 +170,7 @@ class TestRecipeDelete:
 
     def test_delete_recipe_not_found(self, api_client):
         """Test deleting non-existent recipe returns 404"""
-        response = api_client.delete("/recipes/999999")
+        response = api_client.delete("/recipes/999999?user_id=1")
 
         assert response.status_code == 404
 
@@ -171,21 +178,18 @@ class TestRecipeDelete:
 class TestRecipeSearch:
     """Test Recipe Search"""
 
-    def test_search_recipes_by_title(self, api_client, cleanup_test_recipes):
+    def test_search_recipes_by_title(self, api_client, cleanup_test_recipes, sample_recipe_data):
         """Test searching recipes by title"""
         # Create test recipe with unique title
-        test_data = {
-            "title": "Unique Pizza Recipe pytest",
-            "notes": "Test notes",
-            "rating": 4
-        }
+        test_data = sample_recipe_data.copy()
+        test_data["title"] = "Unique Pizza Recipe pytest"
 
         create_response = api_client.post("/recipes", json=test_data)
         recipe_id = create_response.json()["id"]
         cleanup_test_recipes(recipe_id)
 
-        # Search for recipe
-        response = api_client.get("/recipes/search", params={"q": "Unique Pizza"})
+        # Search for recipe using query parameter
+        response = api_client.get("/recipes", params={"user_id": 1, "search": "Unique Pizza"})
 
         assert response.status_code == 200
         data = response.json()
@@ -197,7 +201,7 @@ class TestRecipeSearch:
 
     def test_search_recipes_empty_query(self, api_client):
         """Test search with empty query returns all recipes"""
-        response = api_client.get("/recipes/search", params={"q": ""})
+        response = api_client.get("/recipes", params={"user_id": 1})
 
         assert response.status_code == 200
         data = response.json()
@@ -208,13 +212,11 @@ class TestRecipeSearch:
 class TestRecipeParser:
     """Test Recipe Parser Integration"""
 
-    def test_recipe_with_schritt_format(self, api_client, cleanup_test_recipes):
+    def test_recipe_with_schritt_format(self, api_client, cleanup_test_recipes, sample_recipe_data):
         """Test recipe with SCHRITT formatting is stored correctly"""
-        test_data = {
-            "title": "Parser Test Rezept",
-            "notes": "SCHRITT 1\n\nMehl und Salz mischen.\n\nSCHRITT 2\n\nWasser hinzufügen.\n\nZutaten:\n- 500g Mehl\n- 2 TL Salz\n- 300ml Wasser",
-            "rating": 5
-        }
+        test_data = sample_recipe_data.copy()
+        test_data["title"] = "Parser Test Rezept"
+        test_data["notes"] = "SCHRITT 1\n\nMehl und Salz mischen.\n\nSCHRITT 2\n\nWasser hinzufügen.\n\nZutaten:\n- 500g Mehl\n- 2 TL Salz\n- 300ml Wasser"
 
         create_response = api_client.post("/recipes", json=test_data)
         recipe_id = create_response.json()["id"]

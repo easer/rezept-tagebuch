@@ -9,6 +9,10 @@ import time
 API_BASE_URL = "http://localhost:8000/rezept-tagebuch-dev/api"
 CONTAINER_NAME = "seaser-rezept-tagebuch-dev"
 
+# Note: Tests use the same database as the dev container
+# This can cause "database is locked" errors during concurrent test runs
+# Tests are configured to run sequentially in pytest.ini to mitigate this
+
 @pytest.fixture(scope="session")
 def api_base_url():
     """Base URL for API requests"""
@@ -95,14 +99,19 @@ def sample_recipe_data():
     return {
         "title": "Test Rezept pytest",
         "notes": "SCHRITT 1\n\nTest Schritt 1 Beschreibung\n\nSCHRITT 2\n\nTest Schritt 2 Beschreibung\n\nZutaten:\n- 500g Mehl\n- 2 TL Salz",
-        "rating": 4
+        "rating": 4,
+        "user_id": 1  # Default user for tests
     }
 
 @pytest.fixture
 def sample_diary_entry_data():
     """Sample diary entry data for testing"""
+    from datetime import datetime
     return {
-        "title": "Test Tagebuch-Eintrag",
-        "content": "Dies ist ein Test-Tagebuch-Eintrag erstellt von pytest.",
-        "mood": "happy"
+        "dish_name": "Test Gericht",
+        "notes": "Dies ist ein Test-Tagebuch-Eintrag erstellt von pytest.",
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "user_id": 1,  # Default user for tests
+        "recipe_id": None,  # No linked recipe for basic test
+        "images": []
     }
