@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   id="Definitions_1"
+                   targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="RecipeImportProcess" name="TheMealDB Recipe Import Process" isExecutable="true">
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_1" name="Daily Import&#10;Trigger (06:00)">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Task 1: Load Config -->
+    <bpmn:task id="Task_LoadConfig" name="Load TheMealDB&#10;Config">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 2: Determine Strategy -->
+    <bpmn:task id="Task_DetermineStrategy" name="Determine Import&#10;Strategy">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Gateway: Strategy Decision -->
+    <bpmn:exclusiveGateway id="Gateway_Strategy" name="Strategy?">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Random</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Category</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Area</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Ingredient</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Task 3a: Fetch Random -->
+    <bpmn:task id="Task_FetchRandom" name="Fetch Random&#10;Recipe">
+      <bpmn:incoming>Flow_Random</bpmn:incoming>
+      <bpmn:outgoing>Flow_4a</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 3b: Fetch by Category -->
+    <bpmn:task id="Task_FetchCategory" name="Fetch by Category&#10;(Vegetarian/Dessert)">
+      <bpmn:incoming>Flow_Category</bpmn:incoming>
+      <bpmn:outgoing>Flow_4b</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 3c: Fetch by Area -->
+    <bpmn:task id="Task_FetchArea" name="Fetch by Area&#10;(Italian/Indian/Thai)">
+      <bpmn:incoming>Flow_Area</bpmn:incoming>
+      <bpmn:outgoing>Flow_4c</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 3d: Fetch by Ingredient -->
+    <bpmn:task id="Task_FetchIngredient" name="Fetch by Ingredient&#10;(chicken/pasta)">
+      <bpmn:incoming>Flow_Ingredient</bpmn:incoming>
+      <bpmn:outgoing>Flow_4d</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Gateway: Merge after fetch -->
+    <bpmn:exclusiveGateway id="Gateway_Merge1">
+      <bpmn:incoming>Flow_4a</bpmn:incoming>
+      <bpmn:incoming>Flow_4b</bpmn:incoming>
+      <bpmn:incoming>Flow_4c</bpmn:incoming>
+      <bpmn:incoming>Flow_4d</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Gateway: Recipe found? -->
+    <bpmn:exclusiveGateway id="Gateway_RecipeFound" name="Recipe&#10;found?">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_Found</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NotFound</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Task 4: Download Image -->
+    <bpmn:task id="Task_DownloadImage" name="Download&#10;Recipe Image">
+      <bpmn:incoming>Flow_Found</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 5: Translate Title -->
+    <bpmn:task id="Task_TranslateTitle" name="Translate Title&#10;(EN → DE)&#10;[DeepL API]">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 6: Translate Instructions -->
+    <bpmn:task id="Task_TranslateInstructions" name="Translate Instructions&#10;(EN → DE)&#10;[DeepL API]">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 7: Format Instructions -->
+    <bpmn:task id="Task_FormatInstructions" name="Format Instructions&#10;(Add SCHRITT markers)">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 8: Parse & Translate Ingredients -->
+    <bpmn:task id="Task_ParseIngredients" name="Parse &amp; Translate&#10;Ingredients&#10;[DeepL API]">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 9: Build Notes Structure -->
+    <bpmn:task id="Task_BuildNotes" name="Build Notes&#10;(SCHRITT + Zutaten)">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 10: Add Metadata -->
+    <bpmn:task id="Task_AddMetadata" name="Add Metadata&#10;(Source, Category, Area)">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 11: Save to Database -->
+    <bpmn:task id="Task_SaveDB" name="Save Recipe&#10;to Database">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task 12: Cleanup Old Imports -->
+    <bpmn:task id="Task_Cleanup" name="Cleanup Old&#10;Imports (>7 days)">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- End Event Success -->
+    <bpmn:endEvent id="EndEvent_Success" name="Recipe Imported&#10;Successfully">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- End Event Error -->
+    <bpmn:endEvent id="EndEvent_Error" name="Import Failed&#10;(No Recipe)">
+      <bpmn:incoming>Flow_NotFound</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_LoadConfig"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_LoadConfig" targetRef="Task_DetermineStrategy"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_DetermineStrategy" targetRef="Gateway_Strategy"/>
+
+    <bpmn:sequenceFlow id="Flow_Random" name="random" sourceRef="Gateway_Strategy" targetRef="Task_FetchRandom"/>
+    <bpmn:sequenceFlow id="Flow_Category" name="by_category" sourceRef="Gateway_Strategy" targetRef="Task_FetchCategory"/>
+    <bpmn:sequenceFlow id="Flow_Area" name="by_area" sourceRef="Gateway_Strategy" targetRef="Task_FetchArea"/>
+    <bpmn:sequenceFlow id="Flow_Ingredient" name="by_ingredient" sourceRef="Gateway_Strategy" targetRef="Task_FetchIngredient"/>
+
+    <bpmn:sequenceFlow id="Flow_4a" sourceRef="Task_FetchRandom" targetRef="Gateway_Merge1"/>
+    <bpmn:sequenceFlow id="Flow_4b" sourceRef="Task_FetchCategory" targetRef="Gateway_Merge1"/>
+    <bpmn:sequenceFlow id="Flow_4c" sourceRef="Task_FetchArea" targetRef="Gateway_Merge1"/>
+    <bpmn:sequenceFlow id="Flow_4d" sourceRef="Task_FetchIngredient" targetRef="Gateway_Merge1"/>
+
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Gateway_Merge1" targetRef="Gateway_RecipeFound"/>
+    <bpmn:sequenceFlow id="Flow_Found" name="yes" sourceRef="Gateway_RecipeFound" targetRef="Task_DownloadImage"/>
+    <bpmn:sequenceFlow id="Flow_NotFound" name="no" sourceRef="Gateway_RecipeFound" targetRef="EndEvent_Error"/>
+
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_DownloadImage" targetRef="Task_TranslateTitle"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_TranslateTitle" targetRef="Task_TranslateInstructions"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_TranslateInstructions" targetRef="Task_FormatInstructions"/>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_FormatInstructions" targetRef="Task_ParseIngredients"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_ParseIngredients" targetRef="Task_BuildNotes"/>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_BuildNotes" targetRef="Task_AddMetadata"/>
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_AddMetadata" targetRef="Task_SaveDB"/>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_SaveDB" targetRef="Task_Cleanup"/>
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Task_Cleanup" targetRef="EndEvent_Success"/>
+
+  </bpmn:process>
+
+</bpmn:definitions>
