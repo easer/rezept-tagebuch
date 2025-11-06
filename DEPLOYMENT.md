@@ -19,21 +19,28 @@ Development → Test in Dev → Deploy to Prod → (Rollback if needed)
 - **PROD**: Produktiv-System mit Prod-Datenbank
 - **Versionierung**: Git-Tag-basiert (z.B. `rezept_version_06_11_2025_001`)
 - **Rollback**: Zurück zu jeder getaggten Git-Version
+- **Branch**: Nur `main` Branch (keine separate `production` Branch)
 
-### Git Branch-Strategie
+### Git-Tag-basierter Workflow
 
-Das Projekt verwendet zwei Haupt-Branches:
+**Alle Deployments erfolgen ausschließlich über Git-Tags!**
 
-| Branch       | Zweck                                    | Deploy-Ziel |
-|--------------|------------------------------------------|-------------|
-| `main`       | Aktive Entwicklung, neue Features       | DEV         |
-| `production` | Stabile, getestete Releases              | PROD        |
+```
+main Branch → Git-Tag erstellen → Prod Deployment
+```
+
+**Wichtig:**
+- Es gibt **keinen** separaten `production` Branch
+- Alle Git-Tags werden auf `main` erstellt
+- Nur getaggte Commits können auf Prod deployed werden
+- Working Directory muss clean sein vor Deployment
 
 **Workflow:**
-1. Entwickle auf `main` Branch
+1. Entwickle und teste auf `main` Branch
 2. Teste in Dev-Environment (`./build-dev.sh`)
-3. Merge `main` → `production` für Prod-Deployment
-4. Deploy Production (`./deploy-prod.sh`)
+3. Committe alle Änderungen
+4. Erstelle Git-Tag (`./tag-version.sh`)
+5. Deploy auf Prod (`./deploy-prod.sh <GIT_TAG>`)
 
 ---
 
@@ -155,44 +162,7 @@ podman logs --tail 20 seaser-rezept-tagebuch
 
 ---
 
-### Workflow 2a: Production Release (mit Branch-Merge)
-
-**Szenario:** Du möchtest stabile Features von `main` nach `production` bringen.
-
-```bash
-cd /home/gabor/easer_projekte/rezept-tagebuch
-
-# 1. Stelle sicher, dass main aktuell ist
-git checkout main
-git pull origin main
-
-# 2. Wechsle zu production Branch
-git checkout production
-
-# 3. Merge main in production
-git merge main
-
-# 4. Push production Branch
-git push origin production
-
-# 5. Git-Tag erstellen
-./tag-version.sh
-
-# 6. Deploy auf Production mit Git-Tag
-./deploy-prod.sh rezept_version_06_11_2025_001
-
-# App ist jetzt live: http://192.168.2.139:8000/rezept-tagebuch/
-```
-
-**Vorteile:**
-- ✅ `production` Branch spiegelt exakt den Prod-Stand
-- ✅ Klare Trennung zwischen Dev (`main`) und Prod (`production`)
-- ✅ Einfaches Rollback zu vorherigen production-Commits
-- ✅ Git-History zeigt deutlich, was in Prod deployed ist
-
----
-
-### Workflow 3: Rollback
+### Workflow 3: Rollback (bei Problemen)
 
 **Szenario:** Neues Deployment hat Fehler, zurück zur vorherigen Version.
 
