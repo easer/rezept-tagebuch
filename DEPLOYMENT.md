@@ -2,8 +2,8 @@
 
 Detaillierte Anleitung für Build, Deployment und Rollback.
 
-**Version:** v25.11.04
-**Stand:** November 2025
+**Version:** v25.11.06
+**Stand:** November 2025 (Git-Tag-basiertes Deployment seit v25.11.05)
 
 ---
 
@@ -17,8 +17,8 @@ Development → Test in Dev → Deploy to Prod → (Rollback if needed)
 
 - **DEV**: Entwicklung und Testing mit eigener Datenbank
 - **PROD**: Produktiv-System mit Prod-Datenbank
-- **Versionierung**: Datum-basierte Tags (z.B. v25.11.04)
-- **Rollback**: Zurück zu jeder getaggten Version
+- **Versionierung**: Git-Tag-basiert (z.B. `rezept_version_06_11_2025_001`)
+- **Rollback**: Zurück zu jeder getaggten Git-Version
 
 ### Git Branch-Strategie
 
@@ -41,18 +41,18 @@ Das Projekt verwendet zwei Haupt-Branches:
 
 ### Image-Tags
 
-| Tag          | Verwendung                          | Beispiel      |
-|--------------|-------------------------------------|---------------|
-| `:dev`       | Development-Container               | `:dev`        |
-| `:vYY.MM.DD` | Versionierte Releases               | `:v25.11.04`  |
-| `:latest`    | Aktuell laufende Prod-Version       | `:latest`     |
+| Tag                         | Verwendung                          | Beispiel                         |
+|-----------------------------|-------------------------------------|----------------------------------|
+| `:dev`                      | Development-Container               | `:dev`                           |
+| `:rezept_version_DD_MM_YYYY_NNN` | Versionierte Releases         | `:rezept_version_06_11_2025_001` |
+| `:latest`                   | Aktuell laufende Prod-Version       | `:latest`                        |
 
 ### Container-Übersicht
 
-| Container Name                 | Image Tag  | Network | Volume Mount                                        |
-|--------------------------------|------------|---------|-----------------------------------------------------|
-| `seaser-rezept-tagebuch-dev`   | `:dev`     | pasta   | `/home/gabor/easer_projekte/rezept-tagebuch-data/` |
-| `seaser-rezept-tagebuch`       | `:latest`  | pasta   | `/home/gabor/data/rezept-tagebuch/`                |
+| Container Name                 | Image Tag  | Network | Volume Mount                                           |
+|--------------------------------|------------|---------|--------------------------------------------------------|
+| `seaser-rezept-tagebuch-dev`   | `:dev`     | pasta   | `/home/gabor/easer_projekte/rezept-tagebuch/data/dev` |
+| `seaser-rezept-tagebuch`       | `:latest`  | pasta   | `/home/gabor/easer_projekte/rezept-tagebuch/data/prod`|
 
 ---
 
@@ -90,23 +90,31 @@ podman logs --tail 50 seaser-rezept-tagebuch-dev
 ```bash
 cd /home/gabor/easer_projekte/rezept-tagebuch
 
-# 1. Production-Deployment mit Version
-./deploy-prod.sh 25.11.05
+# 1. Git-Tag erstellen (automatisch mit heutigem Datum)
+./tag-version.sh
 
-# Oder mit automatischem Datum-Tag
-./deploy-prod.sh
+# 2. Production-Deployment mit Git-Tag
+./deploy-prod.sh rezept_version_06_11_2025_001
 ```
+
+**Wichtig:** Nur noch Git-Tag-basiertes Deployment seit v25.11.05! Siehe **GIT-TAG-WORKFLOW.md** für Details.
 
 **Was passiert beim Deployment:**
 
-1. **Image bauen** mit Version-Tag:
+1. **Prüft Working Directory** (muss clean sein)
+
+2. **Prüft Git-Tag Existenz**
+
+3. **Exportiert Git-Tag** in temp-Directory
+
+4. **Image bauen** aus Git-Tag:
    ```bash
-   podman build -t seaser-rezept-tagebuch:v25.11.05 -f Containerfile .
+   podman build -t seaser-rezept-tagebuch:rezept_version_06_11_2025_001 ...
    ```
 
-2. **Tag als latest**:
+5. **Tag als latest**:
    ```bash
-   podman tag seaser-rezept-tagebuch:v25.11.05 seaser-rezept-tagebuch:latest
+   podman tag seaser-rezept-tagebuch:rezept_version_06_11_2025_001 seaser-rezept-tagebuch:latest
    ```
 
 3. **Alter Container stoppen & entfernen**:
@@ -120,7 +128,7 @@ cd /home/gabor/easer_projekte/rezept-tagebuch
    podman run -d \
      --name seaser-rezept-tagebuch \
      --network pasta \
-     -v /home/gabor/data/rezept-tagebuch:/data:Z \
+     -v /home/gabor/easer_projekte/rezept-tagebuch/data/prod:/data:Z \
      localhost/seaser-rezept-tagebuch:latest
    ```
 
@@ -167,8 +175,11 @@ git merge main
 # 4. Push production Branch
 git push origin production
 
-# 5. Deploy auf Production
-./deploy-prod.sh 25.11.05
+# 5. Git-Tag erstellen
+./tag-version.sh
+
+# 6. Deploy auf Production mit Git-Tag
+./deploy-prod.sh rezept_version_06_11_2025_001
 
 # App ist jetzt live: http://192.168.2.139:8000/rezept-tagebuch/
 ```
@@ -188,24 +199,27 @@ git push origin production
 ```bash
 cd /home/gabor/easer_projekte/rezept-tagebuch
 
-# 1. Verfügbare Versionen prüfen
+# 1. Verfügbare Git-Tags prüfen
+git tag | grep rezept_version
+
+# Oder verfügbare Images prüfen
 podman images | grep seaser-rezept-tagebuch
 
 # Ausgabe:
-# localhost/seaser-rezept-tagebuch  v25.11.05    abc123...
-# localhost/seaser-rezept-tagebuch  v25.11.04    def456...
-# localhost/seaser-rezept-tagebuch  latest       abc123...
+# localhost/seaser-rezept-tagebuch  rezept_version_06_11_2025_001    abc123...
+# localhost/seaser-rezept-tagebuch  rezept_version_05_11_2025_004    def456...
+# localhost/seaser-rezept-tagebuch  latest                          abc123...
 
 # 2. Rollback zu alter Version
-./rollback.sh v25.11.04
+./rollback.sh rezept_version_05_11_2025_004
 ```
 
 **Was passiert beim Rollback:**
 
-1. **Prüfen ob Version existiert**
+1. **Prüfen ob Git-Tag/Image existiert**
 2. **Alte Version als latest taggen**:
    ```bash
-   podman tag seaser-rezept-tagebuch:v25.11.04 seaser-rezept-tagebuch:latest
+   podman tag seaser-rezept-tagebuch:rezept_version_05_11_2025_004 seaser-rezept-tagebuch:latest
    ```
 3. **Container neu starten** mit alter Version
 
@@ -253,42 +267,30 @@ podman logs --tail 50 seaser-proxy
 **Prod-Backup vor jedem Deployment:**
 
 ```bash
-# Automatisches Backup mit Datum
-cp /home/gabor/data/rezept-tagebuch/rezepte.db \
-   /home/gabor/data/rezept-tagebuch/rezepte.db.backup-$(date +%Y%m%d-%H%M%S)
+# Empfohlen: Backup-Script verwenden
+./backup-db.sh prod "before-deployment"
 ```
 
-**Backup in Deployment-Script integrieren:**
-
-```bash
-# In deploy-prod.sh vor Container-Neustart einfügen:
-echo "📦 Creating database backup..."
-cp /home/gabor/data/rezept-tagebuch/rezepte.db \
-   /home/gabor/data/rezept-tagebuch/rezepte.db.backup-$(date +%Y%m%d-%H%M%S)
-```
+**Hinweis:** Das Deployment-Script `deploy-prod.sh` erstellt automatisch ein Backup vor jedem Deployment.
 
 ### Datenbank-Restore
 
 **Falls Deployment schief geht:**
 
 ```bash
-# Container stoppen
-podman stop seaser-rezept-tagebuch
+# Restore mit Script (empfohlen)
+./restore-db.sh prod
 
-# Backup wiederherstellen
-cp /home/gabor/data/rezept-tagebuch/rezepte.db.backup-20251104-123000 \
-   /home/gabor/data/rezept-tagebuch/rezepte.db
-
-# Container starten
-podman start seaser-rezept-tagebuch
+# Wähle Backup aus der Liste
 ```
+
+Siehe auch: **MIGRATIONS.md** für Details zu Backup & Restore mit Migration-Versions-Tracking.
 
 ### Dev-Daten von Prod kopieren (zum Testen)
 
 ```bash
 # Prod-Datenbank nach Dev kopieren
-cp /home/gabor/data/rezept-tagebuch/rezepte.db \
-   /home/gabor/easer_projekte/rezept-tagebuch-data/rezepte.db
+cp data/prod/rezepte.db data/dev/rezepte.db
 
 # Dev-Container neu starten
 ./build-dev.sh
@@ -384,8 +386,8 @@ podman rm seaser-rezept-tagebuch
 podman run -d \
   --name seaser-rezept-tagebuch \
   --network pasta \
-  -v /home/gabor/data/rezept-tagebuch:/data:Z \
-  localhost/seaser-rezept-tagebuch:v25.11.04
+  -v /home/gabor/easer_projekte/rezept-tagebuch/data/prod:/data:Z \
+  localhost/seaser-rezept-tagebuch:rezept_version_05_11_2025_004
 ```
 
 ---
@@ -420,7 +422,7 @@ ls -lh /home/gabor/data/rezept-tagebuch/
 
 - [ ] Features in Dev getestet
 - [ ] Prod-Datenbank Backup erstellt
-- [ ] Version-Tag gewählt (z.B. v25.11.05)
+- [ ] Git-Tag erstellt (z.B. rezept_version_06_11_2025_001)
 - [ ] Keine laufenden User-Sessions in Prod
 
 ### Während Deployment:
@@ -448,7 +450,7 @@ ls -lh /home/gabor/data/rezept-tagebuch/
 podman image prune
 
 # Spezifische alte Version entfernen
-podman rmi seaser-rezept-tagebuch:v25.10.01
+podman rmi seaser-rezept-tagebuch:rezept_version_05_10_2025_001
 
 # Alle außer latest + dev + neueste 3 Versionen behalten
 # (manuell prüfen und löschen)
@@ -474,17 +476,15 @@ crontab -e
 ```bash
 cd /home/gabor/easer_projekte/rezept-tagebuch
 
-# Git initialisieren (falls noch nicht)
-git init
-git add app.py index.html Containerfile requirements.txt
-git commit -m "Version v25.11.04"
-git tag v25.11.04
-
 # Vor jedem Deployment
 git add .
-git commit -m "Version v25.11.05 - New feature XYZ"
-git tag v25.11.05
-./deploy-prod.sh 25.11.05
+git commit -m "feat: Add new feature XYZ"
+
+# Git-Tag erstellen (automatisch)
+./tag-version.sh
+
+# Deployen mit Git-Tag
+./deploy-prod.sh rezept_version_06_11_2025_001
 ```
 
 ---

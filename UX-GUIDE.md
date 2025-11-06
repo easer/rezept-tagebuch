@@ -582,38 +582,56 @@ header {
 4. `overflow-y: auto` nur auf Content aktiviert Scrollen
 5. `min-height: 0` ermöglicht korrektes Shrinking
 
-### Globale Suchleiste
+### Search Panel (Slide-In von rechts)
 
-Die Suchleiste ist sticky und bleibt beim Scrollen sichtbar.
+**Seit:** 05.11.2025 (ersetzt fixed Suchleiste)
 
-**Position:**
+Die Suche ist jetzt ein Slide-In Panel, das von rechts einschiebt. Dies löst iOS Focus-Probleme und schafft mehr Platz für Content.
+
+**Trigger:** Search-Button (🔍) oben rechts in Header
+
+**Panel CSS:**
 ```css
-.global-search {
-    background: rgba(40, 50, 60, 0.7);
-    backdrop-filter: blur(20px);
-    border-radius: 16px;
-    padding: 15px 20px;
-    flex: 0 0 auto;
-    position: relative;
-    z-index: 50;  /* Über Content, unter Modals */
+.search-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 90%;
+    max-width: 450px;
+    height: 100vh;
+    background: rgba(30, 40, 50, 0.98);
+    backdrop-filter: blur(40px);
+    transform: translateX(100%);  /* Initial versteckt */
+    transition: transform 0.3s ease;
+    z-index: 1001;  /* Über Backdrop */
+}
+
+.search-panel.active {
+    transform: translateX(0);  /* Eingeblendet */
 }
 ```
 
-**Input-Field Best Practices:**
-```html
-<input type="text"
-       id="global-search-input"
-       autocomplete="off"
-       autocorrect="off"
-       autocapitalize="off"
-       spellcheck="false">
+**Search Button:**
+```css
+.search-toggle-button {
+    position: fixed;
+    top: 20px;
+    right: 170px;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, rgba(255, 248, 180, 0.4) 0%, rgba(255, 235, 153, 0.4) 100%);
+    backdrop-filter: blur(20px);
+    z-index: 100;
+}
 ```
 
-**Wichtig:**
-- `autocomplete="off"` verhindert Browser-Autofill-Dropdown
-- `z-index: 50` sorgt dafür, dass Input über Content liegt
-- `box-sizing: border-box` für korrekte Breiten-Berechnung
-- `caret-color: white` für sichtbaren Cursor
+**Features:**
+- Auto-Focus auf Input-Field beim Öffnen
+- ESC-Taste zum Schließen
+- Backdrop schließt Panel bei Click außerhalb
+- Kategorisierte Suchergebnisse (Rezepte, Tagebuch, TODOs)
+
+**Siehe:** SEARCH-PANEL.md für vollständige Implementierung
 
 ### Floating Action Button (FAB)
 
@@ -656,38 +674,27 @@ function handleFloatingAdd() {
 - Freier Content-Bereich (keine Button-Zeile)
 - Smooth hover-Animation
 
-## Globale Kontext-Suche
+## Search Panel - Globale Suche
 
-Die Suche passt sich automatisch an den aktiven Tab an.
+**Hinweis:** Die globale Suche ist jetzt im Search Panel (siehe oben). Das Panel durchsucht **alle** Entitäten (Rezepte, Tagebuch, TODOs) gleichzeitig und zeigt kategorisierte Ergebnisse.
 
-**Implementierung:**
+**API-Endpoint:**
 ```javascript
-function handleGlobalSearch() {
-    const searchTerm = document.getElementById('global-search-input').value;
+GET /api/search?q=<suchterm>
+```
 
-    switch(currentTab) {
-        case 'tagebuch': loadDiaryEntries(searchTerm); break;
-        case 'rezepte': filterRecipes(searchTerm); break;
-        case 'todos': filterTodos(searchTerm); break;
-    }
+**Response:**
+```json
+{
+  "recipes": [...],
+  "diary_entries": [...],
+  "todos": [...]
 }
 ```
 
-**TODO-Filterung:**
-```javascript
-function filterTodos(searchTerm) {
-    if (!searchTerm.trim()) {
-        renderTodos(allTodos);  // Alle anzeigen
-        return;
-    }
-    const filtered = allTodos.filter(todo =>
-        todo.text.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    renderTodos(filtered);
-}
-```
+**Implementation Details:** Siehe SEARCH-PANEL.md
 
-**Tab-Switch Behavior:**
+**Tab-Switch Behavior (veraltet, nicht mehr verwendet):**
 - Suchfeld wird beim Tab-Wechsel geleert
 - Verhindert verwirrende Suchergebnisse in falschem Tab
 

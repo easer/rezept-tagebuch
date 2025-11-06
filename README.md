@@ -89,23 +89,25 @@ vim app.py
 ### 2. Auf Prod deployen
 
 ```bash
-# Mit Versions-Tag deployen
-./deploy-prod.sh 25.11.05
+# Git-Tag erstellen (automatisch mit heutigem Datum)
+./tag-version.sh
 
-# Oder mit aktuellem Datum (automatisch)
-./deploy-prod.sh
+# Mit Git-Tag deployen
+./deploy-prod.sh rezept_version_06_11_2025_001
 
 # Prod-App ist nun auf: http://192.168.2.139:8000/rezept-tagebuch/
 ```
 
+**Hinweis:** Seit Version v05.11.2025 werden nur noch Git-Tags deployed. Siehe **GIT-TAG-WORKFLOW.md** für Details.
+
 ### 3. Rollback bei Problemen
 
 ```bash
-# Verfügbare Versionen anzeigen
-podman images | grep seaser-rezept-tagebuch
+# Verfügbare Git-Tags anzeigen
+git tag | grep rezept_version
 
 # Zurück zu alter Version
-./rollback.sh v25.11.04
+./rollback.sh rezept_version_05_11_2025_001
 ```
 
 ---
@@ -127,19 +129,20 @@ Baut Dev-Image und startet Dev-Container neu.
 
 ### deploy-prod.sh
 
-Deployed getaggte Version auf Production.
+Deployed Git-Tag auf Production.
 
 ```bash
-./deploy-prod.sh [VERSION]
+./deploy-prod.sh <GIT_TAG>
 
-# Beispiele:
-./deploy-prod.sh 25.11.05    # Mit spezifischer Version
-./deploy-prod.sh              # Mit aktuellem Datum
+# Beispiel:
+./deploy-prod.sh rezept_version_06_11_2025_001
 ```
 
 **Was passiert:**
-1. Baut Image mit Version-Tag (z.B. `v25.11.05`)
-2. Tagged Image als `:latest`
+1. Prüft Git-Tag Existenz
+2. Exportiert Git-Tag in temp-Directory
+3. Baut Image aus Git-Tag (z.B. `rezept_version_06_11_2025_001`)
+4. Tagged Image als `:latest`
 3. Stoppt alten Prod-Container
 4. Startet neuen Prod-Container mit Prod-Datenbank
 5. Aktualisiert systemd Service
@@ -149,14 +152,14 @@ Deployed getaggte Version auf Production.
 Rollback zu vorheriger Version.
 
 ```bash
-./rollback.sh <VERSION>
+./rollback.sh <GIT_TAG>
 
 # Beispiel:
-./rollback.sh v25.11.04
+./rollback.sh rezept_version_05_11_2025_001
 ```
 
 **Was passiert:**
-1. Prüft ob Version existiert
+1. Prüft ob Git-Tag existiert
 2. Tagged alte Version als `:latest`
 3. Startet Prod-Container mit alter Version neu
 
