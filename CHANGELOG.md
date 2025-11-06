@@ -2,6 +2,72 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] - 2025-11-06
+
+### Fixed - Infrastructure & Project Organization
+
+#### Database & Artifact Consolidation (Issue #9)
+- Alle Datenbanken und Runtime-Daten in Projektverzeichnis verschoben
+- Neue Struktur: `./data/prod/` und `./data/dev/` im Projekt-Root
+- Volume Mounts in `build-dev.sh` und `deploy-prod.sh` aktualisiert
+- Backup/Restore Scripts (`backup-db.sh`, `restore-db.sh`) mit neuen Pfaden
+- Alte Verzeichnisse archiviert:
+  - `/home/gabor/data/rezept-tagebuch/` → `~/archive/rezept-tagebuch-old-20251106`
+  - `/home/gabor/easer_projekte/rezept-tagebuch-data/` → `~/archive/rezept-tagebuch-data-old-20251106`
+  - `/home/gabor/easer_projekte/rezept-data/` → `~/archive/rezept-data-old-20251106`
+- `.gitignore` erweitert um `data/` (Runtime-Daten nicht in Git)
+
+### Added - Documentation
+
+#### PROJECT-STRUCTURE.md (NEU)
+- Richtlinien für Projekt-Organisation erstellt
+- Regel: "Alles was zur App gehört, MUSS im Projektverzeichnis sein"
+- Dokumentierte Ausnahmen:
+  - SystemD User Services (technische Notwendigkeit)
+  - Nginx Reverse Proxy (Shared Resource für mehrere Apps)
+  - Podman Images (automatisch gemanagt)
+  - Git Remote
+- Compliance Check Script für Validierung
+- Migration Guidelines basierend auf Issue #9
+- Nginx-Dokumentation als Shared Resource:
+  - Location: `/home/gabor/easer_projekte/nginx-proxy-oauth2.conf`
+  - Update-Prozess mit Commands
+  - Routes für Rezept-Tagebuch (prod + dev)
+  - Warnung: Nginx-Änderungen betreffen ALLE Apps
+
+### Changed - Documentation Updates
+
+#### README.md
+- Volume Mount Pfade aktualisiert (Tabelle `data/prod/` und `data/dev/`)
+- Deployment-Workflow auf Git-Tag Format angepasst
+  - Von: `./deploy-prod.sh 25.11.05`
+  - Zu: `./deploy-prod.sh rezept_version_06_11_2025_001`
+- Rollback-Beispiele mit Git-Tag Format
+
+#### DEPLOYMENT.md
+- Container-Übersicht Tabelle: Volume Mounts korrigiert
+- Alle Deployment-Beispiele auf Git-Tag Format aktualisiert
+- Backup-Sektion: Referenz zu `backup-db.sh` Script statt manuellem `cp`
+- **Branch-Strategie geklärt**: Kein separater `production` Branch mehr
+  - Alle Deployments erfolgen von `main` Branch mit Git-Tags
+  - Entfernung der veralteten "Workflow 2a: Production Release (mit Branch-Merge)"
+  - Klarstellung: Nur `main` + Git-Tags werden verwendet
+
+#### UX-GUIDE.md
+- Ersetzt veraltete "Globale Suchleiste" Dokumentation
+- Neue Sektion: "Search Panel (Slide-In von rechts)"
+- Dokumentiert aktuelles Search Panel System mit Plus-Symbol
+- Referenz zu SEARCH-PANEL.md für vollständige Implementierung
+
+### Technical Notes
+
+#### Consistency Fixes
+- Git-Tag Format standardisiert: `rezept_version_DD_MM_YYYY_NNN`
+- Alle Dokumentations-Dateien auf konsistente Pfade aktualisiert
+- Deployment-Workflow eindeutig dokumentiert (main Branch + Git-Tags)
+
+---
+
 ## [Unreleased] - 2025-11-04
 
 ### Added - TODO Liste UX Verbesserungen

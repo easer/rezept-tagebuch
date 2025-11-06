@@ -391,6 +391,8 @@ ls -lh /home/gabor/data/rezept-tagebuch/
 ### Vor jedem Prod-Deployment:
 
 - [ ] Features in Dev getestet
+- [ ] **CHANGELOG.md aktualisiert** mit allen Änderungen seit letztem Release
+- [ ] Alle Änderungen committet
 - [ ] Prod-Datenbank Backup erstellt
 - [ ] Git-Tag erstellt (z.B. rezept_version_06_11_2025_001)
 - [ ] Keine laufenden User-Sessions in Prod
@@ -425,6 +427,85 @@ podman rmi seaser-rezept-tagebuch:rezept_version_05_10_2025_001
 # Alle außer latest + dev + neueste 3 Versionen behalten
 # (manuell prüfen und löschen)
 podman images | grep seaser-rezept-tagebuch
+```
+
+---
+
+## 📝 CHANGELOG Pflege
+
+**Wichtig:** Der CHANGELOG.md muss **vor jedem Deployment** aktualisiert werden!
+
+### Wann CHANGELOG aktualisieren?
+
+**Immer bei:**
+- Neuen Features
+- Bug-Fixes
+- Breaking Changes
+- Infrastruktur-Änderungen
+- Dokumentations-Updates (wenn relevant)
+
+### Workflow
+
+```bash
+cd /home/gabor/easer_projekte/rezept-tagebuch
+
+# 1. Entwicklung & Commits
+git add .
+git commit -m "feat: Add new feature XYZ"
+
+# 2. CHANGELOG.md bearbeiten
+vim CHANGELOG.md
+
+# Füge neuen Eintrag unter [Unreleased] mit heutigem Datum hinzu:
+## [Unreleased] - 2025-11-06
+
+### Added
+- Neue Feature-Beschreibung
+
+### Fixed
+- Bug-Fix-Beschreibung
+
+### Changed
+- Änderungs-Beschreibung
+
+# 3. CHANGELOG committen
+git add CHANGELOG.md
+git commit -m "docs: update CHANGELOG for v06.11.2025"
+
+# 4. Git-Tag erstellen
+./tag-version.sh
+
+# 5. Deployen
+./deploy-prod.sh rezept_version_06_11_2025_001
+```
+
+### Format-Richtlinien
+
+**Kategorien:**
+- `### Added` - Neue Features
+- `### Changed` - Änderungen an bestehenden Features
+- `### Fixed` - Bug-Fixes
+- `### Removed` - Entfernte Features
+- `### Security` - Security-relevante Änderungen
+- `### Documentation` - Wichtige Doku-Updates
+
+**Best Practices:**
+- Nutzer-orientierte Sprache (nicht technische Details)
+- Konkrete Beispiele bei wichtigen Changes
+- Referenzen zu Issues (z.B. "Issue #9")
+- Gruppierung verwandter Changes
+
+**Beispiel:**
+
+```markdown
+## [Unreleased] - 2025-11-06
+
+### Fixed - Infrastructure & Project Organization
+
+#### Database & Artifact Consolidation (Issue #9)
+- Alle Datenbanken und Runtime-Daten in Projektverzeichnis verschoben
+- Neue Struktur: `./data/prod/` und `./data/dev/` im Projekt-Root
+- Volume Mounts in Scripts aktualisiert
 ```
 
 ---
