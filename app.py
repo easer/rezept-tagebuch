@@ -17,8 +17,17 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
 # Konfiguration
-DATABASE = '/data/rezepte.db'
-UPLOAD_FOLDER = '/data/uploads'
+# Unterstützt separate Test-Datenbank via TESTING_MODE env variable
+TESTING_MODE = os.environ.get('TESTING_MODE', 'false').lower() == 'true'
+
+if TESTING_MODE:
+    DATABASE = '/data/test/rezepte.db'
+    UPLOAD_FOLDER = '/data/test/uploads'
+    print("🧪 TESTING MODE: Using test database")
+else:
+    DATABASE = '/data/rezepte.db'
+    UPLOAD_FOLDER = '/data/uploads'
+
 os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 

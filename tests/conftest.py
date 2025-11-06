@@ -8,10 +8,9 @@ import time
 # Test Configuration
 API_BASE_URL = "http://localhost:8000/rezept-tagebuch-dev/api"
 CONTAINER_NAME = "seaser-rezept-tagebuch-dev"
+TEST_DB_PATH = "/home/gabor/easer_projekte/rezept-tagebuch/data/test/rezepte.db"
 
-# Note: Tests use the same database as the dev container
-# This can cause "database is locked" errors during concurrent test runs
-# Tests are configured to run sequentially in pytest.ini to mitigate this
+# Tests use a separate test database to avoid conflicts with dev container
 
 @pytest.fixture(scope="session")
 def api_base_url():
@@ -20,8 +19,13 @@ def api_base_url():
 
 @pytest.fixture(scope="session")
 def verify_container_running():
-    """Verify dev container is running before tests"""
+    """Verify dev container is running and configure for tests"""
     import subprocess
+    import os
+
+    print("\n🧪 Setting up test environment...")
+
+    # Check if container is running
     result = subprocess.run(
         ["podman", "ps", "--filter", f"name={CONTAINER_NAME}", "--format", "{{.Names}}"],
         capture_output=True,
@@ -29,9 +33,44 @@ def verify_container_running():
     )
 
     if CONTAINER_NAME not in result.stdout:
-        pytest.fail(f"Container '{CONTAINER_NAME}' is not running. Run: ./build-dev.sh")
+        # Start container with TESTING_MODE
+        print(f"Starting {CONTAINER_NAME} with TESTING_MODE...")
+        subprocess.run([
+            "podman", "run", "-d", "--rm",
+            "--name", CONTAINER_NAME,
+            "-p", "8000:80",
+            "-v", "/home/gabor/easer_projekte/rezept-tagebuch/data:/data:Z",
+            "-e", "TESTING_MODE=true",  # Enable test mode
+            "seaser-rezept-tagebuch:dev"
+        ], check=True)
+
+        # Wait for container to be ready
+        time.sleep(3)
+        print("✅ Test container started with TESTING_MODE=true")
+    else:
+        print(f"✅ Container {CONTAINER_NAME} is already running")
+        print("⚠️  Note: Using existing container (TESTING_MODE may not be active)")
+        print("   For isolated test DB, restart container with: ./build-dev.sh")
 
     return True
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_db():
+    """Clean test database before and after test session"""
+    import os
+
+    def clean():
+        if os.path.exists(TEST_DB_PATH):
+            os.remove(TEST_DB_PATH)
+            print(f"🧹 Cleaned test database: {TEST_DB_PATH}")
+
+    # Clean before tests
+    clean()
+
+    yield
+
+    # Clean after tests (optional - comment out if you want to inspect DB after tests)
+    # clean()
 
 @pytest.fixture(scope="function")
 def api_client(api_base_url, verify_container_running):
