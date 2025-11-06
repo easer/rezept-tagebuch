@@ -3,8 +3,10 @@
 
 set -e
 
+# Change to project root (two levels up from scripts/database/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$PROJECT_ROOT"
 
 # Colors
 GREEN='\033[0;32m'
@@ -35,10 +37,10 @@ function show_help() {
 function set_db_path() {
     local env=$1
     if [ "$env" = "prod" ]; then
-        export DB_PATH="/home/gabor/data/rezept-tagebuch/rezepte.db"
+        export DB_PATH="$PROJECT_ROOT/data/prod/rezepte.db"
         echo -e "${YELLOW}Target: PRODUCTION DB${NC}"
     else
-        export DB_PATH="/home/gabor/easer_projekte/rezept-tagebuch-data/rezepte.db"
+        export DB_PATH="$PROJECT_ROOT/data/dev/rezepte.db"
         echo -e "${GREEN}Target: DEVELOPMENT DB${NC}"
     fi
     echo "DB Path: $DB_PATH"
@@ -50,7 +52,7 @@ case "$1" in
         ENV=${2:-dev}
         set_db_path "$ENV"
         echo "📈 Applying migrations..."
-        python3 -m alembic upgrade head
+        python3 -m alembic -c config/alembic.ini upgrade head
         echo -e "${GREEN}✅ Migrations applied successfully${NC}"
         ;;
 
@@ -58,7 +60,7 @@ case "$1" in
         ENV=${2:-dev}
         set_db_path "$ENV"
         echo "📉 Rolling back last migration..."
-        python3 -m alembic downgrade -1
+        python3 -m alembic -c config/alembic.ini downgrade -1
         echo -e "${GREEN}✅ Migration rolled back${NC}"
         ;;
 
@@ -66,14 +68,14 @@ case "$1" in
         ENV=${2:-dev}
         set_db_path "$ENV"
         echo "📍 Current migration version:"
-        python3 -m alembic current
+        python3 -m alembic -c config/alembic.ini current
         ;;
 
     history)
         ENV=${2:-dev}
         set_db_path "$ENV"
         echo "📜 Migration history:"
-        python3 -m alembic history
+        python3 -m alembic -c config/alembic.ini history
         ;;
 
     create)
@@ -83,7 +85,7 @@ case "$1" in
             exit 1
         fi
         echo "📝 Creating new migration: $2"
-        python3 -m alembic revision -m "$2"
+        python3 -m alembic -c config/alembic.ini revision -m "$2"
         echo -e "${GREEN}✅ Migration file created in migrations/versions/${NC}"
         ;;
 
