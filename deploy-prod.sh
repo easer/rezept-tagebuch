@@ -118,6 +118,7 @@ podman rm seaser-rezept-tagebuch 2>/dev/null || true
 podman run -d \
   --name seaser-rezept-tagebuch \
   --network seaser-network \
+  --env-file /home/gabor/easer_projekte/rezept-tagebuch/.env \
   -v /home/gabor/data/rezept-tagebuch:/data:Z \
   localhost/seaser-rezept-tagebuch:latest
 
