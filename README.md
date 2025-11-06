@@ -325,6 +325,7 @@ sqlite3 /home/gabor/easer_projekte/rezept-tagebuch/data/prod/rezepte.db
 - **README.md** - Dieses Dokument (Übersicht & Workflows)
 - **DEPLOYMENT.md** - Detaillierte Deployment-Anleitung
 - **UX-GUIDE.md** - Design-Richtlinien und Best Practices
+- **THEMEALDB-CONFIG.md** - TheMealDB Import Konfiguration (Strategien, Filter, API)
 
 ---
 

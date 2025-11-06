@@ -1,0 +1,139 @@
+{
+  "themealdb_import_config": {
+    "api_base_url": "https://www.themealdb.com/api/json/v1/1",
+    "default_strategy": "by_category",
+    "enabled_strategies": [
+      "random",
+      "by_category",
+      "by_area",
+      "by_ingredient"
+    ],
+    "strategies": {
+      "random": {
+        "endpoint": "random.php",
+        "description": "Zufälliges Rezept importieren",
+        "requires_parameter": false
+      },
+      "by_category": {
+        "endpoint": "filter.php",
+        "parameter_key": "c",
+        "description": "Nach Kategorie filtern",
+        "requires_parameter": true,
+        "available_values": [
+          "Beef",
+          "Breakfast",
+          "Chicken",
+          "Dessert",
+          "Goat",
+          "Lamb",
+          "Miscellaneous",
+          "Pasta",
+          "Pork",
+          "Seafood",
+          "Side",
+          "Starter",
+          "Vegan",
+          "Vegetarian"
+        ],
+        "default_values": ["Vegetarian", "Dessert"]
+      },
+      "by_area": {
+        "endpoint": "filter.php",
+        "parameter_key": "a",
+        "description": "Nach Region/Küche filtern",
+        "requires_parameter": true,
+        "available_values": [
+          "American",
+          "British",
+          "Canadian",
+          "Chinese",
+          "Croatian",
+          "Dutch",
+          "Egyptian",
+          "Filipino",
+          "French",
+          "Greek",
+          "Indian",
+          "Irish",
+          "Italian",
+          "Jamaican",
+          "Japanese",
+          "Kenyan",
+          "Malaysian",
+          "Mexican",
+          "Moroccan",
+          "Polish",
+          "Portuguese",
+          "Russian",
+          "Spanish",
+          "Thai",
+          "Tunisian",
+          "Turkish",
+          "Ukrainian",
+          "Vietnamese"
+        ],
+        "default_values": ["Italian", "Indian", "Chinese", "Mexican", "Thai"]
+      },
+      "by_ingredient": {
+        "endpoint": "filter.php",
+        "parameter_key": "i",
+        "description": "Nach Hauptzutat filtern",
+        "requires_parameter": true,
+        "available_values": [
+          "chicken",
+          "chicken_breast",
+          "salmon",
+          "beef",
+          "pork",
+          "pasta",
+          "rice",
+          "tomato",
+          "potato",
+          "onion",
+          "garlic",
+          "cheese",
+          "mushroom",
+          "spinach",
+          "broccoli",
+          "carrot"
+        ],
+        "default_values": ["chicken", "pasta", "salmon", "beef"]
+      },
+      "by_first_letter": {
+        "endpoint": "search.php",
+        "parameter_key": "f",
+        "description": "Nach Anfangsbuchstabe suchen",
+        "requires_parameter": true,
+        "available_values": [
+          "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+          "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
+        ]
+      },
+      "by_name": {
+        "endpoint": "search.php",
+        "parameter_key": "s",
+        "description": "Nach Name suchen",
+        "requires_parameter": true
+      }
+    },
+    "rotation": {
+      "enabled": false,
+      "comment": "Wenn enabled=true, werden Strategien rotiert (z.B. jeden Tag eine andere)",
+      "schedule": [
+        {"day": "monday", "strategy": "random"},
+        {"day": "tuesday", "strategy": "by_category", "value": "Vegetarian"},
+        {"day": "wednesday", "strategy": "by_area", "value": "Italian"},
+        {"day": "thursday", "strategy": "random"},
+        {"day": "friday", "strategy": "by_ingredient", "value": "pasta"},
+        {"day": "saturday", "strategy": "by_area", "value": "Indian"},
+        {"day": "sunday", "strategy": "random"}
+      ]
+    },
+    "preferences": {
+      "comment": "Wenn eine Strategie mehrere Werte hat, wird zufällig einer ausgewählt",
+      "favorite_categories": ["Vegetarian", "Dessert"],
+      "favorite_areas": ["Italian", "Indian", "Thai"],
+      "favorite_ingredients": ["vegetables", "pasta", "rice"]
+    }
+  }
+}

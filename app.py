@@ -1003,8 +1003,121 @@ def global_search():
 
 # TheMealDB Daily Import
 THEMEALDB_API = 'https://www.themealdb.com/api/json/v1/1'
+THEMEALDB_CONFIG_FILE = 'themealdb-config.json'
 DEEPL_API_KEY = os.getenv('DEEPL_API_KEY', '')  # Set via environment variable
 DEEPL_API_URL = 'https://api-free.deepl.com/v2/translate'
+
+def load_themealdb_config():
+    """Load TheMealDB import configuration"""
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), THEMEALDB_CONFIG_FILE)
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            return config['themealdb_import_config']
+    except Exception as e:
+        print(f"Warning: Could not load TheMealDB config: {e}")
+        # Return default config
+        return {
+            'api_base_url': THEMEALDB_API,
+            'default_strategy': 'random',
+            'strategies': {
+                'random': {
+                    'endpoint': 'random.php',
+                    'requires_parameter': False
+                }
+            }
+        }
+
+def fetch_recipe_from_themealdb(strategy='random', value=None):
+    """
+    Fetch recipe from TheMealDB using specified strategy
+
+    Args:
+        strategy: Import strategy (random, by_category, by_area, by_ingredient, etc.)
+        value: Value for the strategy filter (e.g., "Italian" for by_area)
+
+    Returns:
+        dict: Recipe data from TheMealDB or None if error
+    """
+    config = load_themealdb_config()
+    api_base = config.get('api_base_url', THEMEALDB_API)
+
+    # Get strategy config
+    strategies = config.get('strategies', {})
+    strategy_config = strategies.get(strategy)
+
+    if not strategy_config:
+        print(f"Warning: Unknown strategy '{strategy}', falling back to random")
+        strategy = 'random'
+        strategy_config = strategies.get('random', {
+            'endpoint': 'random.php',
+            'requires_parameter': False
+        })
+
+    endpoint = strategy_config.get('endpoint')
+    requires_param = strategy_config.get('requires_parameter', False)
+
+    # Build URL
+    url = f"{api_base}/{endpoint}"
+
+    if requires_param:
+        param_key = strategy_config.get('parameter_key')
+
+        # If no value provided, use default or random from available values
+        if not value:
+            default_values = strategy_config.get('default_values', [])
+            available_values = strategy_config.get('available_values', [])
+
+            if default_values:
+                import random
+                value = random.choice(default_values)
+            elif available_values:
+                import random
+                value = random.choice(available_values)
+            else:
+                print(f"Error: Strategy '{strategy}' requires a value but none provided")
+                return None
+
+        url = f"{url}?{param_key}={value}"
+        print(f"🔍 TheMealDB Import: strategy={strategy}, {param_key}={value}")
+    else:
+        print(f"🔍 TheMealDB Import: strategy={strategy}")
+
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        if not data.get('meals'):
+            print(f"No recipes found for {strategy}={value}")
+            return None
+
+        # For filter endpoints, we get a list - pick random one and fetch full details
+        meals = data['meals']
+
+        # If we got abbreviated results (from filter.php), fetch full recipe details
+        if 'strInstructions' not in meals[0]:
+            import random
+            selected_meal = random.choice(meals)
+            meal_id = selected_meal['idMeal']
+
+            print(f"📖 Fetching full recipe details for ID {meal_id}")
+            detail_url = f"{api_base}/lookup.php?i={meal_id}"
+            detail_response = requests.get(detail_url, timeout=10)
+            detail_response.raise_for_status()
+            detail_data = detail_response.json()
+
+            if detail_data.get('meals'):
+                return detail_data['meals'][0]
+            else:
+                return None
+        else:
+            # Already have full recipe (from random.php or search.php)
+            return meals[0]
+
+    except Exception as e:
+        print(f"Error fetching from TheMealDB: {e}")
+        return None
 
 def translate_to_german(text):
     """Translate text from English to German using DeepL API"""
@@ -1038,17 +1151,31 @@ def translate_to_german(text):
 
 @app.route('/api/recipes/daily-import', methods=['POST'])
 def daily_recipe_import():
-    """Import ein zufälliges Rezept von TheMealDB"""
+    """
+    Import ein Rezept von TheMealDB mit konfigurierbarer Strategie
+
+    Query Parameters:
+        strategy (str): Import-Strategie (random, by_category, by_area, by_ingredient, etc.)
+        value (str): Wert für die Strategie (z.B. "Italian" für by_area)
+
+    Examples:
+        POST /api/recipes/daily-import
+        POST /api/recipes/daily-import?strategy=random
+        POST /api/recipes/daily-import?strategy=by_category&value=Vegetarian
+        POST /api/recipes/daily-import?strategy=by_area&value=Italian
+        POST /api/recipes/daily-import?strategy=by_ingredient&value=chicken
+    """
     try:
-        # 1. Fetch random recipe from TheMealDB
-        response = requests.get(f'{THEMEALDB_API}/random.php', timeout=10)
-        response.raise_for_status()
-        data = response.json()
+        # Get import strategy from query parameters
+        config = load_themealdb_config()
+        strategy = request.args.get('strategy', config.get('default_strategy', 'random'))
+        value = request.args.get('value', None)
 
-        if not data.get('meals'):
-            return jsonify({'error': 'No recipe found'}), 404
+        # 1. Fetch recipe from TheMealDB using configured strategy
+        meal = fetch_recipe_from_themealdb(strategy=strategy, value=value)
 
-        meal = data['meals'][0]
+        if not meal:
+            return jsonify({'error': 'No recipe found for the given criteria'}), 404
 
         # 2. Download image
         image_url = meal.get('strMealThumb')
@@ -1150,7 +1277,12 @@ def daily_recipe_import():
             'success': True,
             'recipe_id': recipe_id,
             'title': meal.get('strMeal'),
+            'title_de': translated_title,
             'source': 'TheMealDB',
+            'strategy': strategy,
+            'filter_value': value,
+            'category': category,
+            'area': area,
             'imported_at': datetime.now().date().isoformat()
         })
 
