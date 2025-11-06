@@ -873,7 +873,32 @@
 
         /* Notizen Section - Label oben ausrichten */
         .detail-section.notes {
-            align-items: flex-start;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .detail-section.notes .detail-label {
+            margin-bottom: 8px;
+        }
+
+        .detail-section.notes .detail-value {
+            width: 100%;
+        }
+
+        /* Form-Gruppe mit Label oben (für Textareas) */
+        .form-group.vertical {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .form-group.vertical label {
+            min-width: 0;
+            margin-bottom: 8px;
+        }
+
+        .form-group.vertical textarea {
+            width: 100%;
+            min-height: 120px;
         }
 
         /* Document/Image Viewer */
@@ -2033,7 +2058,6 @@
     <!-- User Info (shown when logged in) -->
     <div id="user-info" class="user-info hidden">
         <div id="user-avatar-display" class="user-avatar-small"></div>
-        <span id="user-name-display" class="user-name"></span>
         <button class="btn-logout" onclick="logout()">Abmelden</button>
     </div>
 
@@ -2260,7 +2284,9 @@
         // Display user profiles in selection screen
         function displayUserProfiles(users) {
             const container = document.getElementById('profile-list');
-            container.innerHTML = users.map(user => `
+            // Filter out system users (is_system flag or "Rezept Import" name)
+            const regularUsers = users.filter(user => !user.is_system && user.name !== 'Rezept Import');
+            container.innerHTML = regularUsers.map(user => `
                 <div class="profile-card" onclick="selectUser(${user.id})">
                     <div class="profile-avatar" style="background: ${user.avatar_color}">
                         ${user.name.charAt(0).toUpperCase()}
@@ -2328,11 +2354,10 @@
             if (!currentUser) return;
 
             const avatarEl = document.getElementById('user-avatar-display');
-            const nameEl = document.getElementById('user-name-display');
 
             avatarEl.style.background = currentUser.avatar_color;
             avatarEl.textContent = currentUser.name.charAt(0).toUpperCase();
-            nameEl.textContent = currentUser.name;
+            // Name wird nicht mehr angezeigt
         }
 
         // Show new profile form
@@ -2745,7 +2770,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group textarea-group">
+                    <div class="form-group vertical">
                         <label for="recipe-notes">NOTIZEN</label>
                         <textarea id="recipe-notes" placeholder="Besonderheiten, Variationen, persönliche Anmerkungen...">${isEdit && recipe.notes ? escapeHtml(recipe.notes) : ''}</textarea>
                     </div>
@@ -3964,7 +3989,7 @@
                         <label>Datum</label>
                         <input type="date" id="entry-date" value="${new Date().toISOString().split('T')[0]}" required>
                     </div>
-                    <div class="form-group textarea-group">
+                    <div class="form-group vertical">
                         <label>Notizen</label>
                         <textarea id="entry-notes" placeholder="Wie war das Essen? Besonderheiten?"></textarea>
                     </div>
@@ -4021,7 +4046,7 @@
                         <label>Datum</label>
                         <input type="date" id="entry-date" value="${entry.date}" required>
                     </div>
-                    <div class="form-group textarea-group">
+                    <div class="form-group vertical">
                         <label>Notizen</label>
                         <textarea id="entry-notes">${entry.notes || ''}</textarea>
                     </div>
