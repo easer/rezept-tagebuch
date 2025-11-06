@@ -4,8 +4,8 @@
 echo "📅 Installing daily import timer..."
 
 # Copy service and timer files
-sudo cp rezept-daily-import.service /etc/systemd/system/
-sudo cp rezept-daily-import.timer /etc/systemd/system/
+sudo cp systemd/rezept-daily-import.service /etc/systemd/system/
+sudo cp systemd/rezept-daily-import.timer /etc/systemd/system/
 
 # Reload systemd
 sudo systemctl daemon-reload

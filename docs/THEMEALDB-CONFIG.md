@@ -241,7 +241,7 @@ Vollständige Liste: https://www.themealdb.com/api/json/v1/1/list.php?i=list
 ### 1. Config-File bearbeiten
 
 ```bash
-vim /home/gabor/easer_projekte/rezept-tagebuch/themealdb-config.json
+vim /home/gabor/easer_projekte/rezept-tagebuch/config/themealdb-config.json
 ```
 
 ### 2. Eigene Präferenzen setzen

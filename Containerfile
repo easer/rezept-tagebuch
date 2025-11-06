@@ -10,8 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 COPY index.html .
-COPY recipe-format-config.json .
-COPY themealdb-config.json .
+COPY config/recipe-format-config.json .
+COPY config/themealdb-config.json .
 
 # ENV Variable setzen (NACH den Copies, damit bei Version-Änderung nur dieser Layer neu gebaut wird)
 ENV APP_VERSION=${APP_VERSION}
