@@ -1,0 +1,129 @@
+.recipe-list-container {
+  max-width: 430px; /* iPhone 15 Pro Max width */
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.recipe-list-header {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.app-title {
+  font-family: 'Sacramento', cursive;
+  font-size: 2.5em;
+  color: white;
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.recipe-count {
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.recipe-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Loading state */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading p {
+  margin: 0;
+  font-size: 0.9em;
+}
+
+/* Error state */
+.error {
+  text-align: center;
+  padding: 32px 20px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.error p {
+  margin-bottom: 16px;
+  font-size: 1.1em;
+}
+
+.error button {
+  background: rgba(100, 200, 255, 0.3);
+  border: 1px solid rgba(100, 200, 255, 0.5);
+  color: white;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.error button:hover {
+  background: rgba(100, 200, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 64px 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1em;
+}
+
+/* Scrollbar styling for webkit browsers */
+.recipe-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.recipe-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.recipe-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.recipe-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Tablet and larger screens */
+@media (min-width: 768px) {
+  .recipe-list-container {
+    max-width: 600px;
+    padding: 32px;
+  }
+
+  .app-title {
+    font-size: 3em;
+  }
+}
