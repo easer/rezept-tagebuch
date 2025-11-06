@@ -98,7 +98,7 @@ vim app.py
 # Prod-App ist nun auf: http://192.168.2.139:8000/rezept-tagebuch/
 ```
 
-**Hinweis:** Seit Version v05.11.2025 werden nur noch Git-Tags deployed. Siehe **GIT-TAG-WORKFLOW.md** für Details.
+**Hinweis:** Seit Version v05.11.2025 werden nur noch Git-Tags deployed. Siehe **docs/GIT-TAG-WORKFLOW.md** für Details.
 
 ### 3. Rollback bei Problemen
 
@@ -323,9 +323,17 @@ sqlite3 /home/gabor/easer_projekte/rezept-tagebuch/data/prod/rezepte.db
 ## 📚 Dokumentation
 
 - **README.md** - Dieses Dokument (Übersicht & Workflows)
-- **DEPLOYMENT.md** - Detaillierte Deployment-Anleitung
-- **UX-GUIDE.md** - Design-Richtlinien und Best Practices
-- **THEMEALDB-CONFIG.md** - TheMealDB Import Konfiguration (Strategien, Filter, API)
+- **docs/DEPLOYMENT.md** - Detaillierte Deployment-Anleitung
+- **docs/UX-GUIDE.md** - Design-Richtlinien und Best Practices
+- **docs/THEMEALDB-CONFIG.md** - TheMealDB Import Konfiguration (Strategien, Filter, API)
+- **docs/RECIPE-IMPORT-PROCESS.md** - BPMN Prozess-Dokumentation für Recipe Import
+- **docs/GIT-TAG-WORKFLOW.md** - Git-Tag basierter Deployment-Workflow
+- **docs/MIGRATIONS.md** - Datenbank-Migrationen
+- **docs/PROJECT-STRUCTURE.md** - Projektstruktur und Architektur
+- **docs/RECIPE-PARSER-README.md** - Recipe Parser Konfiguration
+- **docs/SEARCH-PANEL.md** - Search Panel Dokumentation
+- **docs/DEEPL-TRANSLATION.md** - DeepL API Integration
+- **docs/CHANGELOG.md** - Versions-Historie
 
 ---
 
@@ -342,7 +350,7 @@ sqlite3 /home/gabor/easer_projekte/rezept-tagebuch/data/prod/rezepte.db
 
 ## 🎨 UX-Richtlinien
 
-Siehe **UX-GUIDE.md** für:
+Siehe **docs/UX-GUIDE.md** für:
 - CSS-Regeln und Best Practices
 - CRUD-Pattern
 - Design-System
