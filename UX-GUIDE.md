@@ -8,9 +8,31 @@
 
 Alle `.form-group` Elemente haben einen konsistenten `margin-bottom: 20px` für einheitliche vertikale Abstände.
 
-#### Textarea-Felder (Notizen)
+#### Standard Form Layout
 
-**Regel:** Textareas verwenden IMMER ein vertikales Layout mit Label oben und Textarea darunter.
+**Regel:** Labels sind LINKS neben den Feldern (horizontales Layout) - außer bei Textareas!
+
+```css
+.form-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.form-group label {
+    min-width: 140px;
+}
+```
+
+**Gilt für:**
+- Input-Felder (Text, Datum, etc.)
+- Select-Felder
+- File-Upload
+- Alle anderen Formular-Elemente
+
+#### Textarea-Felder (Notizen) - AUSNAHME!
+
+**Regel:** NUR Textareas verwenden ein vertikales Layout mit Label oben und Textarea darunter.
 
 **Verwende die Klasse `.form-group.vertical`:**
 
@@ -44,10 +66,15 @@ Alle `.form-group` Elemente haben einen konsistenten `margin-bottom: 20px` für 
 - Textarea nutzt die volle Breite für maximale Bearbeitungsfläche
 - Konsistent mit Detail-Ansichten (`.detail-section.notes`)
 
-**Gilt für:**
-- Rezept-Formulare (neu/bearbeiten): "NOTIZEN"
-- Tagebuch-Formulare (neu/bearbeiten): "Notizen"
-- Alle anderen mehrzeiligen Textfelder
+**Gilt NUR für:**
+- Textarea-Felder (mehrzeilige Textfelder)
+- Rezept-Formulare: "NOTIZEN" Textarea
+- Tagebuch-Formulare: "Notizen" Textarea
+
+**NICHT für:**
+- Normale Input-Felder (bleiben horizontal: Label links, Feld rechts)
+- Select-Felder (bleiben horizontal)
+- File-Upload (bleibt horizontal)
 
 ### Responsive Design (iPhone)
 
@@ -120,9 +147,25 @@ button {
 
 ### Detail-Ansichten (Read-Only Views)
 
-#### Notizen in Detail-Ansichten
+#### Standard Detail Layout
 
-**Regel:** Auch in Detail-Ansichten (Rezept/Tagebuch Details) wird das Notizen-Feld vertikal dargestellt.
+**Regel:** In Detail-Ansichten sind Labels LINKS neben dem Wert (horizontales Layout) - außer bei Notizen!
+
+```css
+.detail-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+```
+
+**Gilt für:**
+- Rezept-Name, Zeitdauer, Bewertung
+- Datum, Erstellt von, etc.
+
+#### Notizen in Detail-Ansichten - AUSNAHME!
+
+**Regel:** NUR das Notizen-Feld wird in Detail-Ansichten vertikal dargestellt.
 
 **Verwende die Klasse `.detail-section.notes`:**
 
