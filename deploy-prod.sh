@@ -105,9 +105,10 @@ podman tag seaser-rezept-tagebuch:$GIT_TAG seaser-rezept-tagebuch:latest
 # 3. Run migrations BEFORE starting new container
 echo ""
 echo "🔄 Step 4/5: Running database migrations..."
-export DB_PATH="/home/gabor/data/rezept-tagebuch/rezepte.db"
-python3 -m alembic upgrade head
-echo "  ✅ Migrations completed"
+echo "  ⚠️ Skipping Alembic migrations (handled by init_db() in app.py)"
+# export DB_PATH="/home/gabor/data/rezept-tagebuch/rezepte.db"
+# python3 -m alembic upgrade head
+echo "  ✅ Migrations will run automatically on container start"
 
 # 4. Prod Container neu starten
 echo ""
