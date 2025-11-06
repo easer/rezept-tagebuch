@@ -198,15 +198,20 @@ End-to-End Test für den Recipe Import Flow.
 
 #### run-tests.sh (pytest Test-Suite)
 
-Automatisierte CRUD Tests für Recipe & Diary API.
+Automatisierte CRUD Tests für Recipe & Diary API (**27 Tests**).
 
 ```bash
 ./run-tests.sh
 ```
 
+**Empfohlen**: Isolierte Test-Datenbank nutzen:
+```bash
+./run-tests-isolated.sh
+```
+
 **Was wird getestet:**
-- Recipe CRUD (Create, Read, Update, Delete)
-- Diary Entry CRUD
+- Recipe CRUD (14 Tests)
+- Diary Entry CRUD (13 Tests)
 - Search Funktionalität
 - Parser Integration
 - Image Upload
@@ -222,7 +227,12 @@ Automatisierte CRUD Tests für Recipe & Diary API.
 
 # Verbose Output
 ./run-tests.sh -v
+
+# Mit isolierter Test-DB
+./run-tests-isolated.sh -v
 ```
+
+**Hinweis**: Bei vollständigem Test-Run können SQLite Lock-Fehler auftreten (nur Test-Problem, nicht Production).
 
 Siehe `tests/README.md` für Details.
 

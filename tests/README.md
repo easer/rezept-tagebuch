@@ -12,11 +12,21 @@ Die Test-Suite besteht aus:
 
 ## 🚀 Tests ausführen
 
-### Alle Tests
+### Standard: Mit Dev-Datenbank
 
 ```bash
 ./run-tests.sh
 ```
+
+**Hinweis**: Tests nutzen die Dev-Datenbank und können bei paralleler Ausführung SQLite Lock-Errors verursachen.
+
+### Empfohlen: Mit isolierter Test-Datenbank
+
+```bash
+./run-tests-isolated.sh
+```
+
+Startet Container im TESTING_MODE mit separater Test-DB (`data/test/rezepte.db`).
 
 ### Spezifische Tests
 
@@ -32,6 +42,9 @@ Die Test-Suite besteht aus:
 
 # Tests mit bestimmtem Marker
 ./run-tests.sh -m crud
+
+# Isoliert mit spezifischen Tests
+./run-tests-isolated.sh tests/test_recipes_crud.py -v
 ```
 
 ### Test-Optionen
@@ -154,6 +167,30 @@ Beispiel-Daten für Recipe-Tests
 ### `sample_diary_entry_data`
 Beispiel-Daten für Diary-Entry-Tests
 
+## ⚠️ Bekannte Limitationen
+
+### SQLite Lock-Probleme
+
+**Problem**: Bei vollständigem Test-Suite-Run können "database is locked" Fehler auftreten.
+
+**Ursache**: SQLite unterstützt keine echte Parallelität bei Schreibzugriffen.
+
+**Lösungen**:
+
+1. **Tests einzeln ausführen**:
+   ```bash
+   pytest tests/test_recipes_crud.py::TestRecipeCreate::test_create_recipe_success -v
+   ```
+
+2. **Isolierte Test-DB nutzen**:
+   ```bash
+   ./run-tests-isolated.sh
+   ```
+
+3. **Zukünftig: PostgreSQL Migration** (bei mehr Usern empfohlen)
+
+**Wichtig**: Dies betrifft nur Tests, nicht die Production-App!
+
 ## 🐛 Debugging
 
 ### Einzelnen Test debuggen
@@ -169,6 +206,12 @@ Beispiel-Daten für Diary-Entry-Tests
 
 ```bash
 podman logs seaser-rezept-tagebuch-dev --tail 50
+```
+
+### Test-Datenbank inspizieren
+
+```bash
+sqlite3 data/test/rezepte.db "SELECT * FROM recipes;"
 ```
 
 ### Test mit pdb debuggen
