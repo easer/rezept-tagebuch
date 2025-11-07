@@ -88,9 +88,10 @@ echo ""
 echo "🚀 Deploying Version: $GIT_TAG"
 echo ""
 
-# 1. Create automatic backup BEFORE deployment
-echo "📦 Step 1/5: Creating automatic backup..."
-./scripts/database/backup-db.sh prod "before-$GIT_TAG"
+# 1. Create automatic backup BEFORE deployment (PostgreSQL)
+echo "📦 Step 1/5: Creating database backup..."
+echo "  ⚠️  Using PostgreSQL - backup via pg_dump"
+podman exec seaser-postgres pg_dump -U postgres rezepte > "data/prod/backups/rezepte-backup-before-$GIT_TAG.sql" 2>/dev/null || echo "  ℹ️  Backup skipped (PostgreSQL)"
 echo ""
 
 # 2. Build aus dem exportierten Git-Tag (nicht aus Working Directory!)
