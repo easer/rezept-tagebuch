@@ -10,6 +10,8 @@ Dokumentation für die konfigurierbare TheMealDB Import-Schnittstelle.
 
 Die Rezept-Tagebuch App importiert täglich Rezepte von [TheMealDB](https://www.themealdb.com/). Die Import-Strategie ist seit v25.11.06 voll konfigurierbar über `themealdb-config.json`.
 
+**Wichtig:** Ab v25.11.07 ist ein **Meat-Filter** im Backend aktiv, der automatisch Fleisch-Rezepte ablehnt (Beef, Chicken, Lamb, Pork, Goat, Seafood). Das Wrapper-Script `daily-import.sh` wiederholt bei Ablehnung automatisch (bis zu 10 Versuche).
+
 ### Unterstützte Import-Strategien
 
 1. **random** - Zufälliges Rezept (default)
@@ -88,6 +90,23 @@ Ermöglicht automatische Rotation der Strategien nach Wochentag.
 ```
 POST /api/recipes/daily-import
 ```
+
+### Meat-Filter (Backend-Validierung)
+
+**Seit v25.11.07** validiert das Backend die Kategorie vor dem Speichern:
+
+**Erlaubte Kategorien:**
+- Vegetarian, Vegan, Dessert, Breakfast, Pasta, Side, Starter, Miscellaneous
+
+**Blockierte Kategorien (Fleisch):**
+- Beef, Chicken, Lamb, Pork, Goat, Seafood
+
+**Bei Ablehnung:**
+- HTTP Status: `400 Bad Request`
+- Response enthält `rejected_category` und `rejected_title`
+- Wrapper-Script (`daily-import.sh`) wiederholt automatisch
+
+**Code-Referenz:** `app.py` Zeilen 1180-1191
 
 ### Query Parameter
 
@@ -170,6 +189,85 @@ curl -X POST "http://localhost:8000/rezept-tagebuch-dev/api/recipes/daily-import
 ```
 
 Dies wählt zufällig aus: Italian, Indian, Chinese, Mexican, Thai
+
+---
+
+## Wrapper-Script mit Retry-Logik
+
+### daily-import.sh
+
+Seit v25.11.07 gibt es ein Wrapper-Script für robuste Imports mit automatischer Wiederholung bei Fleisch-Ablehnung.
+
+**Location:** `/home/gabor/easer_projekte/rezept-tagebuch/scripts/daily-import.sh`
+
+**Features:**
+- Automatische Retry-Logik (bis zu 10 Versuche)
+- 2 Sekunden Delay zwischen Versuchen
+- Intelligente Fehlerbehandlung
+- Logging für systemd journal
+- Cleanup nach erfolgreichem Import
+
+**Usage:**
+```bash
+daily-import.sh [strategy] [value]
+```
+
+**Beispiele:**
+```bash
+# Vegetarisches Rezept (Standard)
+./scripts/daily-import.sh by_category Vegetarian
+
+# Italienisches Rezept (mit Meat-Filter)
+./scripts/daily-import.sh by_area Italian
+
+# Zufälliges Rezept (nur fleischfrei)
+./scripts/daily-import.sh random
+
+# Dessert
+./scripts/daily-import.sh by_category Dessert
+```
+
+**Ablauf bei Meat-Rejection:**
+1. Script ruft API auf
+2. Backend lehnt ab (HTTP 400): "Recipe rejected: 'Beef Wellington' (category: Beef)"
+3. Script loggt Ablehnung
+4. Wartet 2 Sekunden
+5. Versucht es erneut (bis zu 10x)
+6. Bei Erfolg: Cleanup und Exit 0
+7. Nach 10 Versuchen: Exit 1 (Fehler)
+
+**Log-Output (Beispiel):**
+```
+Starting daily recipe import (strategy: by_category, value: Vegetarian, max 10 attempts)...
+Attempt 1/10: Fetching recipe...
+⚠️ Recipe rejected: 'Chicken Tikka Masala' (category: Chicken)
+Retrying in 2s...
+Attempt 2/10: Fetching recipe...
+✅ Success! Meat-free recipe imported.
+Imported: Mushroom Risotto
+Running cleanup of old imports...
+✅ Daily import completed successfully
+```
+
+**Systemd Integration:**
+
+Das Script wird vom systemd Service verwendet:
+```ini
+[Service]
+Type=oneshot
+ExecStart=/home/gabor/easer_projekte/rezept-tagebuch/scripts/daily-import.sh by_category Vegetarian
+StandardOutput=journal
+StandardError=journal
+```
+
+**Monitoring:**
+```bash
+# Logs ansehen
+journalctl --user -u rezept-daily-import.service --since today
+
+# Live verfolgen
+journalctl --user -u rezept-daily-import.service -f
+```
 
 ---
 
@@ -277,34 +375,76 @@ Jetzt wird standardmäßig nach Kategorie gefiltert (aus favorite_categories).
 
 ## Systemd Service anpassen
 
-Der tägliche Import läuft via systemd Timer. Um die Strategie zu ändern:
+Der tägliche Import läuft via systemd Timer mit dem `daily-import.sh` Wrapper-Script.
+
+**Aktueller Service:** Täglich um 06:00 UTC, Vegetarian
 
 ### 1. Service-File bearbeiten
 
 ```bash
-systemctl --user edit rezept-tagebuch-daily-import.service
+vim ~/.config/systemd/user/rezept-daily-import.service
 ```
 
-### 2. Strategie-Parameter hinzufügen
+### 2. Strategie-Parameter ändern
 
+**Option A: Italienische Rezepte**
 ```ini
 [Service]
-ExecStart=
-ExecStart=/usr/bin/curl -X POST "http://localhost:8000/rezept-tagebuch/api/recipes/daily-import?strategy=by_area&value=Italian"
+Type=oneshot
+ExecStart=/home/gabor/easer_projekte/rezept-tagebuch/scripts/daily-import.sh by_area Italian
+StandardOutput=journal
+StandardError=journal
+```
+
+**Option B: Desserts**
+```ini
+[Service]
+Type=oneshot
+ExecStart=/home/gabor/easer_projekte/rezept-tagebuch/scripts/daily-import.sh by_category Dessert
+StandardOutput=journal
+StandardError=journal
+```
+
+**Option C: Random (nur fleischfrei)**
+```ini
+[Service]
+Type=oneshot
+ExecStart=/home/gabor/easer_projekte/rezept-tagebuch/scripts/daily-import.sh random
+StandardOutput=journal
+StandardError=journal
 ```
 
 ### 3. Service neu laden
 
 ```bash
 systemctl --user daemon-reload
-systemctl --user restart rezept-tagebuch-daily-import.timer
+systemctl --user restart rezept-daily-import.timer
 ```
 
-### 4. Nächste Ausführung prüfen
+### 4. Testen
+
+```bash
+# Manuell triggern
+systemctl --user start rezept-daily-import.service
+
+# Logs ansehen
+journalctl --user -u rezept-daily-import.service --since "5 minutes ago"
+```
+
+### 5. Nächste Ausführung prüfen
 
 ```bash
 systemctl --user list-timers | grep rezept
 ```
+
+### Zusätzliche Services erstellen
+
+Du kannst mehrere Timer für verschiedene Strategien haben. Siehe `systemd/README.md` für Details.
+
+**Beispiel:**
+- Montag-Freitag 06:00: Vegetarian (Haupt-Service)
+- Mittwoch + Samstag 12:00: Italian (Zusatz-Service)
+- Sonntag 18:00: Dessert (Zusatz-Service)
 
 ---
 
@@ -340,6 +480,41 @@ Die Config-Datei wird beim Build kopiert und muss bei Änderungen neu gebaut wer
 - Wählt ZUFÄLLIG eines aus
 
 Das ist **kein Bug**, sondern gewünschtes Verhalten für Vielfalt.
+
+### Fleisch-Rezept wurde importiert (sollte nicht passieren)
+
+**Symptom:** Ein Rezept mit Beef/Chicken/etc wurde trotz Meat-Filter importiert
+
+**Check:**
+1. Prüfe Backend-Code: `app.py` Zeilen 1180-1191
+2. Prüfe ob Wrapper-Script verwendet wird: `systemctl --user cat rezept-daily-import.service`
+3. Prüfe Logs: `journalctl --user -u rezept-daily-import.service --since today`
+
+**Mögliche Ursachen:**
+- Service nutzt noch alten curl-Befehl statt Wrapper-Script
+- Backend-Filter wurde deaktiviert
+- TheMealDB hat falsche Kategorie-Klassifizierung
+
+### Import schlägt nach 10 Versuchen fehl
+
+**Symptom:** Script gibt nach 10 Versuchen auf
+
+**Ursache:** Bei `random` Strategie kann es vorkommen, dass 10x hintereinander Fleisch-Rezepte gezogen werden (unwahrscheinlich, aber möglich)
+
+**Lösung:**
+```bash
+# Wechsel zu gezielter Strategie
+vim ~/.config/systemd/user/rezept-daily-import.service
+
+# Ändere zu:
+ExecStart=/home/gabor/easer_projekte/rezept-tagebuch/scripts/daily-import.sh by_category Vegetarian
+```
+
+Dann:
+```bash
+systemctl --user daemon-reload
+systemctl --user restart rezept-daily-import.timer
+```
 
 ---
 

@@ -1177,6 +1177,19 @@ def daily_recipe_import():
         if not meal:
             return jsonify({'error': 'No recipe found for the given criteria'}), 404
 
+        # 1a. Validate category: Only allow meat-free recipes
+        category = meal.get('strCategory', '')
+        MEAT_FREE_CATEGORIES = ['Vegetarian', 'Vegan', 'Dessert', 'Breakfast', 'Pasta', 'Side', 'Starter', 'Miscellaneous']
+        MEAT_CATEGORIES = ['Beef', 'Chicken', 'Lamb', 'Pork', 'Goat', 'Seafood']
+
+        if category in MEAT_CATEGORIES:
+            print(f"⚠️ Import rejected: Category '{category}' contains meat/seafood")
+            return jsonify({
+                'error': f'Recipe category "{category}" contains meat/seafood. Only vegetarian recipes allowed.',
+                'rejected_category': category,
+                'rejected_title': meal.get('strMeal')
+            }), 400
+
         # 2. Download image
         image_url = meal.get('strMealThumb')
         image_filename = None

@@ -35,7 +35,7 @@
           "Vegan",
           "Vegetarian"
         ],
-        "default_values": ["Vegetarian", "Dessert"]
+        "default_values": ["Vegetarian", "Vegan", "Dessert", "Breakfast", "Pasta"]
       },
       "by_area": {
         "endpoint": "filter.php",

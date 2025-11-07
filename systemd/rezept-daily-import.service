@@ -1,13 +1,13 @@
 [Unit]
-Description=Rezept Tagebuch Daily TheMealDB Import
+Description=Rezept Tagebuch Daily TheMealDB Import (Vegetarian)
 After=network.target seaser-rezept-tagebuch.service
 
 [Service]
 Type=oneshot
 EnvironmentFile=-/home/gabor/easer_projekte/rezept-tagebuch/.env
-ExecStart=/usr/bin/curl -X POST "http://localhost:8000/rezept-tagebuch/api/recipes/daily-import?strategy=by_category"
-ExecStartPost=/usr/bin/curl -X POST http://localhost:8000/rezept-tagebuch/api/recipes/cleanup-old-imports
-User=gabor
+ExecStart=/home/gabor/easer_projekte/rezept-tagebuch/scripts/daily-import.sh by_category Vegetarian
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

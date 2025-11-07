@@ -114,7 +114,51 @@ git tag | grep rezept_version
 
 ## 📝 Scripts
 
-### build-dev.sh
+### Daily Import
+
+#### daily-import.sh
+
+Flexibler Wrapper für täglichen Rezept-Import mit Retry-Logik.
+
+```bash
+./scripts/daily-import.sh [strategy] [value]
+```
+
+**Features:**
+- Retry-Logik: Bis zu 10 Versuche bei Meat-Rejection
+- Parametrierbar: Verschiedene Import-Strategien
+- Meat-Filter: Akzeptiert nur fleischfreie Rezepte
+- Logging: Ausgabe in systemd journal
+
+**Beispiele:**
+```bash
+# Vegetarisches Rezept (Standard)
+./scripts/daily-import.sh by_category Vegetarian
+
+# Italienisches Rezept
+./scripts/daily-import.sh by_area Italian
+
+# Zufälliges Rezept (mit automatischer Ablehnung von Fleisch)
+./scripts/daily-import.sh random
+
+# Dessert
+./scripts/daily-import.sh by_category Dessert
+```
+
+**Was passiert:**
+1. Script ruft `/api/recipes/daily-import` auf
+2. Bei Ablehnung (HTTP 400 wegen Fleisch): Retry nach 2 Sekunden
+3. Bis zu 10 Versuche
+4. Bei Erfolg: Cleanup alter Imports
+5. Logs erscheinen in systemd journal
+
+**Siehe auch:**
+- `systemd/README.md` - Systemd Service Konfiguration
+- `docs/THEMEALDB-CONFIG.md` - Import-Strategien und API
+
+### Deployment Scripts
+
+#### build-dev.sh
 
 Baut Dev-Image und startet Dev-Container neu.
 
