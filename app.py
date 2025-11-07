@@ -167,8 +167,12 @@ def init_db():
 
 # Datenbankverbindung
 def get_db():
-    conn = sqlite3.connect(DATABASE, timeout=10.0)  # 10 second timeout for locks
+    conn = sqlite3.connect(DATABASE, timeout=30.0)  # 30 second timeout for locks
     conn.row_factory = sqlite3.Row
+    # Enable WAL mode for better concurrent access
+    conn.execute('PRAGMA journal_mode=WAL')
+    # Reduce busy timeout
+    conn.execute('PRAGMA busy_timeout=30000')  # 30 seconds in milliseconds
     return conn
 
 # API Endpoints
@@ -762,7 +766,7 @@ def get_diary_entry(entry_id):
 
     c.execute('''
         SELECT
-            d.id, d.recipe_id, d.user_id, d.date, d.notes, d.images,
+            d.id, d.recipe_id, d.user_id, d.date, d.dish_name, d.notes, d.images,
             d.created_at, d.updated_at,
             r.title as recipe_title, r.image as recipe_image
         FROM diary_entries d
