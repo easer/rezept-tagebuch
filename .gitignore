@@ -6,3 +6,7 @@ venv/
 *.pyc
 __pycache__/
 .claude/
+
+# Legacy files from refactoring
+app_old.py
+REFACTORING_SUMMARY.md
