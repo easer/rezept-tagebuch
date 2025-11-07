@@ -2,13 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Version als Build Argument (FRÜH definieren, damit Cache nicht betroffen)
-ARG APP_VERSION=unknown
+# Version als Build Argument
+ARG APP_VERSION=test-postgres
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py .
 COPY app_new.py .
 COPY models.py .
 COPY config.py .
@@ -16,9 +15,13 @@ COPY index.html .
 COPY config/recipe-format-config.json .
 COPY config/themealdb-config.json .
 
-# ENV Variable setzen (NACH den Copies, damit bei Version-Änderung nur dieser Layer neu gebaut wird)
+# ENV Variable setzen
 ENV APP_VERSION=${APP_VERSION}
+ENV DB_TYPE=postgresql
+ENV POSTGRES_HOST=seaser-postgres
+ENV POSTGRES_PASSWORD=seaser
 
 EXPOSE 80
 
-CMD ["python", "app.py"]
+# Use app_new.py for PostgreSQL testing
+CMD ["python", "app_new.py"]

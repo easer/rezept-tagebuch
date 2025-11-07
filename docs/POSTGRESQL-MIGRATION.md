@@ -115,16 +115,29 @@ psycopg2-binary==2.9.9      # PostgreSQL Adapter
 Flask-SQLAlchemy==3.1.1     # SQLAlchemy Integration
 ```
 
-## Bekannte Issues ⚠️
+## ✅ Migration abgeschlossen! (2025-11-07)
 
-### Issue #1: Models Hang bei `db.create_all()`
+Die PostgreSQL Migration wurde erfolgreich durchgeführt:
 
-**Symptom**: Migration Script hängt bei "Creating tables in PostgreSQL..."
+- **Schema**: Direkt aus SQLite extrahiert und nach PostgreSQL konvertiert
+- **Daten**: Vollständig migriert (Users, Recipes, Todos, Diary Entries)
+- **Alembic**: Neu initialisiert mit Version 0001 als Baseline
+- **Foreign Keys**: Automatisch validiert und bereinigt
 
-**Mögliche Ursachen**:
-1. Circular dependencies in Relationships
-2. Foreign Key Constraints Order
-3. SQLAlchemy Metadata Issue
+**Migrationsstatus:**
+- ✅ 7 users
+- ✅ 5 recipes
+- ✅ 12 todos
+- ✅ 1 diary entry (orphaned FK automatisch auf NULL gesetzt)
+
+## Bekannte Issues ⚠️ (GELÖST)
+
+### ~~Issue #1: Models Hang bei `db.create_all()`~~ ✅ GELÖST
+
+**Lösung**: Direkter SQL-basierter Ansatz statt ORM
+- Schema via `schema-postgres.sql` erstellt
+- Daten via `export-sqlite-data.py` exportiert
+- Keine ORM-Komplexität mehr
 
 **Debug Steps**:
 ```python
@@ -163,21 +176,56 @@ sqlite3 data/prod/rezepte.db .schema > schema.sql
 # Then: psql -h 10.89.0.28 -U postgres -d rezepte < schema.pg.sql
 ```
 
+## 🎯 Schnellstart: Migration wiederholen
+
+Wenn du die Migration nochmal durchführen möchtest (z.B. für Test-DB):
+
+```bash
+cd /home/gabor/easer_projekte/rezept-tagebuch
+
+# Production Database
+./scripts/database/reset-and-migrate-postgres.sh data/prod/rezepte.db
+
+# Development Database
+./scripts/database/reset-and-migrate-postgres.sh data/dev/rezepte.db
+
+# Test Database (optional)
+# Export POSTGRES_DB=rezepte_test
+# ./scripts/database/reset-and-migrate-postgres.sh data/test/rezepte.db
+```
+
 ## Nächste Schritte 🚀
 
-### Phase 1: Debug & Fix Models (PRIO 1)
-1. **Models.py debuggen**
-   - Circular references checken
-   - FK Constraints Order prüfen
-   - Einzelne Tabellen testen
+### ~~Phase 1: Debug & Fix Models~~ ✅ ABGESCHLOSSEN
+- Schema erfolgreich erstellt
+- Daten erfolgreich migriert
 
-2. **Alternative**: Raw SQL Schema Creation
-   ```python
-   # In migrate script vor db.create_all():
-   db.engine.execute("CREATE TABLE users (...)")
-   ```
+### ~~Phase 2: Migration durchführen~~ ✅ ABGESCHLOSSEN
 
-### Phase 2: Migration durchführen
+Migration erfolgreich durchgeführt am 2025-11-07!
+
+### Phase 3: App Testing ✅ ABGESCHLOSSEN
+
+**Test-Container erfolgreich getestet:**
+- Container: `seaser-rezept-tagebuch:test-postgres`
+- Port: 8888 (Test), läuft parallel zu Prod/Dev
+- Database: PostgreSQL via seaser-postgres
+- App: `app_new.py` mit vollständigem ORM-Support
+
+**API Tests erfolgreich:**
+- ✅ GET /api/users - 7 users found
+- ✅ GET /api/recipes - 5 recipes found
+- ✅ GET /api/todos - 12 todos found
+- ✅ GET /api/diary - 1 diary entry found
+- ✅ CRUD Operations (Create, Read, Update, Delete) - All working!
+
+**Zugriff:**
+```
+http://localhost:8888/api/users
+http://localhost:8888/api/recipes
+http://localhost:8888/api/todos
+http://localhost:8888/api/diary
+```
 1. **Test-Migration** (zuerst!)
    ```bash
    # Test-Datenbank migrieren

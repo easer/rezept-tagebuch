@@ -147,11 +147,11 @@ class TestDiaryUpdate:
         assert data["notes"] == "Updated notes for testing"
 
     def test_update_diary_entry_not_found(self, api_client, sample_diary_entry_data):
-        """Test updating non-existent diary entry returns 500"""
+        """Test updating non-existent diary entry returns 404"""
         response = api_client.put("/diary/999999", json=sample_diary_entry_data)
 
-        # API currently returns 500 for non-existent entries
-        assert response.status_code == 500
+        # API should return 404 for non-existent entries
+        assert response.status_code == 404
 
 
 class TestDiaryDelete:
@@ -173,11 +173,11 @@ class TestDiaryDelete:
         assert get_response.status_code == 404
 
     def test_delete_diary_entry_not_found(self, api_client):
-        """Test deleting non-existent diary entry (API returns 200)"""
+        """Test deleting non-existent diary entry (API returns 404)"""
         response = api_client.delete("/diary/999999")
 
-        # Diary API returns 200 even for non-existent entries
-        assert response.status_code == 200
+        # Diary API should return 404 for non-existent entries
+        assert response.status_code == 404
 
 
 class TestDiarySearch:

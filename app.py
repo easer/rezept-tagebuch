@@ -1,179 +1,86 @@
 #!/usr/bin/env python3
 """
 Natalies Rezept-Tagebuch - Backend API
-Python Flask Server mit SQLite Datenbank
+Python Flask Server with SQLAlchemy ORM (PostgreSQL/SQLite)
 """
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-import sqlite3
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import uuid
 import requests
 import shutil
+import json
+import re
+import subprocess
+
+# Import SQLAlchemy models and config
+from models import db, User, Recipe, Todo, DiaryEntry
+from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS, SQLALCHEMY_ENGINE_OPTIONS, UPLOAD_FOLDER, TESTING_MODE
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
-# Konfiguration
-# Unterstützt separate Test-Datenbank via TESTING_MODE env variable
-TESTING_MODE = os.environ.get('TESTING_MODE', 'false').lower() == 'true'
+# Configure SQLAlchemy
+app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = SQLALCHEMY_ENGINE_OPTIONS
 
-if TESTING_MODE:
-    DATABASE = '/data/test/rezepte.db'
-    UPLOAD_FOLDER = '/data/test/uploads'
-    print("🧪 TESTING MODE: Using test database")
-else:
-    DATABASE = '/data/rezepte.db'
-    UPLOAD_FOLDER = '/data/uploads'
+# Initialize SQLAlchemy
+db.init_app(app)
 
-os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
+# Ensure upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Datenbank initialisieren
+if TESTING_MODE:
+    print("🧪 TESTING MODE: Using test database")
+
+# Database initialization
 def init_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    """Initialize database tables and seed initial data"""
+    with app.app_context():
+        # Create all tables
+        db.create_all()
 
-    # Users Tabelle erstellen
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            name TEXT NOT NULL,
-            avatar_color TEXT DEFAULT '#FFB6C1',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+        # Seed initial users if none exist
+        if User.query.count() == 0:
+            # Create Natalie (default user)
+            natalie = User(
+                email='natalie@seaser.local',
+                name='Natalie',
+                avatar_color='#FFB6C1'
+            )
+            db.session.add(natalie)
 
-    # Migration: Natalie als ersten User erstellen (nur wenn noch keine User existieren)
-    c.execute('SELECT COUNT(*) as count FROM users')
-    if c.fetchone()['count'] == 0:
-        c.execute('''
-            INSERT INTO users (email, name, avatar_color)
-            VALUES ('natalie@seaser.local', 'Natalie', '#FFB6C1')
-        ''')
+            # Create Import user (for TheMealDB recipes)
+            import_user = User(
+                email='import@seaser.local',
+                name='Rezept Import',
+                avatar_color='#64C8FF'
+            )
+            db.session.add(import_user)
 
-    # Migration: System Import User erstellen (für TheMealDB Rezepte)
-    c.execute("SELECT COUNT(*) as count FROM users WHERE email = 'import@seaser.local'")
-    if c.fetchone()['count'] == 0:
-        c.execute('''
-            INSERT INTO users (email, name, avatar_color)
-            VALUES ('import@seaser.local', 'Rezept Import', '#64C8FF')
-        ''')
+            db.session.commit()
+            print("✓ Created initial users")
 
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS recipes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            image TEXT,
-            notes TEXT,
-            duration REAL,
-            rating INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    # Migration: Add duration and rating columns if they don't exist
-    c.execute("PRAGMA table_info(recipes)")
-    columns = [column[1] for column in c.fetchall()]
-    if 'duration' not in columns:
-        c.execute('ALTER TABLE recipes ADD COLUMN duration REAL')
-    if 'rating' not in columns:
-        c.execute('ALTER TABLE recipes ADD COLUMN rating INTEGER')
-
-    # Migration: Add user_id and is_system columns to recipes
-    if 'user_id' not in columns:
-        c.execute('ALTER TABLE recipes ADD COLUMN user_id INTEGER REFERENCES users(id)')
-        # Alle existierenden Rezepte Natalie (user_id=1) zuordnen
-        c.execute('UPDATE recipes SET user_id = 1 WHERE user_id IS NULL')
-    if 'is_system' not in columns:
-        c.execute('ALTER TABLE recipes ADD COLUMN is_system BOOLEAN DEFAULT 0')
-
-    # Migration: Add auto_imported and imported_at for daily TheMealDB imports
-    if 'auto_imported' not in columns:
-        c.execute('ALTER TABLE recipes ADD COLUMN auto_imported BOOLEAN DEFAULT 0')
-    if 'imported_at' not in columns:
-        c.execute('ALTER TABLE recipes ADD COLUMN imported_at DATE')
-
-    # TODOs Tabelle erstellen
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS todos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            text TEXT NOT NULL,
-            priority INTEGER NOT NULL,
-            completed BOOLEAN DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    # Migration: Add user_id column to todos
-    c.execute("PRAGMA table_info(todos)")
-    todo_columns = [column[1] for column in c.fetchall()]
-    if 'user_id' not in todo_columns:
-        c.execute('ALTER TABLE todos ADD COLUMN user_id INTEGER REFERENCES users(id)')
-        # Alle existierenden TODOs Natalie (user_id=1) zuordnen
-        c.execute('UPDATE todos SET user_id = 1 WHERE user_id IS NULL')
-
-    # Initiale TODOs einfügen (nur wenn Tabelle leer ist)
-    c.execute('SELECT COUNT(*) as count FROM todos')
-    if c.fetchone()['count'] == 0:
-        initial_todos = [
-            ('Rezepte optimieren (kein gekocht am, etc.)', 1, 0),
-            ('Abbrechen Button raus, aus neu und bearbeiten', 1, 1),  # Bereits erledigt
-            ('Katalog nur Rezepte, noch kein Tagebuch als Ziel', 2, 0),
-            ('Profil anlegen', 2, 0),
-            ('Rezept vorhanden Mechanismus', 2, 0),
-            ('Tagebuch aus Rezepten erstellen', 3, 0),
-        ]
-        c.executemany('INSERT INTO todos (text, priority, completed) VALUES (?, ?, ?)', initial_todos)
-        # Initial TODOs auch Natalie zuordnen
-        c.execute('UPDATE todos SET user_id = 1 WHERE user_id IS NULL')
-
-    # Tagebuch-Einträge Tabelle erstellen
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS diary_entries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            recipe_id INTEGER,
-            user_id INTEGER,
-            date DATE NOT NULL,
-            notes TEXT,
-            images TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (recipe_id) REFERENCES recipes (id) ON DELETE SET NULL,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-
-    # Migration: Add dish_name column if it doesn't exist
-    c.execute("PRAGMA table_info(diary_entries)")
-    diary_columns = [column[1] for column in c.fetchall()]
-    if 'dish_name' not in diary_columns:
-        c.execute('ALTER TABLE diary_entries ADD COLUMN dish_name TEXT')
-
-    # Migration: Add user_id column if it doesn't exist
-    if 'user_id' not in diary_columns:
-        c.execute('ALTER TABLE diary_entries ADD COLUMN user_id INTEGER REFERENCES users(id)')
-        # Set existing entries to first user (usually Natalie)
-        c.execute('UPDATE diary_entries SET user_id = 1 WHERE user_id IS NULL')
-
-    conn.commit()
-    conn.close()
-
-# Datenbankverbindung
-def get_db():
-    conn = sqlite3.connect(DATABASE, timeout=30.0)  # 30 second timeout for locks
-    conn.row_factory = sqlite3.Row
-    # Enable WAL mode for better concurrent access
-    conn.execute('PRAGMA journal_mode=WAL')
-    # Reduce busy timeout
-    conn.execute('PRAGMA busy_timeout=30000')  # 30 seconds in milliseconds
-    return conn
+        # Seed initial todos if none exist
+        if Todo.query.count() == 0:
+            # Get Natalie's user ID (should be 1)
+            natalie = User.query.filter_by(email='natalie@seaser.local').first()
+            if natalie:
+                initial_todos = [
+                    Todo(text='Rezepte optimieren (kein gekocht am, etc.)', priority=1, completed=False, user_id=natalie.id),
+                    Todo(text='Abbrechen Button raus, aus neu und bearbeiten', priority=1, completed=True, user_id=natalie.id),
+                    Todo(text='Katalog nur Rezepte, noch kein Tagebuch als Ziel', priority=2, completed=False, user_id=natalie.id),
+                    Todo(text='Profil anlegen', priority=2, completed=False, user_id=natalie.id),
+                    Todo(text='Rezept vorhanden Mechanismus', priority=2, completed=False, user_id=natalie.id),
+                    Todo(text='Tagebuch aus Rezepten erstellen', priority=3, completed=False, user_id=natalie.id),
+                ]
+                for todo in initial_todos:
+                    db.session.add(todo)
+                db.session.commit()
+                print("✓ Created initial todos")
 
 # API Endpoints
 
@@ -191,138 +98,99 @@ def recipe_format_config():
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
-    """Alle User abrufen (für Profil-Auswahl)"""
+    """Get all users (for profile selection)"""
     try:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute('SELECT id, email, name, avatar_color, created_at FROM users ORDER BY created_at ASC')
-        users = [dict(row) for row in c.fetchall()]
-        conn.close()
-        return jsonify(users), 200
+        users = User.query.order_by(User.created_at.asc()).all()
+        return jsonify([user.to_dict() for user in users]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/users', methods=['POST'])
 def create_user():
-    """Neuen User erstellen"""
+    """Create a new user"""
     try:
         data = request.get_json()
 
-        # Validierung
+        # Validation
         if not data.get('email'):
             return jsonify({'error': 'Email is required'}), 400
         if not data.get('name'):
             return jsonify({'error': 'Name is required'}), 400
 
-        email = data['email']
-        name = data['name']
-        avatar_color = data.get('avatar_color', '#FFB6C1')
-
-        conn = get_db()
-        c = conn.cursor()
-
-        # Prüfen ob Email bereits existiert
-        c.execute('SELECT id FROM users WHERE email = ?', (email,))
-        if c.fetchone():
-            conn.close()
+        # Check if email already exists
+        existing_user = User.query.filter_by(email=data['email']).first()
+        if existing_user:
             return jsonify({'error': 'Email already exists'}), 409
 
-        c.execute('''
-            INSERT INTO users (email, name, avatar_color)
-            VALUES (?, ?, ?)
-        ''', (email, name, avatar_color))
+        # Create new user
+        user = User(
+            email=data['email'],
+            name=data['name'],
+            avatar_color=data.get('avatar_color', '#FFB6C1')
+        )
+        db.session.add(user)
+        db.session.commit()
 
-        user_id = c.lastrowid
-        conn.commit()
-
-        # Neuen User zurückgeben
-        c.execute('SELECT id, email, name, avatar_color, created_at FROM users WHERE id = ?', (user_id,))
-        user = dict(c.fetchone())
-        conn.close()
-
-        return jsonify(user), 201
+        return jsonify(user.to_dict()), 201
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/users/<int:user_id>', methods=['GET'])
 def get_user(user_id):
-    """Einzelnen User abrufen"""
+    """Get a single user"""
     try:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute('SELECT id, email, name, avatar_color, created_at FROM users WHERE id = ?', (user_id,))
-        user = c.fetchone()
-        conn.close()
-
+        user = User.query.get(user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
-
-        return jsonify(dict(user)), 200
+        return jsonify(user.to_dict()), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/users/<int:user_id>', methods=['PUT'])
 def update_user(user_id):
-    """User bearbeiten (nur Name und Avatar-Farbe, NICHT Email!)"""
+    """Update user (only name and avatar_color, NOT email!)"""
     try:
         data = request.get_json()
 
-        conn = get_db()
-        c = conn.cursor()
-
-        # Prüfen ob User existiert
-        c.execute('SELECT id FROM users WHERE id = ?', (user_id,))
-        if not c.fetchone():
-            conn.close()
+        user = User.query.get(user_id)
+        if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        # Nur Name und avatar_color können geändert werden
+        # Only name and avatar_color can be changed
         if 'name' in data:
-            c.execute('UPDATE users SET name = ? WHERE id = ?', (data['name'], user_id))
+            user.name = data['name']
         if 'avatar_color' in data:
-            c.execute('UPDATE users SET avatar_color = ? WHERE id = ?', (data['avatar_color'], user_id))
+            user.avatar_color = data['avatar_color']
 
-        conn.commit()
-
-        # Aktualisierten User zurückgeben
-        c.execute('SELECT id, email, name, avatar_color, created_at FROM users WHERE id = ?', (user_id,))
-        user = dict(c.fetchone())
-        conn.close()
-
-        return jsonify(user), 200
+        db.session.commit()
+        return jsonify(user.to_dict()), 200
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/users/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
-    """User löschen (optional, für später)"""
+    """Delete user (optional, for later)"""
     try:
-        # Natalie (user_id=1) kann nicht gelöscht werden
+        # Natalie (user_id=1) cannot be deleted
         if user_id == 1:
             return jsonify({'error': 'Cannot delete default user'}), 403
 
-        conn = get_db()
-        c = conn.cursor()
-
-        # Prüfen ob User existiert
-        c.execute('SELECT id FROM users WHERE id = ?', (user_id,))
-        if not c.fetchone():
-            conn.close()
+        user = User.query.get(user_id)
+        if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        # Prüfen ob User Rezepte hat
-        c.execute('SELECT COUNT(*) as count FROM recipes WHERE user_id = ?', (user_id,))
-        recipe_count = c.fetchone()['count']
+        # Check if user has recipes
+        recipe_count = Recipe.query.filter_by(user_id=user_id).count()
         if recipe_count > 0:
-            conn.close()
             return jsonify({'error': f'Cannot delete user with {recipe_count} recipes'}), 409
 
-        c.execute('DELETE FROM users WHERE id = ?', (user_id,))
-        conn.commit()
-        conn.close()
-
+        db.session.delete(user)
+        db.session.commit()
         return jsonify({'message': 'User deleted successfully'}), 200
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 # ============================================================================
@@ -331,221 +199,147 @@ def delete_user(user_id):
 
 @app.route('/api/recipes', methods=['GET'])
 def get_recipes():
-    """Alle Rezepte abrufen (inkl. User-Info)"""
-    conn = get_db()
-    c = conn.cursor()
+    """Get all recipes (including user info)"""
+    try:
+        # Optional: Search by title or notes
+        search = request.args.get('search')
 
-    # Optional: Suche nach Titel oder Notizen
-    search = request.args.get('search')
+        query = Recipe.query
 
-    # JOIN mit users-Tabelle um User-Info zu bekommen
-    query = '''
-        SELECT
-            recipes.*,
-            users.name as user_name,
-            users.email as user_email,
-            users.avatar_color as user_avatar_color
-        FROM recipes
-        LEFT JOIN users ON recipes.user_id = users.id
-        WHERE 1=1
-    '''
-    params = []
+        if search:
+            search_term = f'%{search}%'
+            query = query.filter(
+                db.or_(
+                    Recipe.title.ilike(search_term),
+                    Recipe.notes.ilike(search_term)
+                )
+            )
 
-    if search:
-        query += ' AND (recipes.title LIKE ? OR recipes.notes LIKE ?)'
-        search_term = f'%{search}%'
-        params.extend([search_term, search_term])
-
-    query += ' ORDER BY recipes.created_at DESC'
-
-    c.execute(query, params)
-    recipes = [dict(row) for row in c.fetchall()]
-    conn.close()
-
-    return jsonify(recipes)
+        recipes = query.order_by(Recipe.created_at.desc()).all()
+        return jsonify([recipe.to_dict() for recipe in recipes])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes', methods=['POST'])
 def create_recipe():
-    """Neues Rezept erstellen (user_id required)"""
+    """Create a new recipe (user_id required)"""
     try:
         data = request.json
 
-        # user_id ist required (wird vom Frontend mitgeschickt)
+        # user_id is required (sent from frontend)
         user_id = data.get('user_id')
         if not user_id:
             return jsonify({'error': 'user_id is required'}), 400
 
-        conn = get_db()
-        c = conn.cursor()
-
-        # Prüfen ob User existiert
-        c.execute('SELECT id FROM users WHERE id = ?', (user_id,))
-        if not c.fetchone():
-            conn.close()
+        # Check if user exists
+        user = User.query.get(user_id)
+        if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        c.execute('''
-            INSERT INTO recipes (title, image, notes, duration, rating, user_id)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (
-            data.get('title'),
-            data.get('image'),
-            data.get('notes'),
-            data.get('duration'),
-            data.get('rating'),
-            user_id
-        ))
+        # Create new recipe
+        recipe = Recipe(
+            title=data.get('title'),
+            image=data.get('image'),
+            notes=data.get('notes'),
+            duration=data.get('duration'),
+            rating=data.get('rating'),
+            user_id=user_id
+        )
+        db.session.add(recipe)
+        db.session.commit()
 
-        conn.commit()
-        recipe_id = c.lastrowid
-
-        # Rezept mit User-Info zurückgeben
-        c.execute('''
-            SELECT
-                recipes.*,
-                users.name as user_name,
-                users.email as user_email,
-                users.avatar_color as user_avatar_color
-            FROM recipes
-            LEFT JOIN users ON recipes.user_id = users.id
-            WHERE recipes.id = ?
-        ''', (recipe_id,))
-        recipe = dict(c.fetchone())
-        conn.close()
-
-        return jsonify(recipe), 201
+        return jsonify(recipe.to_dict()), 201
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['GET'])
 def get_recipe(recipe_id):
-    """Einzelnes Rezept abrufen"""
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('SELECT * FROM recipes WHERE id = ?', (recipe_id,))
-    recipe = c.fetchone()
-    conn.close()
-
-    if recipe is None:
-        return jsonify({'error': 'Recipe not found'}), 404
-
-    return jsonify(dict(recipe))
+    """Get a single recipe"""
+    try:
+        recipe = Recipe.query.get(recipe_id)
+        if not recipe:
+            return jsonify({'error': 'Recipe not found'}), 404
+        return jsonify(recipe.to_dict())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['PUT'])
 def update_recipe(recipe_id):
-    """Rezept aktualisieren (nur Owner!)"""
+    """Update recipe (owner only!)"""
     try:
         data = request.json
 
-        # user_id ist required (aktueller User)
+        # user_id is required (current user)
         user_id = data.get('user_id')
         if not user_id:
             return jsonify({'error': 'user_id is required'}), 400
 
-        conn = get_db()
-        c = conn.cursor()
-
-        # Rezept holen und Permission prüfen
-        c.execute('SELECT user_id, is_system FROM recipes WHERE id = ?', (recipe_id,))
-        recipe = c.fetchone()
-
+        recipe = Recipe.query.get(recipe_id)
         if not recipe:
-            conn.close()
             return jsonify({'error': 'Recipe not found'}), 404
 
-        # System-Rezepte können nicht bearbeitet werden
-        if recipe['is_system']:
-            conn.close()
+        # System recipes cannot be edited
+        if recipe.is_system:
             return jsonify({'error': 'Cannot edit system recipe'}), 403
 
-        # Nur Owner darf bearbeiten
-        if recipe['user_id'] != user_id:
-            conn.close()
+        # Only owner can edit
+        if recipe.user_id != user_id:
             return jsonify({'error': 'Permission denied. You can only edit your own recipes.'}), 403
 
-        c.execute('''
-            UPDATE recipes
-            SET title = ?, image = ?, notes = ?,
-                duration = ?, rating = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        ''', (
-            data.get('title'),
-            data.get('image'),
-            data.get('notes'),
-            data.get('duration'),
-            data.get('rating'),
-            recipe_id
-        ))
+        # Update recipe
+        recipe.title = data.get('title')
+        recipe.image = data.get('image')
+        recipe.notes = data.get('notes')
+        recipe.duration = data.get('duration')
+        recipe.rating = data.get('rating')
+        recipe.updated_at = datetime.utcnow()
 
-        conn.commit()
-
-        # Aktualisiertes Rezept mit User-Info zurückgeben
-        c.execute('''
-            SELECT
-                recipes.*,
-                users.name as user_name,
-                users.email as user_email,
-                users.avatar_color as user_avatar_color
-            FROM recipes
-            LEFT JOIN users ON recipes.user_id = users.id
-            WHERE recipes.id = ?
-        ''', (recipe_id,))
-        recipe = dict(c.fetchone())
-        conn.close()
-
-        return jsonify(recipe)
+        db.session.commit()
+        return jsonify(recipe.to_dict())
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/<int:recipe_id>', methods=['DELETE'])
 def delete_recipe(recipe_id):
-    """Rezept löschen (nur Owner!)"""
+    """Delete recipe (owner only!)"""
     try:
-        # user_id aus Query-Parameter oder Header
+        # user_id from query parameter or header
         user_id = request.args.get('user_id')
         if not user_id:
             return jsonify({'error': 'user_id is required'}), 400
 
         user_id = int(user_id)
 
-        conn = get_db()
-        c = conn.cursor()
-
-        # Rezept holen und Permission prüfen
-        c.execute('SELECT user_id, is_system, image FROM recipes WHERE id = ?', (recipe_id,))
-        recipe = c.fetchone()
-
+        recipe = Recipe.query.get(recipe_id)
         if not recipe:
-            conn.close()
             return jsonify({'error': 'Recipe not found'}), 404
 
-        # System-Rezepte können nicht gelöscht werden
-        if recipe['is_system']:
-            conn.close()
+        # System recipes cannot be deleted
+        if recipe.is_system:
             return jsonify({'error': 'Cannot delete system recipe'}), 403
 
-        # Nur Owner darf löschen
-        if recipe['user_id'] != user_id:
-            conn.close()
+        # Only owner can delete
+        if recipe.user_id != user_id:
             return jsonify({'error': 'Permission denied. You can only delete your own recipes.'}), 403
 
-        # Bild löschen falls vorhanden
-        if recipe['image']:
-            image_path = os.path.join(UPLOAD_FOLDER, recipe['image'])
+        # Delete image if exists
+        if recipe.image:
+            image_path = os.path.join(UPLOAD_FOLDER, recipe.image)
             if os.path.exists(image_path):
                 os.remove(image_path)
 
-        c.execute('DELETE FROM recipes WHERE id = ?', (recipe_id,))
-        conn.commit()
-        conn.close()
-
+        db.session.delete(recipe)
+        db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/upload', methods=['POST'])
 def upload_image():
-    """Bild hochladen"""
+    """Upload an image"""
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
 
@@ -553,7 +347,7 @@ def upload_image():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    # Eindeutigen Dateinamen generieren
+    # Generate unique filename
     ext = os.path.splitext(file.filename)[1]
     filename = f"{uuid.uuid4()}{ext}"
     filepath = os.path.join(UPLOAD_FOLDER, filename)
@@ -564,320 +358,313 @@ def upload_image():
 
 @app.route('/api/uploads/<filename>')
 def get_image(filename):
-    """Bild abrufen"""
+    """Get an image"""
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
-    """Statistiken abrufen"""
-    conn = get_db()
-    c = conn.cursor()
+    """Get statistics"""
+    try:
+        total = Recipe.query.count()
+        with_images = Recipe.query.filter(Recipe.image.isnot(None)).count()
 
-    c.execute('SELECT COUNT(*) as total FROM recipes')
-    total = c.fetchone()['total']
+        return jsonify({
+            'total_recipes': total,
+            'recipes_with_images': with_images
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    c.execute('SELECT COUNT(*) as with_images FROM recipes WHERE image IS NOT NULL')
-    with_images = c.fetchone()['with_images']
-
-    conn.close()
-
-    return jsonify({
-        'total_recipes': total,
-        'recipes_with_images': with_images
-    })
-
+# ============================================================================
 # TODO API Endpoints
+# ============================================================================
 
 @app.route('/api/todos', methods=['GET'])
 def get_todos():
-    """Alle TODOs abrufen, gruppiert nach Priorität"""
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('SELECT * FROM todos ORDER BY priority ASC, id ASC')
-    todos = [dict(row) for row in c.fetchall()]
-    conn.close()
-    return jsonify(todos)
+    """Get all TODOs, grouped by priority"""
+    try:
+        todos = Todo.query.order_by(Todo.priority.asc(), Todo.id.asc()).all()
+        return jsonify([todo.to_dict() for todo in todos])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/todos', methods=['POST'])
 def create_todo():
-    """Neues TODO erstellen"""
-    data = request.json
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''
-        INSERT INTO todos (text, priority, completed)
-        VALUES (?, ?, ?)
-    ''', (data.get('text'), data.get('priority', 2), data.get('completed', 0)))
-    conn.commit()
-    todo_id = c.lastrowid
-    c.execute('SELECT * FROM todos WHERE id = ?', (todo_id,))
-    todo = dict(c.fetchone())
-    conn.close()
-    return jsonify(todo), 201
+    """Create a new TODO"""
+    try:
+        data = request.json
+        todo = Todo(
+            text=data.get('text'),
+            priority=data.get('priority', 2),
+            completed=data.get('completed', False)
+        )
+        db.session.add(todo)
+        db.session.commit()
+        return jsonify(todo.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/todos/<int:todo_id>', methods=['GET'])
 def get_todo(todo_id):
-    """Einzelnes TODO abrufen"""
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('SELECT * FROM todos WHERE id = ?', (todo_id,))
-    todo = c.fetchone()
-    conn.close()
-    if todo:
-        return jsonify(dict(todo))
-    return jsonify({'error': 'TODO not found'}), 404
+    """Get a single TODO"""
+    try:
+        todo = Todo.query.get(todo_id)
+        if not todo:
+            return jsonify({'error': 'TODO not found'}), 404
+        return jsonify(todo.to_dict())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/todos/<int:todo_id>', methods=['PUT'])
 def update_todo(todo_id):
-    """TODO aktualisieren"""
-    data = request.json
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''
-        UPDATE todos
-        SET text = ?, priority = ?, completed = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    ''', (data.get('text'), data.get('priority'), data.get('completed'), todo_id))
-    conn.commit()
-    c.execute('SELECT * FROM todos WHERE id = ?', (todo_id,))
-    todo = dict(c.fetchone())
-    conn.close()
-    return jsonify(todo)
+    """Update TODO"""
+    try:
+        data = request.json
+        todo = Todo.query.get(todo_id)
+        if not todo:
+            return jsonify({'error': 'TODO not found'}), 404
+
+        todo.text = data.get('text')
+        todo.priority = data.get('priority')
+        todo.completed = data.get('completed')
+        todo.updated_at = datetime.utcnow()
+
+        db.session.commit()
+        return jsonify(todo.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/todos/<int:todo_id>', methods=['DELETE'])
 def delete_todo(todo_id):
-    """TODO löschen"""
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('DELETE FROM todos WHERE id = ?', (todo_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({'success': True})
+    """Delete TODO"""
+    try:
+        todo = Todo.query.get(todo_id)
+        if not todo:
+            return jsonify({'error': 'TODO not found'}), 404
 
-# Tagebuch API Endpoints
+        db.session.delete(todo)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# Diary API Endpoints
+# ============================================================================
 
 @app.route('/api/diary', methods=['GET'])
 def get_diary_entries():
-    """Tagebucheinträge des aktuellen Users abrufen"""
-    conn = get_db()
-    c = conn.cursor()
+    """Get diary entries for current user"""
+    try:
+        # User ID from query parameter
+        user_id = request.args.get('user_id', type=int)
+        search = request.args.get('search')
 
-    # User-ID aus Query-Parameter
-    user_id = request.args.get('user_id', type=int)
-    search = request.args.get('search')
+        query = DiaryEntry.query
 
-    query = '''
-        SELECT
-            d.id, d.recipe_id, d.user_id, d.date, d.notes, d.images, d.dish_name,
-            d.created_at, d.updated_at,
-            r.title as recipe_title, r.image as recipe_image
-        FROM diary_entries d
-        LEFT JOIN recipes r ON d.recipe_id = r.id
-        WHERE 1=1
-    '''
-    params = []
+        # Filter by user_id (required)
+        if user_id:
+            query = query.filter_by(user_id=user_id)
 
-    # Filter by user_id (required)
-    if user_id:
-        query += ' AND d.user_id = ?'
-        params.append(user_id)
+        if search:
+            search_term = f'%{search}%'
+            query = query.join(Recipe, DiaryEntry.recipe_id == Recipe.id, isouter=True)
+            query = query.filter(
+                db.or_(
+                    DiaryEntry.dish_name.ilike(search_term),
+                    DiaryEntry.notes.ilike(search_term),
+                    Recipe.title.ilike(search_term)
+                )
+            )
 
-    if search:
-        query += ' AND (d.dish_name LIKE ? OR d.notes LIKE ? OR r.title LIKE ?)'
-        search_term = f'%{search}%'
-        params.extend([search_term, search_term, search_term])
+        entries = query.order_by(DiaryEntry.date.desc(), DiaryEntry.created_at.desc()).all()
 
-    query += ' ORDER BY d.date DESC, d.created_at DESC'
+        # Convert to dict and parse images JSON
+        result = []
+        for entry in entries:
+            entry_dict = entry.to_dict()
 
-    c.execute(query, params)
-    entries = [dict(row) for row in c.fetchall()]
-    conn.close()
+            # Add recipe info
+            if entry.recipe:
+                entry_dict['recipe_title'] = entry.recipe.title
+                entry_dict['recipe_image'] = entry.recipe.image
+            else:
+                entry_dict['recipe_title'] = None
+                entry_dict['recipe_image'] = None
 
-    # Parse images JSON
-    import json
-    for entry in entries:
-        if entry['images']:
-            try:
-                entry['images'] = json.loads(entry['images'])
-            except:
-                entry['images'] = []
-        else:
-            entry['images'] = []
+            # Parse images JSON
+            if entry_dict['images']:
+                try:
+                    entry_dict['images'] = json.loads(entry_dict['images'])
+                except:
+                    entry_dict['images'] = []
+            else:
+                entry_dict['images'] = []
 
-    return jsonify(entries)
+            result.append(entry_dict)
+
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/diary', methods=['POST'])
 def create_diary_entry():
-    """Neuen Tagebucheintrag erstellen"""
-    import json
-    data = request.json
+    """Create a new diary entry"""
+    try:
+        data = request.json
 
-    conn = get_db()
-    c = conn.cursor()
+        # Images as JSON
+        images_json = json.dumps(data.get('images', []))
 
-    # Images als JSON speichern
-    images_json = json.dumps(data.get('images', []))
+        entry = DiaryEntry(
+            recipe_id=data.get('recipe_id'),
+            user_id=data.get('user_id'),
+            date=datetime.fromisoformat(data.get('date')).date() if data.get('date') else None,
+            notes=data.get('notes'),
+            images=images_json,
+            dish_name=data.get('dish_name')
+        )
+        db.session.add(entry)
+        db.session.commit()
 
-    c.execute('''
-        INSERT INTO diary_entries (recipe_id, user_id, date, notes, images, dish_name)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (
-        data.get('recipe_id'),
-        data.get('user_id'),
-        data.get('date'),
-        data.get('notes'),
-        images_json,
-        data.get('dish_name')
-    ))
+        # Return entry with recipe data
+        entry_dict = entry.to_dict()
+        if entry.recipe:
+            entry_dict['recipe_title'] = entry.recipe.title
+            entry_dict['recipe_image'] = entry.recipe.image
+        else:
+            entry_dict['recipe_title'] = None
+            entry_dict['recipe_image'] = None
 
-    conn.commit()
-    entry_id = c.lastrowid
+        # Parse images JSON
+        if entry_dict['images']:
+            try:
+                entry_dict['images'] = json.loads(entry_dict['images'])
+            except:
+                entry_dict['images'] = []
+        else:
+            entry_dict['images'] = []
 
-    # Eintrag mit Rezept-Daten zurückgeben
-    c.execute('''
-        SELECT
-            d.id, d.recipe_id, d.user_id, d.date, d.notes, d.images, d.dish_name,
-            d.created_at, d.updated_at,
-            r.title as recipe_title, r.image as recipe_image
-        FROM diary_entries d
-        LEFT JOIN recipes r ON d.recipe_id = r.id
-        WHERE d.id = ?
-    ''', (entry_id,))
-    entry = dict(c.fetchone())
-    conn.close()
-
-    # Parse images JSON
-    if entry['images']:
-        try:
-            entry['images'] = json.loads(entry['images'])
-        except:
-            entry['images'] = []
-    else:
-        entry['images'] = []
-
-    return jsonify(entry), 201
+        return jsonify(entry_dict), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/diary/<int:entry_id>', methods=['GET'])
 def get_diary_entry(entry_id):
-    """Einzelnen Tagebucheintrag abrufen"""
-    import json
-    conn = get_db()
-    c = conn.cursor()
+    """Get a single diary entry"""
+    try:
+        entry = DiaryEntry.query.get(entry_id)
+        if not entry:
+            return jsonify({'error': 'Entry not found'}), 404
 
-    c.execute('''
-        SELECT
-            d.id, d.recipe_id, d.user_id, d.date, d.dish_name, d.notes, d.images,
-            d.created_at, d.updated_at,
-            r.title as recipe_title, r.image as recipe_image
-        FROM diary_entries d
-        LEFT JOIN recipes r ON d.recipe_id = r.id
-        WHERE d.id = ?
-    ''', (entry_id,))
-    entry = c.fetchone()
-    conn.close()
+        entry_dict = entry.to_dict()
 
-    if entry is None:
-        return jsonify({'error': 'Entry not found'}), 404
+        # Add recipe info
+        if entry.recipe:
+            entry_dict['recipe_title'] = entry.recipe.title
+            entry_dict['recipe_image'] = entry.recipe.image
+        else:
+            entry_dict['recipe_title'] = None
+            entry_dict['recipe_image'] = None
 
-    entry = dict(entry)
+        # Parse images JSON
+        if entry_dict['images']:
+            try:
+                entry_dict['images'] = json.loads(entry_dict['images'])
+            except:
+                entry_dict['images'] = []
+        else:
+            entry_dict['images'] = []
 
-    # Parse images JSON
-    if entry['images']:
-        try:
-            entry['images'] = json.loads(entry['images'])
-        except:
-            entry['images'] = []
-    else:
-        entry['images'] = []
-
-    return jsonify(entry)
+        return jsonify(entry_dict)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/diary/<int:entry_id>', methods=['PUT'])
 def update_diary_entry(entry_id):
-    """Tagebucheintrag aktualisieren"""
-    import json
-    data = request.json
+    """Update diary entry"""
+    try:
+        data = request.json
 
-    conn = get_db()
-    c = conn.cursor()
+        entry = DiaryEntry.query.get(entry_id)
+        if not entry:
+            return jsonify({'error': 'Entry not found'}), 404
 
-    # Images als JSON speichern
-    images_json = json.dumps(data.get('images', []))
+        # Images as JSON
+        images_json = json.dumps(data.get('images', []))
 
-    c.execute('''
-        UPDATE diary_entries
-        SET recipe_id = ?, date = ?, notes = ?, images = ?, dish_name = ?,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    ''', (
-        data.get('recipe_id'),
-        data.get('date'),
-        data.get('notes'),
-        images_json,
-        data.get('dish_name'),
-        entry_id
-    ))
+        entry.recipe_id = data.get('recipe_id')
+        entry.date = datetime.fromisoformat(data.get('date')).date() if data.get('date') else None
+        entry.notes = data.get('notes')
+        entry.images = images_json
+        entry.dish_name = data.get('dish_name')
+        entry.updated_at = datetime.utcnow()
 
-    conn.commit()
+        db.session.commit()
 
-    # Aktualisierter Eintrag mit Rezept-Daten zurückgeben
-    c.execute('''
-        SELECT
-            d.id, d.recipe_id, d.user_id, d.date, d.notes, d.images, d.dish_name,
-            d.created_at, d.updated_at,
-            r.title as recipe_title, r.image as recipe_image
-        FROM diary_entries d
-        LEFT JOIN recipes r ON d.recipe_id = r.id
-        WHERE d.id = ?
-    ''', (entry_id,))
-    entry = dict(c.fetchone())
-    conn.close()
+        # Return updated entry with recipe data
+        entry_dict = entry.to_dict()
+        if entry.recipe:
+            entry_dict['recipe_title'] = entry.recipe.title
+            entry_dict['recipe_image'] = entry.recipe.image
+        else:
+            entry_dict['recipe_title'] = None
+            entry_dict['recipe_image'] = None
 
-    # Parse images JSON
-    if entry['images']:
-        try:
-            entry['images'] = json.loads(entry['images'])
-        except:
-            entry['images'] = []
-    else:
-        entry['images'] = []
+        # Parse images JSON
+        if entry_dict['images']:
+            try:
+                entry_dict['images'] = json.loads(entry_dict['images'])
+            except:
+                entry_dict['images'] = []
+        else:
+            entry_dict['images'] = []
 
-    return jsonify(entry)
+        return jsonify(entry_dict)
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/diary/<int:entry_id>', methods=['DELETE'])
 def delete_diary_entry(entry_id):
-    """Tagebucheintrag löschen"""
-    import json
-    conn = get_db()
-    c = conn.cursor()
+    """Delete diary entry"""
+    try:
+        entry = DiaryEntry.query.get(entry_id)
+        if not entry:
+            return jsonify({'error': 'Entry not found'}), 404
 
-    # Bilder löschen falls vorhanden
-    c.execute('SELECT images FROM diary_entries WHERE id = ?', (entry_id,))
-    row = c.fetchone()
-    if row and row['images']:
-        try:
-            images = json.loads(row['images'])
-            for image in images:
-                image_path = os.path.join(UPLOAD_FOLDER, image)
-                if os.path.exists(image_path):
-                    os.remove(image_path)
-        except:
-            pass
+        # Delete images if exist
+        if entry.images:
+            try:
+                images = json.loads(entry.images)
+                for image in images:
+                    image_path = os.path.join(UPLOAD_FOLDER, image)
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+            except:
+                pass
 
-    c.execute('DELETE FROM diary_entries WHERE id = ?', (entry_id,))
-    conn.commit()
-    conn.close()
+        db.session.delete(entry)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
-    return jsonify({'success': True})
+# ============================================================================
+# Utility Endpoints
+# ============================================================================
 
 @app.route('/api/version')
 def get_version():
-    """Gibt die aktuelle App-Version zurück (aus Git-Tag oder env var)"""
-    import subprocess
-
+    """Get current app version (from Git tag or env var)"""
     version = os.environ.get('APP_VERSION', None)
 
-    # Falls keine ENV var, versuche aus Git zu lesen
+    # If no ENV var, try to read from Git
     if not version:
         try:
             result = subprocess.run(
@@ -900,115 +687,113 @@ def get_version():
 
 @app.route('/api/search')
 def global_search():
-    """Globale Suche über Rezepte, Tagebuch und TODOs"""
-    query = request.args.get('q', '').strip()
+    """Global search across recipes, diary and TODOs"""
+    try:
+        query_text = request.args.get('q', '').strip()
 
-    if not query or len(query) < 2:
+        if not query_text or len(query_text) < 2:
+            return jsonify({
+                'recipes': [],
+                'diary_entries': [],
+                'todos': []
+            })
+
+        search_pattern = f'%{query_text}%'
+
+        # Search in recipes
+        recipes_results = Recipe.query.filter(
+            db.or_(
+                Recipe.title.ilike(search_pattern),
+                Recipe.notes.ilike(search_pattern)
+            )
+        ).order_by(
+            db.case(
+                (Recipe.title.ilike(f'{query_text}%'), 1),
+                else_=2
+            ),
+            Recipe.title
+        ).limit(20).all()
+
+        recipes = []
+        for recipe in recipes_results:
+            # Snippet from notes (first 100 chars)
+            notes = recipe.notes or ''
+            snippet = notes[:100] + '...' if len(notes) > 100 else notes
+
+            recipes.append({
+                'id': recipe.id,
+                'title': recipe.title,
+                'snippet': snippet if notes else None,
+                'image': recipe.image,
+                'rating': recipe.rating,
+                'duration': recipe.duration,
+                'type': 'recipe'
+            })
+
+        # Search in diary entries
+        diary_results = DiaryEntry.query.join(Recipe, DiaryEntry.recipe_id == Recipe.id, isouter=True).filter(
+            db.or_(
+                DiaryEntry.notes.ilike(search_pattern),
+                DiaryEntry.dish_name.ilike(search_pattern),
+                Recipe.title.ilike(search_pattern)
+            )
+        ).order_by(DiaryEntry.created_at.desc()).limit(20).all()
+
+        diary_entries = []
+        for entry in diary_results:
+            # Snippet from notes (first 100 chars)
+            notes = entry.notes or ''
+            snippet = notes[:100] + '...' if len(notes) > 100 else notes
+
+            # Display title: dish_name if available, else recipe_title
+            display_title = entry.dish_name or (entry.recipe.title if entry.recipe else None) or 'Ohne Titel'
+
+            diary_entries.append({
+                'id': entry.id,
+                'snippet': snippet,
+                'recipe_title': display_title,
+                'recipe_image': entry.recipe.image if entry.recipe else None,
+                'created_at': entry.created_at.isoformat() if entry.created_at else None,
+                'type': 'diary'
+            })
+
+        # Search in TODOs
+        todos_results = Todo.query.filter(
+            Todo.text.ilike(search_pattern)
+        ).order_by(
+            db.case(
+                (Todo.completed == True, 2),
+                else_=1
+            ),
+            Todo.priority.desc()
+        ).limit(20).all()
+
+        todos = []
+        for todo in todos_results:
+            todos.append({
+                'id': todo.id,
+                'text': todo.text,
+                'priority': todo.priority,
+                'completed': todo.completed,
+                'type': 'todo'
+            })
+
         return jsonify({
-            'recipes': [],
-            'diary_entries': [],
-            'todos': []
+            'recipes': recipes,
+            'diary_entries': diary_entries,
+            'todos': todos,
+            'query': query_text
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    conn = get_db()
-    c = conn.cursor()
-
-    # Wildcard für LIKE-Suche
-    search_pattern = f'%{query}%'
-
-    # Suche in Rezepten
-    c.execute('''
-        SELECT id, title, notes, image, rating, duration
-        FROM recipes
-        WHERE title LIKE ? OR notes LIKE ?
-        ORDER BY
-            CASE
-                WHEN title LIKE ? THEN 1
-                ELSE 2
-            END,
-            title
-        LIMIT 20
-    ''', (search_pattern, search_pattern, f'{query}%'))
-
-    recipes = []
-    for row in c.fetchall():
-        # Snippet aus notes erstellen (erste 100 Zeichen)
-        notes = row['notes'] or ''
-        snippet = notes[:100] + '...' if len(notes) > 100 else notes
-
-        recipes.append({
-            'id': row['id'],
-            'title': row['title'],
-            'snippet': snippet if notes else None,
-            'image': row['image'],
-            'rating': row['rating'],
-            'duration': row['duration'],
-            'type': 'recipe'
-        })
-
-    # Suche in Tagebuch-Einträgen
-    c.execute('''
-        SELECT d.id, d.notes, d.dish_name, d.created_at,
-               r.title as recipe_title, r.image as recipe_image
-        FROM diary_entries d
-        LEFT JOIN recipes r ON d.recipe_id = r.id
-        WHERE d.notes LIKE ? OR d.dish_name LIKE ? OR r.title LIKE ?
-        ORDER BY d.created_at DESC
-        LIMIT 20
-    ''', (search_pattern, search_pattern, search_pattern))
-
-    diary_entries = []
-    for row in c.fetchall():
-        # Snippet aus notes erstellen (erste 100 Zeichen)
-        notes = row['notes'] or ''
-        snippet = notes[:100] + '...' if len(notes) > 100 else notes
-
-        # Anzeige-Titel: dish_name falls vorhanden, sonst recipe_title
-        display_title = row['dish_name'] or row['recipe_title'] or 'Ohne Titel'
-
-        diary_entries.append({
-            'id': row['id'],
-            'snippet': snippet,
-            'recipe_title': display_title,
-            'recipe_image': row['recipe_image'],
-            'created_at': row['created_at'],
-            'type': 'diary'
-        })
-
-    # Suche in TODOs
-    c.execute('''
-        SELECT id, text, priority, completed
-        FROM todos
-        WHERE text LIKE ?
-        ORDER BY
-            CASE WHEN completed = 1 THEN 2 ELSE 1 END,
-            priority DESC
-        LIMIT 20
-    ''', (search_pattern,))
-
-    todos = []
-    for row in c.fetchall():
-        todos.append({
-            'id': row['id'],
-            'text': row['text'],
-            'priority': row['priority'],
-            'completed': row['completed'],
-            'type': 'todo'
-        })
-
-    conn.close()
-
-    return jsonify({
-        'recipes': recipes,
-        'diary_entries': diary_entries,
-        'todos': todos,
-        'query': query
-    })
-
+# ============================================================================
 # TheMealDB Daily Import
+# ============================================================================
+
 THEMEALDB_API = 'https://www.themealdb.com/api/json/v1/1'
 THEMEALDB_CONFIG_FILE = 'themealdb-config.json'
-DEEPL_API_KEY = os.getenv('DEEPL_API_KEY', '')  # Set via environment variable
+DEEPL_API_KEY = os.getenv('DEEPL_API_KEY', '')
 DEEPL_API_URL = 'https://api-free.deepl.com/v2/translate'
 
 def load_themealdb_config():
@@ -1156,11 +941,11 @@ def translate_to_german(text):
 @app.route('/api/recipes/daily-import', methods=['POST'])
 def daily_recipe_import():
     """
-    Import ein Rezept von TheMealDB mit konfigurierbarer Strategie
+    Import a recipe from TheMealDB with configurable strategy
 
     Query Parameters:
-        strategy (str): Import-Strategie (random, by_category, by_area, by_ingredient, etc.)
-        value (str): Wert für die Strategie (z.B. "Italian" für by_area)
+        strategy (str): Import strategy (random, by_category, by_area, by_ingredient, etc.)
+        value (str): Value for the strategy (e.g., "Italian" for by_area)
 
     Examples:
         POST /api/recipes/daily-import
@@ -1222,11 +1007,9 @@ def daily_recipe_import():
         translated_instructions = translate_to_german(original_instructions)
 
         # 3a. Format instructions into SCHRITT structure for parser
-        # Check if instructions already have SCHRITT/STEP markers
         instruction_text = translated_instructions.replace('\r\n', '\n').strip()
 
         # Check if already formatted (contains "SCHRITT X" or "Step X")
-        import re
         has_steps = bool(re.search(r'(SCHRITT\s+\d+|Step\s+\d+)', instruction_text, re.IGNORECASE))
 
         if has_steps:
@@ -1263,7 +1046,6 @@ def daily_recipe_import():
             notes += "Zutaten:\n" + "\n".join(f"- {ing}" for ing in ingredients)
 
         # Add source info (bilingual)
-        category = meal.get('strCategory', 'N/A')
         area = meal.get('strArea', 'N/A')
         notes += f"\n\n─────────────────────────"
         notes += f"\n🌍 Quelle: TheMealDB"
@@ -1273,26 +1055,24 @@ def daily_recipe_import():
         notes += f"\n🤖 Übersetzt mit DeepL"
 
         # 5. Save to database
-        conn = get_db()
-        cursor = conn.cursor()
+        # Get import user ID
+        import_user = User.query.filter_by(email='import@seaser.local').first()
+        import_user_id = import_user.id if import_user else 1
 
-        # Get import user ID (should be 2)
-        cursor.execute("SELECT id FROM users WHERE email = 'import@seaser.local'")
-        import_user = cursor.fetchone()
-        import_user_id = import_user['id'] if import_user else 1
-
-        cursor.execute('''
-            INSERT INTO recipes (title, image, notes, user_id, auto_imported, imported_at, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 1, DATE('now'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        ''', (translated_title, image_filename, notes, import_user_id))
-
-        recipe_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
+        recipe = Recipe(
+            title=translated_title,
+            image=image_filename,
+            notes=notes,
+            user_id=import_user_id,
+            auto_imported=True,
+            imported_at=date.today()
+        )
+        db.session.add(recipe)
+        db.session.commit()
 
         return jsonify({
             'success': True,
-            'recipe_id': recipe_id,
+            'recipe_id': recipe.id,
             'title': meal.get('strMeal'),
             'title_de': translated_title,
             'source': 'TheMealDB',
@@ -1300,63 +1080,55 @@ def daily_recipe_import():
             'filter_value': value,
             'category': category,
             'area': area,
-            'imported_at': datetime.now().date().isoformat()
+            'imported_at': date.today().isoformat()
         })
 
     except Exception as e:
+        db.session.rollback()
         print(f"Daily import failed: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/cleanup-old-imports', methods=['POST'])
 def cleanup_old_imports():
-    """Lösche auto-importierte Rezepte älter als 7 Tage ohne Tagebuch-Eintrag"""
+    """Delete auto-imported recipes older than 7 days without diary entry"""
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-
         # Find old auto-imported recipes without diary entries
-        cutoff_date = (datetime.now() - timedelta(days=7)).date().isoformat()
+        cutoff_date = (datetime.now() - timedelta(days=7)).date()
 
-        cursor.execute('''
-            SELECT r.id, r.title, r.image
-            FROM recipes r
-            WHERE r.auto_imported = 1
-            AND r.imported_at < ?
-            AND NOT EXISTS (
-                SELECT 1 FROM diary_entries d WHERE d.recipe_id = r.id
-            )
-        ''', (cutoff_date,))
+        old_recipes = Recipe.query.filter(
+            Recipe.auto_imported == True,
+            Recipe.imported_at < cutoff_date
+        ).filter(
+            ~Recipe.diary_entries.any()
+        ).all()
 
-        old_recipes = cursor.fetchall()
         deleted_count = 0
 
         for recipe in old_recipes:
-            recipe_id, title, image = recipe
-
             # Delete image file if exists
-            if image:
-                image_path = os.path.join(UPLOAD_FOLDER, image)
+            if recipe.image:
+                image_path = os.path.join(UPLOAD_FOLDER, recipe.image)
                 if os.path.exists(image_path):
                     os.remove(image_path)
 
             # Delete recipe
-            cursor.execute('DELETE FROM recipes WHERE id = ?', (recipe_id,))
+            db.session.delete(recipe)
             deleted_count += 1
 
-        conn.commit()
-        conn.close()
+        db.session.commit()
 
         return jsonify({
             'success': True,
             'deleted_count': deleted_count,
-            'cutoff_date': cutoff_date
+            'cutoff_date': cutoff_date.isoformat()
         })
 
     except Exception as e:
+        db.session.rollback()
         print(f"Cleanup failed: {e}")
         return jsonify({'error': str(e)}), 500
 
-# Server starten
+# Server start
 if __name__ == '__main__':
     init_db()
     app.run(host='0.0.0.0', port=80, debug=False)
