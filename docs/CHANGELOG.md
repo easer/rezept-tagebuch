@@ -2,7 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] - 2025-11-06
+## [rezept_version_07_11_2025_001] - 2025-11-07
+
+### Added
+- Meat-free filter für TheMealDB Daily Import
+  - Neue Konfiguration: `themealdb-config.json` mit `excludeMeatCategories`
+  - Retry-Mechanismus (bis zu 5 Versuche) für fleischfreie Rezepte
+  - Logging für alle Versuche und Auswahlgründe
+
+### Fixed
+- Test-Infrastruktur Verbesserungen
+  - Separate Test-Datenbank (`/data/test/rezepte.db`)
+  - Test-Container auf separatem Port (8001)
+  - Cleanup-Fixtures für Diary Entries
+- API Bug: Fehlender `dish_name` bei GET `/api/diary` Endpoint
+  - Field jetzt korrekt included in Query
+  - Test Coverage für Diary CRUD erweitert
+
+### Changed
+- `.gitignore`: `.claude/` Verzeichnis excluded
+
+## [rezept_version_06_11_2025_006] - 2025-11-06
 
 ### Fixed - Infrastructure & Project Organization
 
