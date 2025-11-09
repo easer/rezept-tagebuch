@@ -56,19 +56,21 @@ main Branch → Git-Tag erstellen → Prod Deployment
 
 ### Container-Übersicht
 
-| Container Name                 | Image Tag  | Network | Database | PostgreSQL Container |
-|--------------------------------|------------|---------|----------|----------------------|
-| `seaser-rezept-tagebuch`       | `:latest`  | seaser-network | `rezepte` (PROD) | `seaser-postgres` |
-| `seaser-rezept-tagebuch-dev`   | `:dev`     | seaser-network | `rezepte_dev` (DEV) | `seaser-postgres-dev` |
-| `seaser-rezept-tagebuch-test`  | `:test`    | seaser-network | `rezepte_test` (TEST) | `seaser-postgres-test` |
+| Container Name                 | Image Tag  | Network | Database | PostgreSQL Container | Lifecycle |
+|--------------------------------|------------|---------|----------|----------------------|-----------|
+| `seaser-rezept-tagebuch`       | `:latest`  | seaser-network | `rezepte` (PROD) | `seaser-postgres` | Permanent (systemd) |
+| `seaser-rezept-tagebuch-dev`   | `:dev`     | seaser-network | `rezepte_dev` (DEV) | `seaser-postgres-dev` | Permanent (manuell) |
+| `seaser-rezept-tagebuch-test`  | `:test`    | seaser-network | `rezepte_test` (TEST) | `seaser-postgres-test` | **On-Demand** (pytest) |
 
-**PostgreSQL Container**:
+**PostgreSQL Container** (alle permanent):
 
 | Container Name           | Database | Password | Network |
 |--------------------------|----------|----------|---------|
 | `seaser-postgres`        | `rezepte` | `seaser` | seaser-network |
 | `seaser-postgres-dev`    | `rezepte_dev` | `seaser` | seaser-network |
 | `seaser-postgres-test`   | `rezepte_test` | `test` | seaser-network |
+
+**Test-Container Lifecycle**: Der Test-Container (`seaser-rezept-tagebuch-test`) startet automatisch wenn `pytest` läuft und stoppt danach wieder. Dies spart Ressourcen, da er nur während Tests benötigt wird. Siehe **tests/README.md** für Details.
 
 ---
 

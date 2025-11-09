@@ -18,7 +18,20 @@ Die Test-Suite besteht aus:
 ./scripts/testing/run-tests.sh
 ```
 
-**Hinweis**: Tests nutzen die Dev-Datenbank und können bei paralleler Ausführung SQLite Lock-Errors verursachen.
+**Hinweis**: Tests nutzen PostgreSQL Test-Datenbank (`seaser-postgres-test:rezepte_test`) - komplett isoliert von Dev und Prod.
+
+### On-Demand Test-Container
+
+Der Test-Container startet **automatisch** wenn pytest läuft:
+
+```bash
+pytest tests/
+# 🚀 Starting test container seaser-rezept-tagebuch-test...
+# ✅ 27 passed in 15.70s
+# 🧹 Stopping test container...
+```
+
+Container wird nach Tests automatisch gestoppt (außer er lief bereits vorher).
 
 ### Empfohlen: Mit isolierter Test-Datenbank
 
@@ -26,7 +39,7 @@ Die Test-Suite besteht aus:
 ./scripts/testing/run-tests-isolated.sh
 ```
 
-Startet Container im TESTING_MODE mit separater Test-DB (`data/test/rezepte.db`).
+Startet Container im TESTING_MODE mit separater PostgreSQL Test-DB.
 
 ### Spezifische Tests
 
@@ -87,13 +100,17 @@ pip3 install -r requirements.txt
 - pytest-timeout==2.2.0
 - requests==2.31.0
 
-### Dev-Container starten
+### Test-Container (automatisch)
 
-Tests benötigen laufenden Dev-Container:
+Der Test-Container startet **automatisch** wenn pytest läuft - kein manuelles Setup nötig!
+
+**Optional:** Container manuell starten (für Debugging):
 
 ```bash
-./scripts/deployment/build-dev.sh
+./scripts/deployment/build-test.sh
 ```
+
+Der Container bleibt dann nach Tests laufen.
 
 ## 📝 Test-Beschreibungen
 
@@ -167,29 +184,32 @@ Beispiel-Daten für Recipe-Tests
 ### `sample_diary_entry_data`
 Beispiel-Daten für Diary-Entry-Tests
 
-## ⚠️ Bekannte Limitationen
+## 🎯 Test-Umgebung
 
-### SQLite Lock-Probleme
+### PostgreSQL Test-Datenbank
 
-**Problem**: Bei vollständigem Test-Suite-Run können "database is locked" Fehler auftreten.
+Tests laufen gegen eine **komplett isolierte** PostgreSQL-Datenbank:
 
-**Ursache**: SQLite unterstützt keine echte Parallelität bei Schreibzugriffen.
+- **Container**: `seaser-postgres-test`
+- **Datenbank**: `rezepte_test`
+- **Isolation**: Keine Interferenz mit PROD/DEV
+- **Performance**: Parallele Tests ohne Locks (pytest-xdist)
 
-**Lösungen**:
+### Container Lifecycle
 
-1. **Tests einzeln ausführen**:
-   ```bash
-   pytest tests/test_recipes_crud.py::TestRecipeCreate::test_create_recipe_success -v
-   ```
+**Automatisch (Standard)**:
+```bash
+pytest tests/
+# Container startet → Tests laufen → Container stoppt
+```
 
-2. **Isolierte Test-DB nutzen**:
-   ```bash
-   ./scripts/testing/run-tests-isolated.sh
-   ```
-
-3. **Zukünftig: PostgreSQL Migration** (bei mehr Usern empfohlen)
-
-**Wichtig**: Dies betrifft nur Tests, nicht die Production-App!
+**Manuell (für Debugging)**:
+```bash
+./scripts/deployment/build-test.sh
+pytest tests/
+# Container bleibt laufen für weitere Tests/Debugging
+podman stop seaser-rezept-tagebuch-test  # Manuell stoppen
+```
 
 ## 🐛 Debugging
 
@@ -205,13 +225,19 @@ Beispiel-Daten für Diary-Entry-Tests
 ### Container-Logs prüfen
 
 ```bash
-podman logs seaser-rezept-tagebuch-dev --tail 50
+podman logs seaser-rezept-tagebuch-test --tail 50
 ```
 
-### Test-Datenbank inspizieren
+### Test-Datenbank inspizieren (PostgreSQL)
 
 ```bash
-sqlite3 data/test/rezepte.db "SELECT * FROM recipes;"
+# psql Shell
+podman exec -it seaser-postgres-test psql -U postgres -d rezepte_test
+
+# Beispiel-Abfragen
+\dt  # Alle Tabellen
+SELECT * FROM recipes;
+SELECT * FROM diary_entries;
 ```
 
 ### Test mit pdb debuggen

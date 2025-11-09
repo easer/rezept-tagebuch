@@ -277,6 +277,30 @@ Automatisierte CRUD Tests für Recipe & Diary API (**27 Tests**).
 ./scripts/testing/run-tests-isolated.sh -v
 ```
 
+**Test-Container Lifecycle (On-Demand):**
+
+Der Test-Container startet **automatisch** wenn pytest läuft und stoppt danach wieder:
+
+```bash
+# Container ist gestoppt
+$ podman ps | grep test
+# (keine Ausgabe)
+
+# Tests laufen → Container startet automatisch
+$ pytest tests/
+🚀 Starting test container seaser-rezept-tagebuch-test...
+✅ 27 passed in 15.70s
+🧹 Stopping test container...
+
+# Container ist wieder gestoppt
+```
+
+**Für Debugging:** Starte Container manuell - pytest stoppt ihn dann NICHT:
+```bash
+./scripts/deployment/build-test.sh
+pytest tests/  # Container bleibt laufen
+```
+
 **Hinweis**: Tests laufen parallel mit pytest-xdist (33% schneller). PostgreSQL hat keine Lock-Probleme!
 
 Siehe `tests/README.md` für Details.
