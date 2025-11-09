@@ -30,7 +30,7 @@ class TestDiaryCreate:
         assert data["user_id"] == sample_diary_entry_data["user_id"]
 
         # Register for cleanup
-        cleanup_test_diary_entries(data["id"])
+        cleanup_test_diary_entries.append(data["id"])
 
     def test_create_diary_entry_missing_date(self, api_client):
         """Test diary entry creation fails without date"""
@@ -58,7 +58,7 @@ class TestDiaryCreate:
         assert response.status_code == 201
         data = response.json()
 
-        cleanup_test_diary_entries(data["id"])
+        cleanup_test_diary_entries.append(data["id"])
 
         # Verify recipe link
         assert data["recipe_id"] == recipe_id
@@ -75,7 +75,7 @@ class TestDiaryRead:
         # Create diary entry
         create_response = api_client.post("/diary", json=sample_diary_entry_data)
         entry_id = create_response.json()["id"]
-        cleanup_test_diary_entries(entry_id)
+        cleanup_test_diary_entries.append(entry_id)
 
         # Get diary entry
         response = api_client.get(f"/diary/{entry_id}")
@@ -115,7 +115,7 @@ class TestDiaryUpdate:
         # Create diary entry
         create_response = api_client.post("/diary", json=sample_diary_entry_data)
         entry_id = create_response.json()["id"]
-        cleanup_test_diary_entries(entry_id)
+        cleanup_test_diary_entries.append(entry_id)
 
         # Update dish_name
         updated_data = sample_diary_entry_data.copy()
@@ -133,7 +133,7 @@ class TestDiaryUpdate:
         # Create diary entry
         create_response = api_client.post("/diary", json=sample_diary_entry_data)
         entry_id = create_response.json()["id"]
-        cleanup_test_diary_entries(entry_id)
+        cleanup_test_diary_entries.append(entry_id)
 
         # Update notes
         updated_data = sample_diary_entry_data.copy()
@@ -191,7 +191,7 @@ class TestDiarySearch:
 
         create_response = api_client.post("/diary", json=test_data)
         entry_id = create_response.json()["id"]
-        cleanup_test_diary_entries(entry_id)
+        cleanup_test_diary_entries.append(entry_id)
 
         # Search for entry
         response = api_client.get("/diary?user_id=1&search=Unique Gericht")
@@ -212,7 +212,7 @@ class TestDiarySearch:
 
         create_response = api_client.post("/diary", json=test_data)
         entry_id = create_response.json()["id"]
-        cleanup_test_diary_entries(entry_id)
+        cleanup_test_diary_entries.append(entry_id)
 
         # Search for entry by notes
         response = api_client.get("/diary?user_id=1&search=PyTestSearchTerm123")

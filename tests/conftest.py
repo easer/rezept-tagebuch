@@ -17,9 +17,9 @@ TEST_DB_PATH = "/home/gabor/easer_projekte/rezept-tagebuch/data/test/rezepte.db"
 # When running on host (local development), use localhost:8001
 RUNNING_IN_CONTAINER = os.path.exists('/app/app.py')  # app.py exists at /app/ in container
 if RUNNING_IN_CONTAINER:
-    API_BASE_URL = "http://localhost:80/api"  # Same container, internal access
+    API_BASE_URL = "http://localhost:80"  # Same container, internal access (tests add /api)
 else:
-    API_BASE_URL = f"http://localhost:{TEST_PORT}/api"  # Host accessing container via port mapping
+    API_BASE_URL = f"http://localhost:{TEST_PORT}"  # Host accessing container via port mapping (tests add /api)
 
 @pytest.fixture(scope="session")
 def api_base_url():
@@ -38,16 +38,16 @@ def verify_container_running():
     max_retries = 10
     for i in range(max_retries):
         try:
-            response = requests.get(f"{API_BASE_URL}/recipes", timeout=2)
+            response = requests.get(f"{API_BASE_URL}/api/recipes", timeout=2)
             if response.status_code in [200, 404]:  # Either success or empty is fine
-                print(f"✅ Test API is accessible at {API_BASE_URL}")
+                print(f"✅ Test API is accessible at {API_BASE_URL}/api")
                 break
         except requests.exceptions.RequestException:
             if i < max_retries - 1:
                 print(f"⏳ Waiting for API to be ready... (attempt {i+1}/{max_retries})")
                 time.sleep(1)
             else:
-                print(f"❌ Failed to connect to API at {API_BASE_URL}")
+                print(f"❌ Failed to connect to API at {API_BASE_URL}/api")
                 raise
 
     yield True
