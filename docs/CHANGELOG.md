@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] - 2025-11-09
+
+### Added - Test-Freigabe-System für PROD-Deployments
+- **🔒 Sicherheits-Feature**: PROD-Deployment nur mit TEST-Freigabe
+  - `test-migration.sh` benötigt jetzt Git-Tag als Parameter
+  - Baut TEST Container aus Git-Tag (nicht Working Directory)
+  - Schreibt bei Erfolg Freigabe in `.test-approvals`
+  - `deploy-prod.sh` prüft ob Tag auf TEST freigegeben wurde
+  - PROD-Deployment **blockiert** ohne TEST-Freigabe
+- **Freigabe-File**: `.test-approvals` (server-lokal, nicht in Git)
+  - Format: `TAG|COMMIT_HASH|TIMESTAMP|STATUS`
+  - History aller getesteten Tags
+  - Audit-Log für Deployments
+
+### Changed - Deployment Workflow
+- **test-migration.sh**:
+  - Erfordert jetzt Git-Tag Parameter
+  - Baut Container aus exaktem Git-Tag Snapshot
+  - Schreibt Freigabe bei erfolgreichen Tests
+- **deploy-prod.sh**:
+  - Prüft Test-Freigabe vor Deployment
+  - Zeigt Freigabe-Timestamp an
+  - Blockiert bei fehlender Freigabe
+- **Workflow**: `commit → tag → test-migration.sh <TAG> → deploy-prod.sh <TAG>`
+
+### Technical
+- `.test-approvals` zu `.gitignore` hinzugefügt
+- `docs/MIGRATION_WORKFLOW.md` komplett überarbeitet
+- README.md mit Test-Freigabe-System aktualisiert
+
+---
+
+## [rezept_version_09_11_2025_002] - 2025-11-09
+
+### Changed - UX Enhancement
+- **Frontend**: Zeigt jetzt Uhrzeit in `erstellt_am` (DD.MM.YYYY HH:MM)
+  - Vorher: nur Datum (09.11.2025)
+  - Jetzt: Datum + Uhrzeit (09.11.2025 12:13)
+
+### Fixed - Deployment Scripts
+- `deploy-prod.sh`: Backup-Directory wird automatisch erstellt
+- `deploy-prod.sh`: Git archive läuft aus Projekt-Root
+
+---
+
 ## [rezept_version_09_11_2025_001] - 2025-11-09
 
 ### Added - Alembic Migration Workflow

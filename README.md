@@ -84,22 +84,93 @@ vim app.py
 # Dev-Container neu bauen und starten
 ./scripts/deployment/build-dev.sh
 
-# Testen auf: http://192.168.2.139:8000/rezept-tagebuch-dev/
+# Testen auf: http://192.168.2.139:8001/rezept-tagebuch-dev/
 ```
 
-### 2. Auf Prod deployen
+### 2. Auf TEST testen & freigeben
 
 ```bash
-# Git-Tag erstellen (automatisch mit heutigem Datum)
-./scripts/tools/tag-version.sh
+# Code committen
+git add .
+git commit -m "feat: new feature"
 
-# Mit Git-Tag deployen
-./scripts/deployment/deploy-prod.sh rezept_version_06_11_2025_001
+# Git-Tag erstellen
+git tag -a rezept_version_09_11_2025_003 -m "Release: description"
+
+# Auf TEST testen + für PROD freigeben
+./scripts/database/test-migration.sh rezept_version_09_11_2025_003
+# ✅ Migration auf TEST
+# ✅ Tests laufen
+# ✅ Tag wird für PROD freigegeben
+```
+
+### 3. Auf Prod deployen
+
+```bash
+# Mit freigegebenem Git-Tag deployen
+./scripts/deployment/deploy-prod.sh rezept_version_09_11_2025_003
+# ✅ Prüft Test-Freigabe
+# ✅ Backup erstellt
+# ✅ Migration auf PROD
+# ✅ Container deployed
 
 # Prod-App ist nun auf: http://192.168.2.139:8000/rezept-tagebuch/
 ```
 
-**Hinweis:** Seit Version v05.11.2025 werden nur noch Git-Tags deployed. Siehe **docs/GIT-TAG-WORKFLOW.md** für Details.
+**🔒 Sicherheit:**
+- Nur Git-Tags können deployed werden
+- Tags müssen **zuerst auf TEST getestet** werden
+- PROD-Deployment **blockiert ohne Test-Freigabe**
+
+Siehe **docs/MIGRATION_WORKFLOW.md** und **docs/GIT-TAG-WORKFLOW.md** für Details.
+
+---
+
+## 🔐 Test-Freigabe-System
+
+**Problem**: Wie verhindert man, dass ungetestetem Code auf PROD kommt?
+
+**Lösung**: Test-Freigabe-System mit `.test-approvals`
+
+### Workflow
+
+```
+CODE ÄNDERN → COMMIT → TAG ERSTELLEN → TEST TESTEN → PROD DEPLOYEN
+                                            ↓              ↓
+                                    ✅ Freigabe    🔒 Prüft Freigabe
+```
+
+### Freigabe-File: `.test-approvals`
+
+```
+rezept_version_09_11_2025_002|abc123|2025-11-09 14:30:15|SUCCESS
+rezept_version_09_11_2025_003|def456|2025-11-09 15:45:20|SUCCESS
+```
+
+**Format**: `TAG|COMMIT_HASH|TIMESTAMP|STATUS`
+
+- Server-lokal (nicht in Git)
+- Audit-Log aller getesteten Tags
+- Automatisch von `test-migration.sh` geschrieben
+- Automatisch von `deploy-prod.sh` geprüft
+
+### Beispiel: Blockiertes Deployment
+
+```bash
+# Tag erstellen (noch nicht getestet)
+git tag -a rezept_version_09_11_2025_004 -m "Release"
+
+# Direkt auf PROD deployen versuchen
+./scripts/deployment/deploy-prod.sh rezept_version_09_11_2025_004
+
+# ❌ FEHLER: Tag wurde nicht auf TEST freigegeben!
+# Test-Workflow starten:
+#   ./scripts/database/test-migration.sh rezept_version_09_11_2025_004
+```
+
+**Garantie**: Kein PROD-Deployment ohne erfolgreichen TEST! 🔒
+
+---
 
 ### 3. Rollback bei Problemen
 
@@ -174,20 +245,29 @@ Baut Dev-Image und startet Dev-Container neu.
 
 #### test-migration.sh
 
-Testet Datenbank-Migration auf TEST-Umgebung mit automatischen Tests.
+Testet Datenbank-Migration auf TEST-Umgebung mit automatischen Tests und **gibt Tag für PROD frei**.
 
 ```bash
-./scripts/database/test-migration.sh
+./scripts/database/test-migration.sh <GIT_TAG>
+
+# Beispiel:
+./scripts/database/test-migration.sh rezept_version_09_11_2025_003
 ```
 
-**Was passiert:**
-1. Baut TEST Container
-2. Startet TEST Container
-3. Führt Alembic Migration auf TEST DB aus
-4. Führt automatische Tests aus (pytest)
-5. Fragt nach DEV Update (optional)
+**⚠️ WICHTIG**: Git-Tag als Parameter erforderlich!
 
-**Workflow:** TEST → DEV → TAG → PROD
+**Was passiert:**
+1. Validiert Git-Tag Format
+2. Baut TEST Container **aus Git-Tag** (nicht Working Dir!)
+3. Startet TEST Container
+4. Führt Alembic Migration auf TEST DB aus
+5. Führt automatische Tests aus (pytest)
+6. **Bei Erfolg: Tag wird für PROD freigegeben** → `.test-approvals`
+7. Fragt nach DEV Update (optional)
+
+**Workflow:** commit → tag → **test-migration.sh** → deploy-prod.sh
+
+**🔒 Sicherheit**: Nur erfolgreich getestete Tags können auf PROD deployed werden!
 
 Siehe **docs/MIGRATION_WORKFLOW.md** für Details.
 
@@ -195,23 +275,41 @@ Siehe **docs/MIGRATION_WORKFLOW.md** für Details.
 
 Deployed Git-Tag auf Production mit automatischer Datenbank-Migration.
 
+**🔒 Sicherheitscheck**: Prüft zuerst ob Tag auf TEST freigegeben wurde!
+
 ```bash
 ./scripts/deployment/deploy-prod.sh <GIT_TAG>
 
 # Beispiel:
-./scripts/deployment/deploy-prod.sh rezept_version_09_11_2025_001
+./scripts/deployment/deploy-prod.sh rezept_version_09_11_2025_003
 ```
 
 **Was passiert:**
-1. Prüft Git-Tag Existenz
-2. Exportiert Git-Tag in temp-Directory
-3. **Erstellt automatisches Datenbank-Backup**
-4. Baut Image aus Git-Tag (z.B. `rezept_version_09_11_2025_001`)
-5. Tagged Image als `:latest`
-6. **Führt Alembic Migration auf PROD DB aus** (automatisch)
-7. Stoppt alten Prod-Container
-8. Startet neuen Prod-Container mit Prod-Datenbank
-9. Aktualisiert systemd Service
+1. Prüft Working Directory ist clean
+2. Prüft Git-Tag Existenz
+3. **🔒 Prüft Test-Freigabe in `.test-approvals`** (BLOCKIERT wenn nicht!)
+4. Exportiert Git-Tag in temp-Directory
+5. **Erstellt automatisches Datenbank-Backup**
+6. Baut Image aus Git-Tag (z.B. `rezept_version_09_11_2025_003`)
+7. Tagged Image als `:latest`
+8. **Führt Alembic Migration auf PROD DB aus** (automatisch)
+9. Stoppt alten Prod-Container
+10. Startet neuen Prod-Container mit Prod-Datenbank
+11. Aktualisiert systemd Service
+
+**❌ Deployment wird blockiert wenn:**
+- Tag nicht auf TEST getestet wurde
+- Keine `.test-approvals` Datei existiert
+- Tag nicht in Freigabe-Liste
+
+**Erforderlicher Workflow:**
+```bash
+# Zuerst auf TEST testen:
+./scripts/database/test-migration.sh rezept_version_09_11_2025_003
+
+# Dann auf PROD deployen:
+./scripts/deployment/deploy-prod.sh rezept_version_09_11_2025_003
+```
 
 ### rollback.sh
 
