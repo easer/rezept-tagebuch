@@ -4251,6 +4251,12 @@
                     <div class="detail-rating">${'★'.repeat(entry.rating)}${'☆'.repeat(5 - entry.rating)}</div>
                 </div>
                 ` : ''}
+                ${entry.happiness ? `
+                <div class="detail-row">
+                    <div class="detail-label">Glücksfaktor</div>
+                    <div class="detail-rating">${'★'.repeat(entry.happiness)}${'☆'.repeat(10 - entry.happiness)}</div>
+                </div>
+                ` : ''}
                 ${entry.recipe_image ? `
                 <div class="detail-row">
                     <div class="detail-label">Rezept</div>
@@ -4323,6 +4329,22 @@
                             <span class="star" data-value="3">★</span>
                             <span class="star" data-value="4">★</span>
                             <span class="star" data-value="5">★</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Glücksfaktor (1-10)</label>
+                        <input type="hidden" id="entry-happiness" value="">
+                        <div class="star-rating" id="diary-happiness-rating">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                            <span class="star" data-value="4">★</span>
+                            <span class="star" data-value="5">★</span>
+                            <span class="star" data-value="6">★</span>
+                            <span class="star" data-value="7">★</span>
+                            <span class="star" data-value="8">★</span>
+                            <span class="star" data-value="9">★</span>
+                            <span class="star" data-value="10">★</span>
                         </div>
                     </div>
                     <div class="form-group">
@@ -4399,6 +4421,22 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label>Glücksfaktor (1-10)</label>
+                        <input type="hidden" id="entry-happiness" value="${entry.happiness || ''}">
+                        <div class="star-rating" id="diary-happiness-rating">
+                            <span class="star ${entry.happiness >= 1 ? 'active' : ''}" data-value="1">★</span>
+                            <span class="star ${entry.happiness >= 2 ? 'active' : ''}" data-value="2">★</span>
+                            <span class="star ${entry.happiness >= 3 ? 'active' : ''}" data-value="3">★</span>
+                            <span class="star ${entry.happiness >= 4 ? 'active' : ''}" data-value="4">★</span>
+                            <span class="star ${entry.happiness >= 5 ? 'active' : ''}" data-value="5">★</span>
+                            <span class="star ${entry.happiness >= 6 ? 'active' : ''}" data-value="6">★</span>
+                            <span class="star ${entry.happiness >= 7 ? 'active' : ''}" data-value="7">★</span>
+                            <span class="star ${entry.happiness >= 8 ? 'active' : ''}" data-value="8">★</span>
+                            <span class="star ${entry.happiness >= 9 ? 'active' : ''}" data-value="9">★</span>
+                            <span class="star ${entry.happiness >= 10 ? 'active' : ''}" data-value="10">★</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label>Bilder</label>
                         <input type="file" id="entry-images" multiple accept="image/*" onchange="previewDiaryImages(event)">
                     </div>
@@ -4458,6 +4496,16 @@
                     updateDiaryStarDisplay(rating);
                 });
             });
+
+            // Happiness rating
+            const happinessStars = document.querySelectorAll('#diary-happiness-rating .star');
+            happinessStars.forEach(star => {
+                star.addEventListener('click', function() {
+                    const happiness = this.getAttribute('data-value');
+                    document.getElementById('entry-happiness').value = happiness;
+                    updateDiaryHappinessDisplay(happiness);
+                });
+            });
         }
 
         function updateDiaryStarDisplay(rating) {
@@ -4465,6 +4513,18 @@
             stars.forEach(star => {
                 const starValue = star.getAttribute('data-value');
                 if (starValue <= rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        function updateDiaryHappinessDisplay(happiness) {
+            const stars = document.querySelectorAll('#diary-happiness-rating .star');
+            stars.forEach(star => {
+                const starValue = star.getAttribute('data-value');
+                if (starValue <= happiness) {
                     star.classList.add('active');
                 } else {
                     star.classList.remove('active');
@@ -4649,6 +4709,7 @@
             }
 
             const rating = document.getElementById('entry-rating')?.value;
+            const happiness = document.getElementById('entry-happiness')?.value;
 
             const entryData = {
                 recipe_id: recipeId || null,
@@ -4657,6 +4718,7 @@
                 notes,
                 images,
                 rating: rating ? parseInt(rating) : null,
+                happiness: happiness ? parseInt(happiness) : null,
                 user_id: currentUser.id
             };
 
