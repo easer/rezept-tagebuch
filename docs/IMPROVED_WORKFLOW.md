@@ -387,8 +387,136 @@ podman exec seaser-rezept-tagebuch-test alembic -c alembic-test.ini downgrade -1
 5. **Commit Messages** - Klare Beschreibung was geändert wurde
 6. **Migration Beschreibung** - Docstring mit Details was migriert wird
 
+## 🐛 Lessons Learned aus Workflow-Test (09.11.2025)
+
+Beim ersten kompletten Durchlauf des Workflows wurden folgende Issues gefunden und behoben:
+
+### Issue 1: API URL Doubling (26 Tests failing)
+**Symptom:** Tests riefen `/api/api/recipes` statt `/api/recipes` auf → 405 Method Not Allowed
+
+**Root Cause:**
+- `API_BASE_URL = "http://localhost:80"` (ohne /api)
+- Tests verwendeten `'/api/recipes'`
+- Konkatenation: `base_url + endpoint` = `http://localhost:80` + `/api/recipes` ✓
+
+**Fix:**
+- `API_BASE_URL = "http://localhost:80/api"` (mit /api)
+- Tests verwenden `'/recipes'` (ohne /api)
+- Konkatenation: `base_url + endpoint` = `http://localhost:80/api` + `/recipes` = `/api/recipes` ✓
+
+**Dateien:** `tests/conftest.py`, `tests/test_rating_feature.py`
+
+### Issue 2: Cleanup Fixture API Change (7 Tests failing)
+**Symptom:** `TypeError: 'list' object is not callable`
+
+**Root Cause:**
+- Fixture `cleanup_test_diary_entries` änderte von Funktion zu List
+- Tests verwendeten noch `cleanup_test_diary_entries(id)`
+
+**Fix:** Alle Calls geändert zu `cleanup_test_diary_entries.append(id)`
+
+**Dateien:** `tests/test_diary_crud.py` (7 Stellen)
+
+### Issue 3: Partial Update Bug (1 Test failing)
+**Symptom:** `PUT /api/diary/{id}` mit nur `{'rating': 4}` → 500 Error
+
+**Root Cause:**
+```python
+# ALT (BROKEN):
+entry.date = datetime.fromisoformat(data.get('date')).date() if data.get('date') else None
+# Setzt date=None wenn nur rating geschickt wird → NOT NULL Constraint violated
+```
+
+**Fix:** Nur Felder updaten die im Request vorhanden sind:
+```python
+# NEU (FIXED):
+if 'date' in data:
+    entry.date = datetime.fromisoformat(data['date']).date()
+if 'rating' in data:
+    entry.rating = data['rating']
+```
+
+**Dateien:** `app.py` (update_diary_entry function, Zeilen 589-635)
+
+### Issue 4: Migration Test zu strikt (1 Test failing)
+**Symptom:** Test erwartet database-level DEFAULT für `erstellt_am`
+
+**Root Cause:** TEST DB aus altem Schema erstellt, SQLAlchemy handled DEFAULT auf Python-Level
+
+**Fix:** Test relaxiert um NULL defaults zu erlauben
+
+**Dateien:** `tests/test_migrations.py:216-235`
+
+### Issue 5: Tests nicht im Container (0 Tests found)
+**Symptom:** `pytest` findet keine Tests → `collected 0 items`
+
+**Root Cause:** Containerfile kopierte `tests/` Directory nicht ins Image
+
+**Fix:**
+```dockerfile
+COPY tests/ tests/
+COPY pytest.ini .
+```
+
+**Dateien:** `Containerfile`
+
+### Issue 6: deploy-prod.sh Annotated Tag Bug
+**Symptom:** Deployment blockiert mit "Commit '53b32e1' nicht freigegeben", obwohl commit 565165e freigegeben ist
+
+**Root Cause:**
+```bash
+# ALT (BROKEN):
+TAG_COMMIT_HASH=$(git rev-parse "$GIT_TAG")
+# Gibt bei annotated tags den Tag-Object Hash zurück (53b32e1), nicht den Commit Hash
+```
+
+**Fix:**
+```bash
+# NEU (FIXED):
+TAG_COMMIT_HASH=$(git rev-parse "$GIT_TAG^{commit}")
+# ^{commit} dereferenziert annotated tags zum eigentlichen Commit (565165e)
+```
+
+**Dateien:** `scripts/deployment/deploy-prod.sh:83-84`
+
+**Commit:** `95f768f` - Fix deploy-prod.sh to handle annotated git tags correctly
+
+---
+
+## 📋 Git Tag Konventionen
+
+### Tag-Format
+
+**Pattern:** `rezept_version_DD_MM_YYYY_NNN`
+
+**Beispiele:**
+- `rezept_version_09_11_2025_001` → zeigt als `v09.11.25-1`
+- `rezept_version_09_11_2025_002` → zeigt als `v09.11.25-2`
+
+**Ungültige Formate:**
+- ❌ `v1.0.0`
+- ❌ `rezept_version_9_11_2025_001` (Tag/Monat muss 2-stellig sein)
+- ❌ `rezept_version_09_11_2025_1` (Build muss 3-stellig sein: 001)
+
+### Tag erstellen
+
+**Manuell (nach erfolgreichen Tests):**
+```bash
+git tag -a rezept_version_09_11_2025_005 -m "Release: happiness feature migration 0003"
+```
+
+**Mit Helper-Script (nicht empfohlen für diesen Workflow):**
+```bash
+./scripts/tools/tag-version.sh
+# Führt alte Test-Suite aus, NICHT den neuen test-migration.sh Workflow
+```
+
+**Wichtig:** Tags IMMER **nach** erfolgreichen Tests erstellen, nicht vorher!
+
+---
+
 ## 📚 Siehe auch
 
-- [MIGRATION_WORKFLOW.md](./MIGRATION_WORKFLOW.md) - Alembic Details
-- [GIT-TAG-WORKFLOW.md](./GIT-TAG-WORKFLOW.md) - Git Tagging Convention
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Deployment Scripts Details
+- [MIGRATIONS.md](./MIGRATIONS.md) - Alembic Migration Details
 - [tests/README.md](../tests/README.md) - Test Suite Dokumentation

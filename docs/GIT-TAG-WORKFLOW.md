@@ -1,5 +1,18 @@
 # Git-Tag-basiertes Deployment
 
+> **⚠️ DEPRECATED - Bitte verwende stattdessen [IMPROVED_WORKFLOW.md](./IMPROVED_WORKFLOW.md)**
+>
+> Dieses Dokument beschreibt den **alten Workflow** ohne TEST-Phase und .test-approvals.
+>
+> Der neue Workflow (seit 09.11.2025) ist:
+> **DEV → TEST (test-migration.sh) → Tag → PROD (deploy-prod.sh)**
+>
+> Siehe: [docs/IMPROVED_WORKFLOW.md](./IMPROVED_WORKFLOW.md)
+
+---
+
+## Alter Workflow (vor 09.11.2025)
+
 Seit Version `rezept_version_05_11_2025_001` werden **nur noch versionierte Git-Tags** auf Production deployed.
 
 ## Warum?
