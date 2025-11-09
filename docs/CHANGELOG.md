@@ -2,7 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] - 2025-11-09
+## [rezept_version_09_11_2025_004] - 2025-11-09
+
+### Changed - Rating System
+- **🎯 Feature**: Bewertung von Rezepten zu Tagebuch-Einträgen verschoben
+  - Bewertung erfolgt jetzt **pro Kochereignis** statt pro Rezept
+  - Neues Feld: `diary_entries.rating` (1-5 Sterne)
+  - Frontend: Sterne-Bewertung im Tagebuch-Dialog (nicht mehr im Rezept-Dialog)
+  - Anzeige der Bewertung in Tagebuch-Liste und Detail-View
+- **Migration**:
+  - Migration 0001: Enthält `erstellt_am` + `rating` für Neuinstallationen
+  - Migration 0002: Fügt `rating` zu `diary_entries` hinzu (idempotent für PROD-Upgrade)
+- **Backend API**: POST/PUT `/api/diary` akzeptiert jetzt `rating` Parameter
+- **Deprecated**: `recipes.rating` bleibt vorerst (zukünftiges Cleanup geplant)
+
+### Technical
+- Konsolidierung der Migrations: Alte SQLite-Migrations entfernt
+- Nur noch PostgreSQL-Migrations (0001, 0002)
+- Containerfile: Kopiert jetzt auch `alembic-test.ini` und `alembic-prod.ini`
+
+---
+
+## [Unreleased]
 
 ### Added - Test-Freigabe-System für PROD-Deployments
 - **🔒 Sicherheits-Feature**: PROD-Deployment nur mit TEST-Freigabe
