@@ -2971,6 +2971,7 @@
                             ${recipe.erstellt_am ? `
                                 <span style="color: rgba(255,255,255,0.5); font-size: 0.9em; margin-left: auto;">
                                     ${new Date(recipe.erstellt_am).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                    ${new Date(recipe.erstellt_am).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             ` : ''}
                         </div>

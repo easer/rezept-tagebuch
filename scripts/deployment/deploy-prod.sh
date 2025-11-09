@@ -103,17 +103,24 @@ echo ""
 echo "🏷️  Step 3/5: Tagging as latest..."
 podman tag seaser-rezept-tagebuch:$GIT_TAG seaser-rezept-tagebuch:latest
 
-# 3. Run migrations BEFORE starting new container
+# 3. Build temporary container for migration
 echo ""
-echo "🔄 Step 4/5: Running database migrations..."
-echo "  ⚠️ Skipping Alembic migrations (handled by init_db() in app.py)"
-# export DB_PATH="/home/gabor/data/rezept-tagebuch/rezepte.db"
-# python3 -m alembic upgrade head
-echo "  ✅ Migrations will run automatically on container start"
+echo "🔄 Step 4/6: Running database migrations..."
+echo "  📍 Building temporary container for Alembic..."
+podman build --build-arg APP_VERSION=$GIT_TAG -t seaser-rezept-tagebuch:migration-temp -f "$TEMP_DIR/Containerfile" "$TEMP_DIR"
+
+echo "  📍 Running Alembic upgrade head on PROD DB..."
+podman run --rm --network seaser-network \
+  -v "$TEMP_DIR/alembic-prod.ini:/app/alembic.ini" \
+  seaser-rezept-tagebuch:migration-temp \
+  alembic upgrade head
+
+echo "  ✅ Migrations erfolgreich angewendet"
+podman rmi seaser-rezept-tagebuch:migration-temp 2>/dev/null || true
 
 # 4. Prod Container neu starten
 echo ""
-echo "🔄 Step 5/5: Restarting Production Container..."
+echo "🔄 Step 5/6: Restarting Production Container..."
 podman stop seaser-rezept-tagebuch 2>/dev/null || true
 podman rm seaser-rezept-tagebuch 2>/dev/null || true
 
@@ -121,7 +128,7 @@ podman run -d --name seaser-rezept-tagebuch --network seaser-network -e DB_TYPE=
 
 # Systemd Service aktualisieren
 echo ""
-echo "⚙️  Updating systemd service..."
+echo "⚙️  Step 6/6: Updating systemd service..."
 podman generate systemd --new --name seaser-rezept-tagebuch > /home/gabor/.config/systemd/user/container-seaser-rezept-tagebuch.service
 systemctl --user daemon-reload
 systemctl --user enable container-seaser-rezept-tagebuch.service

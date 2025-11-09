@@ -16,8 +16,13 @@ if config.config_file_name is not None:
 target_metadata = None
 
 def get_url():
-    """Get database URL from environment or use default"""
-    # Allow override via environment variable
+    """Get database URL from config file or environment variable"""
+    # Priority: alembic.ini config > environment variable
+    url = config.get_main_option("sqlalchemy.url")
+    if url:
+        return url
+
+    # Fallback to SQLite for backward compatibility
     db_path = os.getenv('DB_PATH', '/data/rezepte.db')
     return f'sqlite:///{db_path}'
 
@@ -30,12 +35,16 @@ def run_migrations_offline() -> None:
     we don't even need a DBAPI to be available.
     """
     url = get_url()
+
+    # Determine if we need batch mode (only for SQLite)
+    render_as_batch = url.startswith('sqlite:///')
+
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        render_as_batch=True,  # Important for SQLite
+        render_as_batch=render_as_batch,
     )
 
     with context.begin_transaction():
@@ -48,8 +57,9 @@ def run_migrations_online() -> None:
     In this scenario we need to create an Engine
     and associate a connection with the context.
     """
+    url = get_url()
     configuration = config.get_section(config.config_ini_section)
-    configuration['sqlalchemy.url'] = get_url()
+    configuration['sqlalchemy.url'] = url
 
     connectable = engine_from_config(
         configuration,
@@ -57,11 +67,14 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
 
+    # Determine if we need batch mode (only for SQLite)
+    render_as_batch = url.startswith('sqlite:///')
+
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=True,  # Important for SQLite
+            render_as_batch=render_as_batch,
         )
 
         with context.begin_transaction():

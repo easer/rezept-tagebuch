@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [rezept_version_09_11_2025_001] - 2025-11-09
+
+### Added - Alembic Migration Workflow
+- **Automatisierte Migration-Pipeline** für TEST → DEV → PROD
+  - `test-migration.sh`: Migration auf TEST mit automatischen Tests
+  - `deploy-prod.sh`: Erweitert um automatische Alembic Migration
+  - Alembic Config für TEST/PROD Umgebungen
+  - Migration Tests in `tests/test_migrations.py`
+- **Dokumentation**
+  - `docs/MIGRATION_WORKFLOW.md`: Kompletter Workflow Guide
+  - README.md aktualisiert mit Migration-Workflow
+
+### Changed - Database Schema
+- **recipes.imported_at → recipes.erstellt_am**
+  - Spalte umbenannt von `imported_at` (DATE) zu `erstellt_am` (TIMESTAMP)
+  - Wird jetzt für ALLE Rezepte gesetzt (nicht nur imports)
+  - DEFAULT CURRENT_TIMESTAMP für automatische Population
+  - Frontend zeigt Erstellungsdatum unter "Erstellt von" Label
+  - Migration: `20251109_1100_002_rename_imported_at_to_erstellt_am.py`
+
+### Fixed
+- PROD Container mit altem Code nach Migration
+  - Deployment-Process erstellt jetzt automatisch Backup vor Migration
+  - Alembic läuft in separatem Container vor App-Deployment
+
+### Technical
+- Alembic im Container integriert
+- `migrations/env.py` angepasst für PostgreSQL Support
+- Containerfile kopiert jetzt `migrations/` und `alembic.ini`
+
 ## [rezept_version_07_11_2025_001] - 2025-11-07
 
 ### Added

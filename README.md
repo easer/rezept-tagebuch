@@ -172,25 +172,46 @@ Baut Dev-Image und startet Dev-Container neu.
 2. Stoppt alten Dev-Container
 3. Startet neuen Dev-Container mit Dev-Datenbank
 
+#### test-migration.sh
+
+Testet Datenbank-Migration auf TEST-Umgebung mit automatischen Tests.
+
+```bash
+./scripts/database/test-migration.sh
+```
+
+**Was passiert:**
+1. Baut TEST Container
+2. Startet TEST Container
+3. Führt Alembic Migration auf TEST DB aus
+4. Führt automatische Tests aus (pytest)
+5. Fragt nach DEV Update (optional)
+
+**Workflow:** TEST → DEV → TAG → PROD
+
+Siehe **docs/MIGRATION_WORKFLOW.md** für Details.
+
 ### deploy-prod.sh
 
-Deployed Git-Tag auf Production.
+Deployed Git-Tag auf Production mit automatischer Datenbank-Migration.
 
 ```bash
 ./scripts/deployment/deploy-prod.sh <GIT_TAG>
 
 # Beispiel:
-./scripts/deployment/deploy-prod.sh rezept_version_06_11_2025_001
+./scripts/deployment/deploy-prod.sh rezept_version_09_11_2025_001
 ```
 
 **Was passiert:**
 1. Prüft Git-Tag Existenz
 2. Exportiert Git-Tag in temp-Directory
-3. Baut Image aus Git-Tag (z.B. `rezept_version_06_11_2025_001`)
-4. Tagged Image als `:latest`
-3. Stoppt alten Prod-Container
-4. Startet neuen Prod-Container mit Prod-Datenbank
-5. Aktualisiert systemd Service
+3. **Erstellt automatisches Datenbank-Backup**
+4. Baut Image aus Git-Tag (z.B. `rezept_version_09_11_2025_001`)
+5. Tagged Image als `:latest`
+6. **Führt Alembic Migration auf PROD DB aus** (automatisch)
+7. Stoppt alten Prod-Container
+8. Startet neuen Prod-Container mit Prod-Datenbank
+9. Aktualisiert systemd Service
 
 ### rollback.sh
 
@@ -400,6 +421,7 @@ podman exec -it seaser-postgres-test psql -U postgres -d rezepte_test
 
 - **README.md** - Dieses Dokument (Übersicht & Workflows)
 - **docs/DEPLOYMENT.md** - Detaillierte Deployment-Anleitung
+- **docs/MIGRATION_WORKFLOW.md** - **Alembic Migration Workflow (TEST → DEV → PROD)**
 - **docs/POSTGRESQL-MIGRATION.md** - PostgreSQL Migration (100% Complete)
 - **docs/MIGRATIONS.md** - Datenbank-Migrationen (Alembic)
 - **docs/PROJECT-STRUCTURE.md** - Projektstruktur und Architektur
@@ -419,6 +441,7 @@ podman exec -it seaser-postgres-test psql -U postgres -d rezepte_test
 - **Backend:** Python Flask + SQLAlchemy ORM
 - **Frontend:** Vanilla HTML/CSS/JavaScript
 - **Datenbank:** PostgreSQL 16 (3 separate Datenbanken)
+- **Migrations:** Alembic (automatisch in Deployment-Pipeline)
 - **Container:** Podman
 - **Proxy:** Nginx
 - **Services:** systemd (user services)
