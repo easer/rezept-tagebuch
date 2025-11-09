@@ -22,7 +22,7 @@ def api_base_url():
 
 @pytest.fixture(scope="session")
 def verify_container_running():
-    """Verify dev container is running and configure for tests"""
+    """Start test container on-demand and ensure it's stopped after tests"""
     import subprocess
     import os
 
@@ -35,27 +35,44 @@ def verify_container_running():
         text=True
     )
 
-    if CONTAINER_NAME not in result.stdout:
+    container_was_running = CONTAINER_NAME in result.stdout
+
+    if not container_was_running:
         # Start container with TESTING_MODE
-        print(f"Starting test container {CONTAINER_NAME} with TESTING_MODE on port {TEST_PORT}...")
+        print(f"🚀 Starting test container {CONTAINER_NAME} with TESTING_MODE on port {TEST_PORT}...")
         subprocess.run([
             "podman", "run", "-d", "--rm",
             "--name", CONTAINER_NAME,
             "-p", f"{TEST_PORT}:80",
-            "-v", "/home/gabor/easer_projekte/rezept-tagebuch/data:/data:Z",
-            "-e", "TESTING_MODE=true",  # Enable test mode - uses /data/test/rezepte.db
-            "--network", "seaser-network",  # Join seaser network
-            "seaser-rezept-tagebuch:dev"
+            "-e", "DB_TYPE=postgresql",
+            "-e", "TESTING_MODE=true",
+            "-e", "POSTGRES_HOST=seaser-postgres-test",
+            "-e", "POSTGRES_DB=rezepte_test",
+            "-e", "POSTGRES_USER=postgres",
+            "-e", "POSTGRES_PASSWORD=test",
+            "-v", "/home/gabor/easer_projekte/rezept-tagebuch/data/test:/data",
+            "--network", "seaser-network",
+            "localhost/seaser-rezept-tagebuch:test"
         ], check=True)
 
         # Wait for container to be ready
         time.sleep(3)
         print(f"✅ Test container started with TESTING_MODE=true on port {TEST_PORT}")
-        print(f"   Using test database: {TEST_DB_PATH}")
+        print(f"   Using PostgreSQL: seaser-postgres-test:rezepte_test")
     else:
         print(f"✅ Container {CONTAINER_NAME} is already running on port {TEST_PORT}")
 
-    return True
+    yield True
+
+    # Cleanup: Stop container if we started it
+    if not container_was_running:
+        print(f"\n🧹 Stopping test container {CONTAINER_NAME}...")
+        subprocess.run(
+            ["podman", "stop", CONTAINER_NAME],
+            capture_output=True,
+            text=True
+        )
+        print(f"✅ Test container stopped (was started by pytest)")
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_test_db(verify_container_running):
