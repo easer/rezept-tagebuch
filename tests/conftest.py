@@ -22,57 +22,31 @@ def api_base_url():
 
 @pytest.fixture(scope="session")
 def verify_container_running():
-    """Start test container on-demand and ensure it's stopped after tests"""
-    import subprocess
-    import os
-
+    """Verify test environment is ready (container should already be running)"""
     print("\n🧪 Setting up test environment...")
 
-    # Check if container is running
-    result = subprocess.run(
-        ["podman", "ps", "--filter", f"name={CONTAINER_NAME}", "--format", "{{.Names}}"],
-        capture_output=True,
-        text=True
-    )
+    # When running inside container, assume environment is ready
+    # When running on host, could check container status
+    # For now, just verify API is accessible
 
-    container_was_running = CONTAINER_NAME in result.stdout
-
-    if not container_was_running:
-        # Start container with TESTING_MODE
-        print(f"🚀 Starting test container {CONTAINER_NAME} with TESTING_MODE on port {TEST_PORT}...")
-        subprocess.run([
-            "podman", "run", "-d", "--rm",
-            "--name", CONTAINER_NAME,
-            "-p", f"{TEST_PORT}:80",
-            "-e", "DB_TYPE=postgresql",
-            "-e", "TESTING_MODE=true",
-            "-e", "POSTGRES_HOST=seaser-postgres-test",
-            "-e", "POSTGRES_DB=rezepte_test",
-            "-e", "POSTGRES_USER=postgres",
-            "-e", "POSTGRES_PASSWORD=test",
-            "-v", "/home/gabor/easer_projekte/rezept-tagebuch/data/test:/data",
-            "--network", "seaser-network",
-            "localhost/seaser-rezept-tagebuch:test"
-        ], check=True)
-
-        # Wait for container to be ready
-        time.sleep(3)
-        print(f"✅ Test container started with TESTING_MODE=true on port {TEST_PORT}")
-        print(f"   Using PostgreSQL: seaser-postgres-test:rezepte_test")
-    else:
-        print(f"✅ Container {CONTAINER_NAME} is already running on port {TEST_PORT}")
+    max_retries = 10
+    for i in range(max_retries):
+        try:
+            response = requests.get(f"{API_BASE_URL}/recipes", timeout=2)
+            if response.status_code in [200, 404]:  # Either success or empty is fine
+                print(f"✅ Test API is accessible at {API_BASE_URL}")
+                break
+        except requests.exceptions.RequestException:
+            if i < max_retries - 1:
+                print(f"⏳ Waiting for API to be ready... (attempt {i+1}/{max_retries})")
+                time.sleep(1)
+            else:
+                print(f"❌ Failed to connect to API at {API_BASE_URL}")
+                raise
 
     yield True
 
-    # Cleanup: Stop container if we started it
-    if not container_was_running:
-        print(f"\n🧹 Stopping test container {CONTAINER_NAME}...")
-        subprocess.run(
-            ["podman", "stop", CONTAINER_NAME],
-            capture_output=True,
-            text=True
-        )
-        print(f"✅ Test container stopped (was started by pytest)")
+    print("\n✅ Test session complete")
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_test_db(verify_container_running):
