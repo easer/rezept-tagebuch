@@ -8,12 +8,18 @@ import os
 import subprocess
 
 # Test Configuration
-TEST_PORT = "8001"  # Use different port to avoid conflicts with dev container
-API_BASE_URL = f"http://localhost:{TEST_PORT}/api"  # Direct container access, no nginx
+TEST_PORT = "8001"  # Port when accessed from HOST
 CONTAINER_NAME = "seaser-rezept-tagebuch-test"
 TEST_DB_PATH = "/home/gabor/easer_projekte/rezept-tagebuch/data/test/rezepte.db"
 
-# Tests use a separate test database to avoid conflicts with dev container
+# Determine if we're running inside a container or on the host
+# When running inside container (via test-migration.sh), use localhost:80
+# When running on host (local development), use localhost:8001
+RUNNING_IN_CONTAINER = os.path.exists('/app/app.py')  # app.py exists at /app/ in container
+if RUNNING_IN_CONTAINER:
+    API_BASE_URL = "http://localhost:80/api"  # Same container, internal access
+else:
+    API_BASE_URL = f"http://localhost:{TEST_PORT}/api"  # Host accessing container via port mapping
 
 @pytest.fixture(scope="session")
 def api_base_url():
