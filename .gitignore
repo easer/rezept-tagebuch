@@ -10,3 +10,4 @@ __pycache__/
 # Legacy files from refactoring
 app_old.py
 REFACTORING_SUMMARY.md
+.test-approvals

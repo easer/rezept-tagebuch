@@ -1,10 +1,11 @@
 #!/bin/bash
-# Test Migration auf TEST-Umgebung
+# Test Migration auf TEST-Umgebung mit Git-Tag-Freigabe
 # Workflow:
-# 1. TEST Container bauen & starten
+# 1. TEST Container aus Git-Tag bauen & starten
 # 2. Alembic Migration auf TEST DB
 # 3. Automatische Tests laufen lassen
-# 4. Bei Erfolg: DEV Container aktualisieren
+# 4. Bei Erfolg: Tag wird für PROD freigegeben
+# 5. Optional: DEV Container aktualisieren
 
 set -e
 
@@ -19,18 +20,64 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Funktion: Git-Tag validieren
+validate_git_tag() {
+    local tag=$1
+    if [[ ! "$tag" =~ ^rezept_version_[0-9]{2}_[0-9]{2}_[0-9]{4}_[0-9]{3}$ ]]; then
+        echo -e "${RED}❌ Ungültiges Tag-Format!${NC}"
+        echo "   Erwartet: rezept_version_DD_MM_YYYY_NNN"
+        echo "   Beispiel: rezept_version_09_11_2025_001"
+        exit 1
+    fi
+}
+
+# Git-Tag aus Parameter (required!)
+if [[ -z "$1" ]]; then
+    echo -e "${RED}❌ Kein Git-Tag angegeben!${NC}"
+    echo ""
+    echo "Usage: ./scripts/database/test-migration.sh <GIT_TAG>"
+    echo ""
+    echo "Verfügbare Tags:"
+    git tag | grep "^rezept_version_" | tail -5 || echo "  (noch keine Tags vorhanden)"
+    echo ""
+    echo "Neuen Tag erstellen:"
+    echo "  git tag -a rezept_version_DD_MM_YYYY_NNN -m 'Release message'"
+    exit 1
+fi
+
+GIT_TAG=$1
+validate_git_tag "$GIT_TAG"
+
+# Prüfen ob Tag existiert
+if ! git rev-parse "$GIT_TAG" >/dev/null 2>&1; then
+    echo -e "${RED}❌ Git-Tag '$GIT_TAG' existiert nicht!${NC}"
+    echo ""
+    echo "Verfügbare Tags:"
+    git tag | grep "^rezept_version_" | tail -5 || echo "  (noch keine Tags vorhanden)"
+    exit 1
+fi
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${BLUE}🧪 TEST MIGRATION WORKFLOW${NC}"
+echo -e "${GREEN}📦 Git-Tag: $GIT_TAG${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Step 1: Build TEST Container
-echo -e "${BLUE}🔨 Step 1/5: Building TEST Container...${NC}"
-podman build -t seaser-rezept-tagebuch:test -f Containerfile .
+# Checkout des Git-Tags in temporäres Verzeichnis
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf $TEMP_DIR" EXIT
+
+echo "📦 Exporting Git-Tag to temporary directory..."
+git archive "$GIT_TAG" | tar -x -C "$TEMP_DIR"
+echo ""
+
+# Step 1: Build TEST Container aus Git-Tag
+echo -e "${BLUE}🔨 Step 1/6: Building TEST Container from Git-Tag...${NC}"
+podman build -t seaser-rezept-tagebuch:test -f "$TEMP_DIR/Containerfile" "$TEMP_DIR"
 echo ""
 
 # Step 2: Start TEST Container
-echo -e "${BLUE}🚀 Step 2/5: Starting TEST Container...${NC}"
+echo -e "${BLUE}🚀 Step 2/6: Starting TEST Container...${NC}"
 podman stop seaser-rezept-tagebuch-test 2>/dev/null || true
 podman rm seaser-rezept-tagebuch-test 2>/dev/null || true
 
@@ -50,7 +97,7 @@ echo -e "${GREEN}✅ TEST Container gestartet${NC}"
 echo ""
 
 # Step 3: Run Alembic Migration auf TEST DB
-echo -e "${BLUE}🔄 Step 3/5: Running Alembic Migration auf TEST DB...${NC}"
+echo -e "${BLUE}🔄 Step 3/6: Running Alembic Migration auf TEST DB...${NC}"
 echo "  📍 Database: rezepte_test"
 echo "  📍 Config: alembic-test.ini"
 echo ""
@@ -63,7 +110,7 @@ echo -e "${GREEN}✅ Migration auf TEST erfolgreich${NC}"
 echo ""
 
 # Step 4: Run Automated Tests
-echo -e "${BLUE}🧪 Step 4/5: Running Automated Tests...${NC}"
+echo -e "${BLUE}🧪 Step 4/6: Running Automated Tests...${NC}"
 echo ""
 
 # Run pytest inside the TEST container
@@ -87,8 +134,23 @@ fi
 
 echo ""
 
-# Step 5: Update DEV Container
-echo -e "${BLUE}🔄 Step 5/5: Update DEV Container mit neuer Migration...${NC}"
+# Step 5: Tag für PROD freigeben
+echo -e "${BLUE}✅ Step 5/6: Freigabe für PROD Deployment...${NC}"
+echo ""
+
+# Freigabe-File erstellen/updaten
+APPROVAL_FILE="$PROJECT_ROOT/.test-approvals"
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+COMMIT_HASH=$(git rev-parse "$GIT_TAG")
+
+echo "$GIT_TAG|$COMMIT_HASH|$TIMESTAMP|SUCCESS" >> "$APPROVAL_FILE"
+
+echo -e "${GREEN}✅ Tag '$GIT_TAG' für PROD freigegeben${NC}"
+echo "   Freigabe gespeichert in: .test-approvals"
+echo ""
+
+# Step 6: Update DEV Container
+echo -e "${BLUE}🔄 Step 6/6: Update DEV Container mit neuer Migration...${NC}"
 echo ""
 echo "Möchtest du jetzt DEV Container aktualisieren? [y/N]"
 read -r response
@@ -114,13 +176,14 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "✅ Migration auf TEST angewendet"
 echo "✅ Alle Tests bestanden"
+echo -e "${GREEN}✅ Tag '$GIT_TAG' für PROD freigegeben${NC}"
 echo ""
 echo "Nächste Schritte:"
 echo "  1. Teste manuell in DEV: http://192.168.2.139:8001/rezept-tagebuch/"
-echo "  2. Bei Erfolg: Git Tag erstellen"
-echo "     ./scripts/tools/tag-version.sh"
-echo "  3. PROD Deployment:"
-echo "     ./scripts/deployment/deploy-prod.sh rezept_version_DD_MM_YYYY_NNN"
+echo "  2. Bei Erfolg: PROD Deployment"
+echo "     ./scripts/deployment/deploy-prod.sh $GIT_TAG"
+echo ""
+echo -e "${YELLOW}⚠️  Dieser Tag kann jetzt auf PROD deployed werden!${NC}"
 echo ""
 echo "Test Container Status:"
 podman ps | grep seaser-rezept-tagebuch-test

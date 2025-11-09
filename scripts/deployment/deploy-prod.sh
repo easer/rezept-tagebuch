@@ -78,6 +78,39 @@ fi
 echo -e "${GREEN}✅ Git-Tag gefunden: $GIT_TAG${NC}"
 echo ""
 
+# Prüfen ob Tag auf TEST freigegeben wurde
+APPROVAL_FILE="$PROJECT_ROOT/.test-approvals"
+if [[ ! -f "$APPROVAL_FILE" ]]; then
+    echo -e "${RED}❌ Keine Test-Freigaben gefunden!${NC}"
+    echo ""
+    echo "Der Tag '$GIT_TAG' wurde nicht auf TEST getestet."
+    echo ""
+    echo "Du musst zuerst den Test-Workflow durchlaufen:"
+    echo "  ./scripts/database/test-migration.sh $GIT_TAG"
+    echo ""
+    exit 1
+fi
+
+if ! grep -q "^$GIT_TAG|" "$APPROVAL_FILE"; then
+    echo -e "${RED}❌ Tag '$GIT_TAG' wurde nicht auf TEST freigegeben!${NC}"
+    echo ""
+    echo "Dieser Tag wurde noch nicht erfolgreich auf TEST getestet."
+    echo ""
+    echo "Verfügbare freigegebene Tags:"
+    tail -5 "$APPROVAL_FILE" | cut -d'|' -f1 || echo "  (keine)"
+    echo ""
+    echo "Test-Workflow starten:"
+    echo "  ./scripts/database/test-migration.sh $GIT_TAG"
+    echo ""
+    exit 1
+fi
+
+# Freigabe-Details anzeigen
+APPROVAL_LINE=$(grep "^$GIT_TAG|" "$APPROVAL_FILE" | tail -1)
+APPROVAL_TIMESTAMP=$(echo "$APPROVAL_LINE" | cut -d'|' -f3)
+echo -e "${GREEN}✅ Tag auf TEST freigegeben: $APPROVAL_TIMESTAMP${NC}"
+echo ""
+
 # Checkout des Git-Tags in temporäres Verzeichnis
 TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
