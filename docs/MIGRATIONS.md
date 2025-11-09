@@ -2,17 +2,21 @@
 
 **Migration-System:** Alembic
 **Version:** 1.13.1
+**Database:** PostgreSQL 16
 
 ---
 
 ## 🎯 Übersicht
 
-Das Rezept-Tagebuch nutzt **Alembic** für versionierte Datenbank-Migrationen. Das bedeutet:
+Das Rezept-Tagebuch nutzt **Alembic** für versionierte Datenbank-Migrationen mit **PostgreSQL**. Das bedeutet:
 
 ✅ **Schema-Änderungen sind versioniert** (wie Git für Code)
 ✅ **Rollback möglich** bei jedem Update
 ✅ **Backup funktioniert immer** - Schema-Version wird gespeichert
 ✅ **Automatische Migrations** bei Prod-Deployment
+✅ **3 separate Datenbanken** - PROD/DEV/TEST komplett isoliert
+
+**Wichtig:** Seit November 2025 laufen alle Environments mit PostgreSQL (Migration von SQLite abgeschlossen). Siehe **POSTGRESQL-MIGRATION.md** für Details.
 
 ---
 
@@ -198,20 +202,20 @@ export DB_PATH="/home/gabor/data/rezept-tagebuch/rezepte.db"
 alembic stamp 001
 ```
 
-### Problem: Batch-Alter-Table Fehler
+### Problem: ALTER TABLE in PostgreSQL
 
-**Ursache:** SQLite unterstützt ALTER TABLE nur begrenzt
-
-**Lösung:** Immer `batch_alter_table` in Migrations verwenden:
+**PostgreSQL unterstützt ALTER TABLE vollständig**, aber für Konsistenz verwenden wir weiterhin `batch_alter_table`:
 
 ```python
-# ✅ Richtig (SQLite-kompatibel):
+# ✅ Empfohlen (funktioniert in PostgreSQL und SQLite):
 with op.batch_alter_table('recipes') as batch_op:
     batch_op.add_column(...)
 
-# ❌ Falsch (funktioniert nicht in SQLite):
+# ⚠️ Auch möglich (nur PostgreSQL):
 op.add_column('recipes', ...)
 ```
+
+**Empfehlung:** `batch_alter_table` verwenden für zukünftige Kompatibilität.
 
 ---
 

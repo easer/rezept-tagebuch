@@ -8,6 +8,7 @@ import os
 # Default to PostgreSQL, fallback to SQLite for backwards compatibility
 DB_TYPE = os.environ.get('DB_TYPE', 'postgresql')  # 'postgresql' or 'sqlite'
 TESTING_MODE = os.environ.get('TESTING_MODE', 'false').lower() == 'true'
+DEV_MODE = os.environ.get('DEV_MODE', 'false').lower() == 'true'
 
 def get_database_url():
     """
@@ -28,8 +29,15 @@ def get_database_url():
             pg_db = os.environ.get('POSTGRES_TEST_DB', 'rezepte_test')
             pg_user = os.environ.get('POSTGRES_TEST_USER', 'postgres')
             pg_password = os.environ.get('POSTGRES_TEST_PASSWORD', 'test')
+        elif DEV_MODE:
+            # Development database
+            pg_host = os.environ.get('POSTGRES_DEV_HOST', 'seaser-postgres-dev')
+            pg_port = os.environ.get('POSTGRES_DEV_PORT', '5432')
+            pg_db = os.environ.get('POSTGRES_DEV_DB', 'rezepte_dev')
+            pg_user = os.environ.get('POSTGRES_DEV_USER', 'postgres')
+            pg_password = os.environ.get('POSTGRES_DEV_PASSWORD', 'seaser')
         else:
-            # Production/Dev database
+            # Production database
             pg_host = os.environ.get('POSTGRES_HOST', 'seaser-postgres')
             pg_port = os.environ.get('POSTGRES_PORT', '5432')
             pg_db = os.environ.get('POSTGRES_DB', 'rezepte')
@@ -59,6 +67,8 @@ SQLALCHEMY_ENGINE_OPTIONS = {
 # Upload Folder Configuration
 if TESTING_MODE:
     UPLOAD_FOLDER = '/data/test/uploads'
+elif DEV_MODE:
+    UPLOAD_FOLDER = '/data/dev/uploads'
 else:
     UPLOAD_FOLDER = '/data/uploads'
 
@@ -66,5 +76,6 @@ else:
 if __name__ == '__main__':
     print(f"Database Type: {DB_TYPE}")
     print(f"Testing Mode: {TESTING_MODE}")
+    print(f"Dev Mode: {DEV_MODE}")
     print(f"Database URL: {SQLALCHEMY_DATABASE_URI}")
     print(f"Upload Folder: {UPLOAD_FOLDER}")

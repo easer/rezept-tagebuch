@@ -56,10 +56,19 @@ main Branch → Git-Tag erstellen → Prod Deployment
 
 ### Container-Übersicht
 
-| Container Name                 | Image Tag  | Network | Volume Mount                                           |
-|--------------------------------|------------|---------|--------------------------------------------------------|
-| `seaser-rezept-tagebuch-dev`   | `:dev`     | pasta   | `/home/gabor/easer_projekte/rezept-tagebuch/data/dev` |
-| `seaser-rezept-tagebuch`       | `:latest`  | pasta   | `/home/gabor/easer_projekte/rezept-tagebuch/data/prod`|
+| Container Name                 | Image Tag  | Network | Database | PostgreSQL Container |
+|--------------------------------|------------|---------|----------|----------------------|
+| `seaser-rezept-tagebuch`       | `:latest`  | seaser-network | `rezepte` (PROD) | `seaser-postgres` |
+| `seaser-rezept-tagebuch-dev`   | `:dev`     | seaser-network | `rezepte_dev` (DEV) | `seaser-postgres-dev` |
+| `seaser-rezept-tagebuch-test`  | `:test`    | seaser-network | `rezepte_test` (TEST) | `seaser-postgres-test` |
+
+**PostgreSQL Container**:
+
+| Container Name           | Database | Password | Network |
+|--------------------------|----------|----------|---------|
+| `seaser-postgres`        | `rezepte` | `seaser` | seaser-network |
+| `seaser-postgres-dev`    | `rezepte_dev` | `seaser` | seaser-network |
+| `seaser-postgres-test`   | `rezepte_test` | `test` | seaser-network |
 
 ---
 
@@ -86,7 +95,7 @@ vim index.html
 podman logs --tail 50 seaser-rezept-tagebuch-dev
 ```
 
-**Wichtig:** Dev-Container nutzt `/easer_projekte/rezept-tagebuch-data/` - komplett getrennt von Prod!
+**Wichtig:** Dev-Container nutzt `seaser-postgres-dev:rezepte_dev` - komplett getrennt von Prod!
 
 ---
 
@@ -130,12 +139,16 @@ cd /home/gabor/easer_projekte/rezept-tagebuch
    podman rm seaser-rezept-tagebuch
    ```
 
-4. **Neuer Container starten** (mit Prod-Volume):
+4. **Neuer Container starten** (mit PostgreSQL Prod):
    ```bash
    podman run -d \
      --name seaser-rezept-tagebuch \
-     --network pasta \
-     -v /home/gabor/easer_projekte/rezept-tagebuch/data/prod:/data:Z \
+     --network seaser-network \
+     -e DB_TYPE=postgresql \
+     -e POSTGRES_HOST=seaser-postgres \
+     -e POSTGRES_DB=rezepte \
+     -e POSTGRES_PASSWORD=seaser \
+     -v /home/gabor/easer_projekte/rezept-tagebuch/data/prod:/data \
      localhost/seaser-rezept-tagebuch:latest
    ```
 
@@ -230,37 +243,39 @@ podman logs --tail 50 seaser-proxy
 
 ---
 
-## 🗄️ Datenbank-Management
+## 🗄️ Datenbank-Management (PostgreSQL)
 
 ### Backup vor Deployment (EMPFOHLEN)
 
 **Prod-Backup vor jedem Deployment:**
 
 ```bash
-# Empfohlen: Backup-Script verwenden
-./scripts/database/backup-db.sh prod "before-deployment"
+# Automatisches PostgreSQL Backup (wird von deploy-prod.sh gemacht)
+podman exec seaser-postgres pg_dump -U postgres rezepte > data/prod/backups/rezepte-backup-before-deploy.sql
 ```
 
-**Hinweis:** Das Deployment-Script `deploy-prod.sh` erstellt automatisch ein Backup vor jedem Deployment.
+**Hinweis:** Das Deployment-Script `deploy-prod.sh` erstellt automatisch ein pg_dump Backup vor jedem Deployment.
 
-### Datenbank-Restore
+### Datenbank-Restore (PostgreSQL)
 
 **Falls Deployment schief geht:**
 
 ```bash
-# Restore mit Script (empfohlen)
-./scripts/database/restore-db.sh prod
-
-# Wähle Backup aus der Liste
+# PostgreSQL Restore
+podman exec -i seaser-postgres psql -U postgres -d rezepte < data/prod/backups/rezepte-backup-TIMESTAMP.sql
 ```
 
-Siehe auch: **MIGRATIONS.md** für Details zu Backup & Restore mit Migration-Versions-Tracking.
+### Dev-Datenbank zurücksetzen
 
-### Dev-Daten von Prod kopieren (zum Testen)
+**Fresh Start für Development:**
 
 ```bash
-# Prod-Datenbank nach Dev kopieren
-cp data/prod/rezepte.db data/dev/rezepte.db
+# Dev-Datenbank komplett leeren
+podman exec seaser-postgres-dev psql -U postgres -c "DROP DATABASE rezepte_dev;"
+podman exec seaser-postgres-dev psql -U postgres -c "CREATE DATABASE rezepte_dev;"
+
+# Schema neu erstellen
+podman exec -i seaser-postgres-dev psql -U postgres -d rezepte_dev < scripts/database/schema-postgres.sql
 
 # Dev-Container neu starten
 ./scripts/deployment/build-dev.sh
@@ -374,14 +389,17 @@ podman run -d \
 
 Ohne `:Z` können Permission-Probleme auftreten!
 
-### Datenbank-Permissions
+### PostgreSQL Zugriff
 
 ```bash
-# Prüfen
-ls -lh /home/gabor/data/rezept-tagebuch/
+# Prod Database
+podman exec -it seaser-postgres psql -U postgres -d rezepte
 
-# Sollte sein:
-# -rw-r--r-- gabor gabor rezepte.db
+# Dev Database
+podman exec -it seaser-postgres-dev psql -U postgres -d rezepte_dev
+
+# Test Database
+podman exec -it seaser-postgres-test psql -U postgres -d rezepte_test
 ```
 
 ---

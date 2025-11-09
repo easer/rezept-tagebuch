@@ -52,14 +52,15 @@ http://192.168.2.139:8000/rezept-tagebuch-dev/
     └─────────────────┘  └─────────────────┘
 ```
 
-### Volumes (Datenbanken)
+### Volumes (Datenbanken) - PostgreSQL
 
-| Environment | Volume Mount                                           | Datenbank            |
-|-------------|--------------------------------------------------------|----------------------|
-| **DEV**     | `/home/gabor/easer_projekte/rezept-tagebuch/data/dev` | `rezepte.db`         |
-| **PROD**    | `/home/gabor/easer_projekte/rezept-tagebuch/data/prod`| `rezepte.db`         |
+| Environment | App Container Volume | PostgreSQL Container | Database |
+|-------------|---------------------|----------------------|----------|
+| **PROD**    | `/home/gabor/easer_projekte/rezept-tagebuch/data/prod` | `seaser-postgres` → `rezepte` | PostgreSQL |
+| **DEV**     | `/home/gabor/easer_projekte/rezept-tagebuch/data/dev` | `seaser-postgres-dev` → `rezepte_dev` | PostgreSQL |
+| **TEST**    | `/home/gabor/easer_projekte/rezept-tagebuch/data/test` | `seaser-postgres-test` → `rezepte_test` | PostgreSQL |
 
-**Wichtig:** Getrennte Datenbanken = sicheres Testen ohne Risiko für Prod-Daten!
+**Wichtig:** Komplett getrennte PostgreSQL-Datenbanken = sicheres Testen ohne Risiko für Prod-Daten!
 
 ### Container-Namen
 
@@ -276,7 +277,7 @@ Automatisierte CRUD Tests für Recipe & Diary API (**27 Tests**).
 ./scripts/testing/run-tests-isolated.sh -v
 ```
 
-**Hinweis**: Bei vollständigem Test-Run können SQLite Lock-Fehler auftreten (nur Test-Problem, nicht Production).
+**Hinweis**: Tests laufen parallel mit pytest-xdist (33% schneller). PostgreSQL hat keine Lock-Probleme!
 
 Siehe `tests/README.md` für Details.
 
@@ -336,31 +337,38 @@ systemctl --user restart container-seaser-rezept-tagebuch-dev.service
 
 ---
 
-## 🗄️ Datenbank-Zugriff
-
-### Dev-Datenbank
-
-```bash
-sqlite3 /home/gabor/easer_projekte/rezept-tagebuch/data/dev/rezepte.db
-```
+## 🗄️ Datenbank-Zugriff (PostgreSQL)
 
 ### Prod-Datenbank
 
 ```bash
-sqlite3 /home/gabor/easer_projekte/rezept-tagebuch/data/prod/rezepte.db
+# psql Shell öffnen
+podman exec -it seaser-postgres psql -U postgres -d rezepte
+
+# Backup erstellen
+podman exec seaser-postgres pg_dump -U postgres rezepte > backup-prod.sql
 ```
 
-### Backup erstellen
+### Dev-Datenbank
 
 ```bash
-# Dev Backup (empfohlen: ./scripts/database/backup-db.sh dev)
-./scripts/database/backup-db.sh dev
+# psql Shell öffnen
+podman exec -it seaser-postgres-dev psql -U postgres -d rezepte_dev
 
-# Prod Backup (empfohlen: ./scripts/database/backup-db.sh prod)
-./scripts/database/backup-db.sh prod
+# Dev-Datenbank zurücksetzen (sauberer Start)
+podman exec seaser-postgres-dev psql -U postgres -c "DROP DATABASE rezepte_dev;"
+podman exec seaser-postgres-dev psql -U postgres -c "CREATE DATABASE rezepte_dev;"
+podman exec -i seaser-postgres-dev psql -U postgres -d rezepte_dev < scripts/database/schema-postgres.sql
 ```
 
-**Hinweis:** Alle Datenbanken und Uploads sind jetzt im Projektverzeichnis unter `./data/` organisiert.
+### Test-Datenbank
+
+```bash
+# psql Shell öffnen
+podman exec -it seaser-postgres-test psql -U postgres -d rezepte_test
+```
+
+**Hinweis:** Alle PostgreSQL Container haben separate Datenbanken - komplett isoliert!
 
 ---
 
@@ -368,12 +376,13 @@ sqlite3 /home/gabor/easer_projekte/rezept-tagebuch/data/prod/rezepte.db
 
 - **README.md** - Dieses Dokument (Übersicht & Workflows)
 - **docs/DEPLOYMENT.md** - Detaillierte Deployment-Anleitung
+- **docs/POSTGRESQL-MIGRATION.md** - PostgreSQL Migration (100% Complete)
+- **docs/MIGRATIONS.md** - Datenbank-Migrationen (Alembic)
+- **docs/PROJECT-STRUCTURE.md** - Projektstruktur und Architektur
+- **docs/GIT-TAG-WORKFLOW.md** - Git-Tag basierter Deployment-Workflow
 - **docs/UX-GUIDE.md** - Design-Richtlinien und Best Practices
 - **docs/THEMEALDB-CONFIG.md** - TheMealDB Import Konfiguration (Strategien, Filter, API)
 - **docs/RECIPE-IMPORT-PROCESS.md** - BPMN Prozess-Dokumentation für Recipe Import
-- **docs/GIT-TAG-WORKFLOW.md** - Git-Tag basierter Deployment-Workflow
-- **docs/MIGRATIONS.md** - Datenbank-Migrationen
-- **docs/PROJECT-STRUCTURE.md** - Projektstruktur und Architektur
 - **docs/RECIPE-PARSER-README.md** - Recipe Parser Konfiguration
 - **docs/SEARCH-PANEL.md** - Search Panel Dokumentation
 - **docs/DEEPL-TRANSLATION.md** - DeepL API Integration
@@ -383,12 +392,13 @@ sqlite3 /home/gabor/easer_projekte/rezept-tagebuch/data/prod/rezepte.db
 
 ## 🔧 Technologie-Stack
 
-- **Backend:** Python Flask
+- **Backend:** Python Flask + SQLAlchemy ORM
 - **Frontend:** Vanilla HTML/CSS/JavaScript
-- **Datenbank:** SQLite
+- **Datenbank:** PostgreSQL 16 (3 separate Datenbanken)
 - **Container:** Podman
 - **Proxy:** Nginx
 - **Services:** systemd (user services)
+- **Testing:** pytest + pytest-xdist (parallele Tests)
 
 ---
 
