@@ -16,6 +16,8 @@ COPY index.html .
 COPY config/recipe-format-config.json .
 COPY config/themealdb-config.json .
 COPY migrations/ migrations/
+COPY tests/ tests/
+COPY pytest.ini .
 COPY alembic.ini .
 COPY alembic-test.ini .
 COPY alembic-prod.ini .
