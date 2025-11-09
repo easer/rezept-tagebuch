@@ -80,8 +80,8 @@ echo ""
 
 # Prüfen ob Commit-Hash von Tag auf TEST freigegeben wurde
 APPROVAL_FILE="$PROJECT_ROOT/.test-approvals"
-TAG_COMMIT_HASH=$(git rev-parse "$GIT_TAG")
-TAG_COMMIT_SHORT=$(git rev-parse --short "$GIT_TAG")
+TAG_COMMIT_HASH=$(git rev-parse "$GIT_TAG^{commit}")
+TAG_COMMIT_SHORT=$(git rev-parse --short "$GIT_TAG^{commit}")
 
 if [[ ! -f "$APPROVAL_FILE" ]]; then
     echo -e "${RED}❌ Keine Test-Freigaben gefunden!${NC}"
