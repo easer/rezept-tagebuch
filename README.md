@@ -73,43 +73,50 @@ http://192.168.2.139:8000/rezept-tagebuch-dev/
 
 ## 🛠️ Entwicklungs-Workflow
 
-### 1. In Dev entwickeln & testen
+> **Vollständige Dokumentation**: [docs/IMPROVED_WORKFLOW.md](./docs/IMPROVED_WORKFLOW.md)
+
+### 1. DEV: Entwickeln & Manuell testen
 
 ```bash
 cd /home/gabor/easer_projekte/rezept-tagebuch
 
-# Code ändern (app.py, index.html, etc.)
-vim app.py
+# Migration erstellen (wenn nötig)
+vim migrations/versions/20251109_1500_003_new_feature.py
 
-# Dev-Container neu bauen und starten
+# Code ändern
+vim app.py index.html models.py
+
+# Dev-Container neu bauen & starten
 ./scripts/deployment/build-dev.sh
+# → Alembic upgrade head (automatisch)
 
-# Testen auf: http://192.168.2.139:8001/rezept-tagebuch-dev/
+# Manuell testen auf: http://192.168.2.139:8001/rezept-tagebuch-dev/
 ```
 
-### 2. Auf TEST testen & freigeben
+### 2. TEST: Committen & Automated Tests
 
 ```bash
-# Code committen
+# Code committen (NOCH KEIN TAG!)
 git add .
-git commit -m "feat: new feature"
+git commit -m "feat: new feature with migration 0003"
 
-# Git-Tag erstellen
-git tag -a rezept_version_09_11_2025_003 -m "Release: description"
-
-# Auf TEST testen + für PROD freigeben
-./scripts/database/test-migration.sh rezept_version_09_11_2025_003
-# ✅ Migration auf TEST
-# ✅ Tests laufen
-# ✅ Tag wird für PROD freigegeben
+# Auf TEST testen (baut aus HEAD)
+./scripts/database/test-migration.sh
+# ✅ Baut Container aus Working Dir
+# ✅ Migration auf TEST DB
+# ✅ Pytest: CRUD + Migration + Feature Tests
+# ✅ Commit-Hash wird für PROD freigegeben
 ```
 
-### 3. Auf Prod deployen
+### 3. PROD: Tag erstellen & Deployen
 
 ```bash
-# Mit freigegebenem Git-Tag deployen
-./scripts/deployment/deploy-prod.sh rezept_version_09_11_2025_003
-# ✅ Prüft Test-Freigabe
+# Git-Tag erstellen (wenn Tests OK)
+git tag -a rezept_version_09_11_2025_005 -m "Release: description"
+
+# Auf PROD deployen
+./scripts/deployment/deploy-prod.sh rezept_version_09_11_2025_005
+# ✅ Prüft Commit-Hash vom Tag
 # ✅ Backup erstellt
 # ✅ Migration auf PROD
 # ✅ Container deployed
@@ -118,11 +125,12 @@ git tag -a rezept_version_09_11_2025_003 -m "Release: description"
 ```
 
 **🔒 Sicherheit:**
-- Nur Git-Tags können deployed werden
-- Tags müssen **zuerst auf TEST getestet** werden
-- PROD-Deployment **blockiert ohne Test-Freigabe**
+- DEV zuerst → TEST → dann PROD
+- Freigabe basiert auf **Commit-Hash** (nicht Tag-Name)
+- PROD-Deployment **blockiert ohne TEST-Freigabe**
+- Alembic Migrations bleiben linear (0001 → 0002 → 0003)
 
-Siehe **docs/MIGRATION_WORKFLOW.md** und **docs/GIT-TAG-WORKFLOW.md** für Details.
+Siehe **[docs/IMPROVED_WORKFLOW.md](./docs/IMPROVED_WORKFLOW.md)** für vollständige Details.
 
 ---
 
@@ -518,10 +526,9 @@ podman exec -it seaser-postgres-test psql -U postgres -d rezepte_test
 ## 📚 Dokumentation
 
 - **README.md** - Dieses Dokument (Übersicht & Workflows)
+- **docs/IMPROVED_WORKFLOW.md** - ⭐ **DEV → TEST → PROD Workflow (Alembic-kompatibel)**
 - **docs/DEPLOYMENT.md** - Detaillierte Deployment-Anleitung
-- **docs/MIGRATION_WORKFLOW.md** - **Alembic Migration Workflow (TEST → DEV → PROD)**
-- **docs/POSTGRESQL-MIGRATION.md** - PostgreSQL Migration (100% Complete)
-- **docs/MIGRATIONS.md** - Datenbank-Migrationen (Alembic)
+- **docs/MIGRATIONS.md** - Datenbank-Migrationen (Alembic-Grundlagen)
 - **docs/PROJECT-STRUCTURE.md** - Projektstruktur und Architektur
 - **docs/GIT-TAG-WORKFLOW.md** - Git-Tag basierter Deployment-Workflow
 - **docs/UX-GUIDE.md** - Design-Richtlinien und Best Practices

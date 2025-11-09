@@ -6,8 +6,9 @@ Create Date: 2025-11-09 14:00:00.000000
 
 Changes:
 - Add rating column to diary_entries (INTEGER)
+- Migrate existing recipe ratings to diary entries
 - For fresh installations: rating is already in 0001
-- For existing PROD: adds rating column
+- For existing PROD: adds rating column and migrates data
 
 Note: recipes.rating stays for now (deprecated, will be removed in future migration)
 """
@@ -24,7 +25,7 @@ depends_on = None
 
 def upgrade() -> None:
     """
-    Add rating to diary_entries (idempotent)
+    Add rating to diary_entries (idempotent) and migrate existing data
     """
     # Check if column already exists (fresh install from updated 0001)
     connection = op.get_bind()
@@ -36,6 +37,17 @@ def upgrade() -> None:
         op.add_column('diary_entries',
             sa.Column('rating', sa.Integer(), nullable=True)
         )
+
+    # Migrate existing recipe ratings to diary entries
+    # Copy rating from recipes to diary_entries where diary entry has a recipe
+    op.execute("""
+        UPDATE diary_entries
+        SET rating = recipes.rating
+        FROM recipes
+        WHERE diary_entries.recipe_id = recipes.id
+        AND recipes.rating IS NOT NULL
+        AND diary_entries.rating IS NULL
+    """)
 
 
 def downgrade() -> None:

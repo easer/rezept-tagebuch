@@ -78,37 +78,46 @@ fi
 echo -e "${GREEN}✅ Git-Tag gefunden: $GIT_TAG${NC}"
 echo ""
 
-# Prüfen ob Tag auf TEST freigegeben wurde
+# Prüfen ob Commit-Hash von Tag auf TEST freigegeben wurde
 APPROVAL_FILE="$PROJECT_ROOT/.test-approvals"
+TAG_COMMIT_HASH=$(git rev-parse "$GIT_TAG")
+TAG_COMMIT_SHORT=$(git rev-parse --short "$GIT_TAG")
+
 if [[ ! -f "$APPROVAL_FILE" ]]; then
     echo -e "${RED}❌ Keine Test-Freigaben gefunden!${NC}"
     echo ""
-    echo "Der Tag '$GIT_TAG' wurde nicht auf TEST getestet."
+    echo "Der Commit ($TAG_COMMIT_SHORT) von Tag '$GIT_TAG' wurde nicht auf TEST getestet."
     echo ""
     echo "Du musst zuerst den Test-Workflow durchlaufen:"
-    echo "  ./scripts/database/test-migration.sh $GIT_TAG"
+    echo "  1. git checkout $TAG_COMMIT_SHORT  (zum Commit wechseln)"
+    echo "  2. ./scripts/database/test-migration.sh  (Tests laufen lassen)"
+    echo "  3. git tag rezept_version_DD_MM_YYYY_NNN  (Tag erstellen)"
     echo ""
     exit 1
 fi
 
-if ! grep -q "^$GIT_TAG|" "$APPROVAL_FILE"; then
-    echo -e "${RED}❌ Tag '$GIT_TAG' wurde nicht auf TEST freigegeben!${NC}"
+if ! grep -q "^$TAG_COMMIT_HASH|" "$APPROVAL_FILE"; then
+    echo -e "${RED}❌ Commit '$TAG_COMMIT_SHORT' von Tag '$GIT_TAG' wurde nicht auf TEST freigegeben!${NC}"
     echo ""
-    echo "Dieser Tag wurde noch nicht erfolgreich auf TEST getestet."
+    echo "Dieser Commit wurde noch nicht erfolgreich auf TEST getestet."
     echo ""
-    echo "Verfügbare freigegebene Tags:"
-    tail -5 "$APPROVAL_FILE" | cut -d'|' -f1 || echo "  (keine)"
+    echo "Verfügbare freigegebene Commits:"
+    tail -5 "$APPROVAL_FILE" | awk -F'|' '{print substr($1,1,7) " - " $4}'
     echo ""
     echo "Test-Workflow starten:"
-    echo "  ./scripts/database/test-migration.sh $GIT_TAG"
+    echo "  1. git checkout $TAG_COMMIT_SHORT"
+    echo "  2. ./scripts/database/test-migration.sh"
+    echo "  3. git tag rezept_version_DD_MM_YYYY_NNN"
     echo ""
     exit 1
 fi
 
 # Freigabe-Details anzeigen
-APPROVAL_LINE=$(grep "^$GIT_TAG|" "$APPROVAL_FILE" | tail -1)
-APPROVAL_TIMESTAMP=$(echo "$APPROVAL_LINE" | cut -d'|' -f3)
-echo -e "${GREEN}✅ Tag auf TEST freigegeben: $APPROVAL_TIMESTAMP${NC}"
+APPROVAL_LINE=$(grep "^$TAG_COMMIT_HASH|" "$APPROVAL_FILE" | tail -1)
+APPROVAL_TIMESTAMP=$(echo "$APPROVAL_LINE" | cut -d'|' -f2)
+APPROVAL_MSG=$(echo "$APPROVAL_LINE" | cut -d'|' -f4)
+echo -e "${GREEN}✅ Commit auf TEST freigegeben: $APPROVAL_TIMESTAMP${NC}"
+echo -e "${GREEN}   Commit: $TAG_COMMIT_SHORT - $APPROVAL_MSG${NC}"
 echo ""
 
 # Checkout des Git-Tags in temporäres Verzeichnis

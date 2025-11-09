@@ -1,10 +1,14 @@
 # Migration Workflow mit Alembic
 
+> **⚠️ HINWEIS**: Diese Dokumentation beschreibt den **alten Tag-basierten Workflow**.
+> Der neue **verbesserte Workflow** ist in [IMPROVED_WORKFLOW.md](./IMPROVED_WORKFLOW.md) dokumentiert.
+> **Empfehlung**: Verwende den neuen Workflow!
+
 ## Übersicht
 
 Der Migration-Workflow stellt sicher, dass Datenbank-Änderungen systematisch getestet werden, bevor sie auf Produktion deployed werden.
 
-**🔒 Sicherheit**: PROD-Deployments sind nur mit freigegebenen Git-Tags möglich, die erfolgreich auf TEST getestet wurden!
+**🔒 Sicherheit**: PROD-Deployments sind nur mit freigegebenen Commits möglich, die erfolgreich auf TEST getestet wurden!
 
 ## Workflow-Schritte
 

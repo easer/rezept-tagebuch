@@ -1,10 +1,10 @@
 #!/bin/bash
-# Test Migration auf TEST-Umgebung mit Git-Tag-Freigabe
+# Test Migration auf TEST-Umgebung mit Commit-Hash-Freigabe
 # Workflow:
-# 1. TEST Container aus Git-Tag bauen & starten
+# 1. TEST Container aus Working Dir (HEAD) bauen & starten
 # 2. Alembic Migration auf TEST DB
-# 3. Automatische Tests laufen lassen
-# 4. Bei Erfolg: Tag wird für PROD freigegeben
+# 3. Automatische Tests laufen lassen (inkl. Feature Tests)
+# 4. Bei Erfolg: Commit-Hash wird für PROD freigegeben
 # 5. Optional: DEV Container aktualisieren
 
 set -e
@@ -20,59 +20,42 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Funktion: Git-Tag validieren
-validate_git_tag() {
-    local tag=$1
-    if [[ ! "$tag" =~ ^rezept_version_[0-9]{2}_[0-9]{2}_[0-9]{4}_[0-9]{3}$ ]]; then
-        echo -e "${RED}❌ Ungültiges Tag-Format!${NC}"
-        echo "   Erwartet: rezept_version_DD_MM_YYYY_NNN"
-        echo "   Beispiel: rezept_version_09_11_2025_001"
+# Prüfen ob Working Directory clean ist
+if [[ -n $(git status --porcelain) ]]; then
+    echo -e "${YELLOW}⚠️  Warning: Working directory has uncommitted changes!${NC}"
+    echo ""
+    git status --short
+    echo ""
+    echo "Möchtest du trotzdem fortfahren? [y/N]"
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo "Abgebrochen."
         exit 1
     fi
-}
-
-# Git-Tag aus Parameter (required!)
-if [[ -z "$1" ]]; then
-    echo -e "${RED}❌ Kein Git-Tag angegeben!${NC}"
-    echo ""
-    echo "Usage: ./scripts/database/test-migration.sh <GIT_TAG>"
-    echo ""
-    echo "Verfügbare Tags:"
-    git tag | grep "^rezept_version_" | tail -5 || echo "  (noch keine Tags vorhanden)"
-    echo ""
-    echo "Neuen Tag erstellen:"
-    echo "  git tag -a rezept_version_DD_MM_YYYY_NNN -m 'Release message'"
-    exit 1
 fi
 
-GIT_TAG=$1
-validate_git_tag "$GIT_TAG"
-
-# Prüfen ob Tag existiert
-if ! git rev-parse "$GIT_TAG" >/dev/null 2>&1; then
-    echo -e "${RED}❌ Git-Tag '$GIT_TAG' existiert nicht!${NC}"
-    echo ""
-    echo "Verfügbare Tags:"
-    git tag | grep "^rezept_version_" | tail -5 || echo "  (noch keine Tags vorhanden)"
-    exit 1
-fi
+# Get current commit hash
+COMMIT_HASH=$(git rev-parse HEAD)
+COMMIT_SHORT=$(git rev-parse --short HEAD)
+COMMIT_MSG=$(git log -1 --pretty=%B | head -1)
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${BLUE}🧪 TEST MIGRATION WORKFLOW${NC}"
-echo -e "${GREEN}📦 Git-Tag: $GIT_TAG${NC}"
+echo -e "${GREEN}📦 Commit: $COMMIT_SHORT${NC}"
+echo -e "${GREEN}📝 Message: $COMMIT_MSG${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Checkout des Git-Tags in temporäres Verzeichnis
+# Checkout des HEAD in temporäres Verzeichnis
 TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
 
-echo "📦 Exporting Git-Tag to temporary directory..."
-git archive "$GIT_TAG" | tar -x -C "$TEMP_DIR"
+echo "📦 Exporting HEAD to temporary directory..."
+git archive HEAD | tar -x -C "$TEMP_DIR"
 echo ""
 
-# Step 1: Build TEST Container aus Git-Tag
-echo -e "${BLUE}🔨 Step 1/6: Building TEST Container from Git-Tag...${NC}"
+# Step 1: Build TEST Container aus HEAD
+echo -e "${BLUE}🔨 Step 1/6: Building TEST Container from HEAD...${NC}"
 podman build -t seaser-rezept-tagebuch:test -f "$TEMP_DIR/Containerfile" "$TEMP_DIR"
 echo ""
 
@@ -134,19 +117,20 @@ fi
 
 echo ""
 
-# Step 5: Tag für PROD freigeben
+# Step 5: Commit für PROD freigeben
 echo -e "${BLUE}✅ Step 5/6: Freigabe für PROD Deployment...${NC}"
 echo ""
 
 # Freigabe-File erstellen/updaten
 APPROVAL_FILE="$PROJECT_ROOT/.test-approvals"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-COMMIT_HASH=$(git rev-parse "$GIT_TAG")
 
-echo "$GIT_TAG|$COMMIT_HASH|$TIMESTAMP|SUCCESS" >> "$APPROVAL_FILE"
+# Format: COMMIT_HASH|TIMESTAMP|STATUS|COMMIT_MSG
+echo "$COMMIT_HASH|$TIMESTAMP|SUCCESS|$COMMIT_MSG" >> "$APPROVAL_FILE"
 
-echo -e "${GREEN}✅ Tag '$GIT_TAG' für PROD freigegeben${NC}"
+echo -e "${GREEN}✅ Commit '$COMMIT_SHORT' für PROD freigegeben${NC}"
 echo "   Freigabe gespeichert in: .test-approvals"
+echo "   Full hash: $COMMIT_HASH"
 echo ""
 
 # Step 6: Update DEV Container
@@ -176,14 +160,16 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "✅ Migration auf TEST angewendet"
 echo "✅ Alle Tests bestanden"
-echo -e "${GREEN}✅ Tag '$GIT_TAG' für PROD freigegeben${NC}"
+echo -e "${GREEN}✅ Commit '$COMMIT_SHORT' für PROD freigegeben${NC}"
 echo ""
 echo "Nächste Schritte:"
-echo "  1. Teste manuell in DEV: http://192.168.2.139:8001/rezept-tagebuch/"
-echo "  2. Bei Erfolg: PROD Deployment"
-echo "     ./scripts/deployment/deploy-prod.sh $GIT_TAG"
+echo "  1. Git Tag erstellen:"
+echo "     git tag -a rezept_version_DD_MM_YYYY_NNN -m 'Release message'"
 echo ""
-echo -e "${YELLOW}⚠️  Dieser Tag kann jetzt auf PROD deployed werden!${NC}"
+echo "  2. PROD Deployment:"
+echo "     ./scripts/deployment/deploy-prod.sh rezept_version_DD_MM_YYYY_NNN"
+echo ""
+echo -e "${YELLOW}⚠️  Nur Tags mit diesem Commit ($COMMIT_SHORT) können deployed werden!${NC}"
 echo ""
 echo "Test Container Status:"
 podman ps | grep seaser-rezept-tagebuch-test

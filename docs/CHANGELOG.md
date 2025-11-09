@@ -25,7 +25,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Added - Test-Freigabe-System für PROD-Deployments
+### Changed - Improved DEV → TEST → PROD Workflow
+- **🔄 Workflow-Umstellung**: Commit-basiert statt Tag-basiert
+  - DEV: Manuelle Tests ZUERST (build-dev.sh)
+  - TEST: Automated Tests inkl. Feature-Tests (test-migration.sh ohne Parameter)
+  - Freigabe: Basiert auf Commit-Hash statt Tag-Name
+  - PROD: deploy-prod.sh prüft Commit-Hash vom Tag
+- **✅ Feature Tests**: Neue test_rating_feature.py
+  - Tests für Rating an Diary Entries
+  - Tests für Daten-Migration
+  - Tests für Rating-Workflow
+- **📚 Dokumentation**: IMPROVED_WORKFLOW.md
+  - Vollständige Workflow-Beschreibung
+  - Alembic-Integration
+  - Best Practices
+
+### Fixed - Migration 0002 Daten-Migration
+- Migration 0002 migriert jetzt existierende Recipe-Ratings zu Diary Entries
+- Idempotente Migration (kann mehrfach laufen)
+- Backend-Bug: Rating-Spalte fehlte auf PROD (manuell gefixt)
+
+### Added - Test-Freigabe-System für PROD-Deployments (deprecated)
 - **🔒 Sicherheits-Feature**: PROD-Deployment nur mit TEST-Freigabe
   - `test-migration.sh` benötigt jetzt Git-Tag als Parameter
   - Baut TEST Container aus Git-Tag (nicht Working Directory)
