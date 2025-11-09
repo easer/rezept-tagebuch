@@ -79,47 +79,19 @@ def api_client(api_base_url, verify_container_running):
 
         def get(self, endpoint, **kwargs):
             url = f"{self.base_url}{endpoint}"
-            response = self.session.get(url, **kwargs)
-            # Auto-parse JSON responses
-            if response.status_code in [200, 201] and response.content:
-                try:
-                    return response.json()
-                except ValueError:
-                    return response
-            return response
+            return self.session.get(url, **kwargs)
 
         def post(self, endpoint, **kwargs):
             url = f"{self.base_url}{endpoint}"
-            response = self.session.post(url, **kwargs)
-            # Auto-parse JSON responses
-            if response.status_code in [200, 201] and response.content:
-                try:
-                    return response.json()
-                except ValueError:
-                    return response
-            return response
+            return self.session.post(url, **kwargs)
 
         def put(self, endpoint, **kwargs):
             url = f"{self.base_url}{endpoint}"
-            response = self.session.put(url, **kwargs)
-            # Auto-parse JSON responses
-            if response.status_code in [200, 201] and response.content:
-                try:
-                    return response.json()
-                except ValueError:
-                    return response
-            return response
+            return self.session.put(url, **kwargs)
 
         def delete(self, endpoint, **kwargs):
             url = f"{self.base_url}{endpoint}"
-            response = self.session.delete(url, **kwargs)
-            # Auto-parse JSON responses for DELETE (some APIs return data)
-            if response.status_code in [200, 201, 204] and response.content:
-                try:
-                    return response.json()
-                except ValueError:
-                    return response
-            return response
+            return self.session.delete(url, **kwargs)
 
     return APIClient(api_base_url)
 

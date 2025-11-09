@@ -15,10 +15,11 @@ import pytest
 def test_create_diary_entry_with_rating(api_client, cleanup_test_diary_entries):
     """Test: Diary Entry mit Rating erstellen"""
     # Recipe erstellen
-    recipe = api_client.post('/api/recipes', json={
+    recipe_response = api_client.post('/api/recipes', json={
         'title': 'Test Recipe for Rating',
         'user_id': 1
     })
+    recipe = recipe_response.json()
     assert recipe['id'] is not None
 
     # Diary Entry mit Rating erstellen
@@ -31,7 +32,8 @@ def test_create_diary_entry_with_rating(api_client, cleanup_test_diary_entries):
         'user_id': 1
     }
 
-    entry = api_client.post('/api/diary', json=entry_data)
+    entry_response = api_client.post('/api/diary', json=entry_data)
+    entry = entry_response.json()
 
     assert entry['id'] is not None
     assert entry['rating'] == 5
@@ -51,7 +53,8 @@ def test_create_diary_entry_without_rating(api_client, cleanup_test_diary_entrie
         'user_id': 1
     }
 
-    entry = api_client.post('/api/diary', json=entry_data)
+    entry_response = api_client.post('/api/diary', json=entry_data)
+    entry = entry_response.json()
 
     assert entry['id'] is not None
     assert entry['rating'] is None
@@ -64,28 +67,31 @@ def test_create_diary_entry_without_rating(api_client, cleanup_test_diary_entrie
 def test_update_diary_entry_rating(api_client, cleanup_test_diary_entries):
     """Test: Rating von Diary Entry aktualisieren"""
     # Diary Entry ohne Rating erstellen
-    entry = api_client.post('/api/diary', json={
+    entry_response = api_client.post('/api/diary', json={
         'dish_name': 'Test Dish Update',
         'date': '2025-11-09',
         'notes': 'Test',
         'user_id': 1
     })
+    entry = entry_response.json()
 
     assert entry['rating'] is None
     entry_id = entry['id']
     cleanup_test_diary_entries.append(entry_id)
 
     # Rating hinzufügen
-    updated = api_client.put(f'/api/diary/{entry_id}', json={
+    updated_response = api_client.put(f'/api/diary/{entry_id}', json={
         'rating': 4
     })
+    updated = updated_response.json()
 
     assert updated['rating'] == 4
 
     # Rating ändern
-    updated2 = api_client.put(f'/api/diary/{entry_id}', json={
+    updated2_response = api_client.put(f'/api/diary/{entry_id}', json={
         'rating': 5
     })
+    updated2 = updated2_response.json()
 
     assert updated2['rating'] == 5
 
@@ -94,18 +100,20 @@ def test_update_diary_entry_rating(api_client, cleanup_test_diary_entries):
 def test_get_diary_entry_includes_rating(api_client, cleanup_test_diary_entries):
     """Test: GET /api/diary gibt Rating zurück"""
     # Diary Entry mit Rating erstellen
-    entry = api_client.post('/api/diary', json={
+    entry_response = api_client.post('/api/diary', json={
         'dish_name': 'Test Dish Get',
         'date': '2025-11-09',
         'rating': 3,
         'user_id': 1
     })
+    entry = entry_response.json()
 
     entry_id = entry['id']
     cleanup_test_diary_entries.append(entry_id)
 
     # Einzelnen Entry abrufen
-    fetched = api_client.get(f'/api/diary/{entry_id}')
+    fetched_response = api_client.get(f'/api/diary/{entry_id}')
+    fetched = fetched_response.json()
 
     assert fetched['rating'] == 3
     assert fetched['id'] == entry_id
@@ -115,24 +123,27 @@ def test_get_diary_entry_includes_rating(api_client, cleanup_test_diary_entries)
 def test_list_diary_entries_includes_rating(api_client, cleanup_test_diary_entries):
     """Test: GET /api/diary Liste enthält Rating"""
     # Mehrere Entries mit verschiedenen Ratings
-    entry1 = api_client.post('/api/diary', json={
+    entry1_response = api_client.post('/api/diary', json={
         'dish_name': 'Test 1',
         'date': '2025-11-09',
         'rating': 5,
         'user_id': 1
     })
+    entry1 = entry1_response.json()
 
-    entry2 = api_client.post('/api/diary', json={
+    entry2_response = api_client.post('/api/diary', json={
         'dish_name': 'Test 2',
         'date': '2025-11-09',
         'rating': None,
         'user_id': 1
     })
+    entry2 = entry2_response.json()
 
     cleanup_test_diary_entries.extend([entry1['id'], entry2['id']])
 
     # Liste abrufen
-    entries = api_client.get('/api/diary')
+    entries_response = api_client.get('/api/diary')
+    entries = entries_response.json()
 
     assert isinstance(entries, list)
 
@@ -154,12 +165,13 @@ def test_rating_validation_range(api_client, cleanup_test_diary_entries):
     """Test: Rating sollte zwischen 1 und 5 sein (Backend-Validierung optional)"""
     # Valides Rating (1-5)
     for rating in [1, 2, 3, 4, 5]:
-        entry = api_client.post('/api/diary', json={
+        entry_response = api_client.post('/api/diary', json={
             'dish_name': f'Test Rating {rating}',
             'date': '2025-11-09',
             'rating': rating,
             'user_id': 1
         })
+        entry = entry_response.json()
 
         assert entry['rating'] == rating
         cleanup_test_diary_entries.append(entry['id'])
@@ -176,12 +188,13 @@ def test_rating_column_exists_in_diary_entries(api_client):
     """
     # Wenn wir ein Diary Entry mit Rating erstellen können,
     # dann existiert die Spalte
-    entry = api_client.post('/api/diary', json={
+    entry_response = api_client.post('/api/diary', json={
         'dish_name': 'Migration Test',
         'date': '2025-11-09',
         'rating': 4,
         'user_id': 1
     })
+    entry = entry_response.json()
 
     assert 'rating' in entry
     assert entry['rating'] == 4
@@ -200,16 +213,17 @@ def test_rating_migration_from_recipes_to_diary(api_client, cleanup_test_diary_e
     3. User bewertet das Kochereignis
     """
     # Recipe mit Rating erstellen (wie alte Daten)
-    recipe = api_client.post('/api/recipes', json={
+    recipe_response = api_client.post('/api/recipes', json={
         'title': 'Recipe with Rating',
         'rating': 4,  # Altes System: Rating am Recipe
         'user_id': 1
     })
+    recipe = recipe_response.json()
 
     assert recipe['rating'] == 4
 
     # User kocht das Recipe (neues System: Rating am Diary Entry)
-    entry = api_client.post('/api/diary', json={
+    entry_response = api_client.post('/api/diary', json={
         'recipe_id': recipe['id'],
         'dish_name': 'Gekochtes Rezept',
         'date': '2025-11-09',
@@ -217,12 +231,13 @@ def test_rating_migration_from_recipes_to_diary(api_client, cleanup_test_diary_e
         'rating': 5,  # Neues System: Rating am Diary Entry
         'user_id': 1
     })
+    entry = entry_response.json()
 
     assert entry['rating'] == 5  # Diary Entry hat eigenes Rating
     assert entry['recipe_id'] == recipe['id']
 
     # User kocht nochmal - andere Bewertung
-    entry2 = api_client.post('/api/diary', json={
+    entry2_response = api_client.post('/api/diary', json={
         'recipe_id': recipe['id'],
         'dish_name': 'Gekochtes Rezept (2. Mal)',
         'date': '2025-11-10',
@@ -230,6 +245,7 @@ def test_rating_migration_from_recipes_to_diary(api_client, cleanup_test_diary_e
         'rating': 3,  # Neues System: Jedes Kochereignis eigene Bewertung
         'user_id': 1
     })
+    entry2 = entry2_response.json()
 
     assert entry2['rating'] == 3
     assert entry2['recipe_id'] == recipe['id']
