@@ -1,0 +1,13 @@
+[Unit]
+Description=Rezept Tagebuch Daily Migusto Import (Random Preset)
+After=network.target seaser-rezept-tagebuch.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/home/gabor/easer_projekte/rezept-tagebuch/.env
+ExecStart=/home/gabor/easer_projekte/rezept-tagebuch/scripts/daily-migusto-import.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

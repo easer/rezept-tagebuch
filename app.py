@@ -90,7 +90,7 @@ def index():
 
 @app.route('/api/recipe-format-config.json')
 def recipe_format_config():
-    return send_from_directory('.', 'recipe-format-config.json')
+    return send_from_directory('config', 'recipe-format-config.json')
 
 # ============================================================================
 # User API Endpoints
@@ -1097,6 +1097,279 @@ def daily_recipe_import():
         db.session.rollback()
         print(f"Daily import failed: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/recipes/import-migusto', methods=['POST'])
+def import_recipe_from_migusto():
+    """
+    Import a recipe from Migusto URL using intelligent scraping
+
+    Request Body:
+        {
+            "url": "https://migusto.migros.ch/de/rezepte/cheezza",
+            "user_id": 1  (optional, defaults to import user)
+        }
+
+    Returns:
+        {
+            "success": true,
+            "recipe_id": 123,
+            "title": "Cheezza",
+            "source": "schema.org",
+            "url": "https://..."
+        }
+    """
+    try:
+        from recipe_scraper import scrape_recipe_from_url, format_recipe_for_db
+
+        data = request.json
+        url = data.get('url')
+        user_id = data.get('user_id')
+
+        if not url:
+            return jsonify({'error': 'URL is required'}), 400
+
+        # 1. Scrape recipe from URL
+        print(f"🔍 Importing recipe from: {url}")
+        scraped_data = scrape_recipe_from_url(url)
+
+        if not scraped_data.get('title'):
+            return jsonify({'error': 'Could not extract recipe from URL'}), 400
+
+        # 2. Format for database
+        formatted_data = format_recipe_for_db(scraped_data, source_url=url)
+
+        # 3. Download image if URL provided
+        image_filename = None
+        image_url = formatted_data.get('image')
+
+        if image_url and image_url.startswith('http'):
+            try:
+                img_response = requests.get(image_url, timeout=10, stream=True)
+                img_response.raise_for_status()
+
+                # Generate unique filename
+                ext = image_url.split('.')[-1].split('?')[0][:4]  # Get extension
+                if ext not in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
+                    ext = 'jpg'
+                image_filename = f"{uuid.uuid4()}.{ext}"
+                image_path = os.path.join(UPLOAD_FOLDER, image_filename)
+
+                # Save image
+                with open(image_path, 'wb') as f:
+                    shutil.copyfileobj(img_response.raw, f)
+
+                print(f"📷 Image downloaded: {image_filename}")
+            except Exception as e:
+                print(f"⚠️ Image download failed: {e}")
+                image_filename = None
+
+        # 4. Get user ID
+        if not user_id:
+            # Use import user
+            import_user = User.query.filter_by(email='import@seaser.local').first()
+            user_id = import_user.id if import_user else 1
+
+        # 5. Save to database
+        recipe = Recipe(
+            title=formatted_data['title'],
+            image=image_filename,
+            notes=formatted_data['notes'],
+            duration=formatted_data.get('duration'),
+            rating=formatted_data.get('rating'),
+            user_id=user_id,
+            auto_imported=True
+        )
+        db.session.add(recipe)
+        db.session.commit()
+
+        print(f"✅ Recipe imported: {recipe.id} - {recipe.title}")
+
+        return jsonify({
+            'success': True,
+            'recipe_id': recipe.id,
+            'title': recipe.title,
+            'source': scraped_data.get('source', 'unknown'),
+            'url': url,
+            'image': image_filename,
+            'duration': recipe.duration,
+            'ingredients_count': len(scraped_data.get('ingredients', [])),
+            'instructions_count': len(scraped_data.get('instructions', []))
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"URL import failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/recipes/import-migusto-batch', methods=['POST'])
+def import_migusto_batch():
+    """
+    Batch import recipes from Migusto overview page with filters
+
+    Request Body:
+        {
+            "preset": "vegetarische_pasta_familie",  // optional, uses preset from config
+            "filters": ["hauptgericht", "pasta", "vegetarisch"],  // optional, custom filters
+            "max_recipes": 20,  // optional, defaults to config
+            "user_id": 1  // optional
+        }
+
+    Returns:
+        {
+            "success": true,
+            "imported": 15,
+            "failed": 2,
+            "skipped": 3,
+            "recipes": [...]
+        }
+    """
+    try:
+        from recipe_scraper import scrape_recipe_from_url, format_recipe_for_db
+        import time
+
+        data = request.json or {}
+
+        # Load Migusto config
+        config_path = os.path.join(os.path.dirname(__file__), 'config/migusto-import-config.json')
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)['migusto_import_config']
+
+        # Get filters
+        filters = data.get('filters')
+        if not filters:
+            # Use preset
+            preset_name = data.get('preset', config['default_preset'])
+            preset = config['presets'].get(preset_name)
+            if not preset:
+                return jsonify({'error': f'Preset {preset_name} not found'}), 400
+            filters = preset['filters']
+
+        # Build overview URL
+        base_url = config['base_url']
+        overview_path = config['overview_path']
+        filter_string = '-'.join(filters)
+        overview_url = f"{base_url}{overview_path}/{filter_string}"
+
+        print(f"🔍 Fetching recipes from: {overview_url}")
+
+        # Fetch overview page
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(overview_url, headers=headers, timeout=15)
+        response.raise_for_status()
+
+        # Extract recipe links
+        import re
+        pattern = r'href="(/de/rezepte/[a-z0-9-]+)"'
+        matches = re.findall(pattern, response.text)
+        unique_links = list(set(matches))
+
+        max_recipes = data.get('max_recipes', config.get('max_recipes_per_import', 50))
+        recipe_urls = [f"{base_url}{link}" for link in unique_links[:max_recipes]]
+
+        print(f"📋 Found {len(recipe_urls)} recipes to import")
+
+        # Import each recipe
+        user_id = data.get('user_id')
+        if not user_id:
+            import_user = User.query.filter_by(email='import@seaser.local').first()
+            user_id = import_user.id if import_user else 1
+
+        imported_recipes = []
+        failed_recipes = []
+        skipped_recipes = []
+        delay_ms = config.get('delay_between_imports_ms', 2000)
+
+        for i, recipe_url in enumerate(recipe_urls, 1):
+            try:
+                recipe_slug = recipe_url.split('/')[-1]
+
+                # Check if already imported
+                existing = Recipe.query.filter_by(title=recipe_slug).first()
+                if existing:
+                    print(f"⏭️  [{i}/{len(recipe_urls)}] Skipped (exists): {recipe_slug}")
+                    skipped_recipes.append({'url': recipe_url, 'reason': 'already_exists'})
+                    continue
+
+                print(f"🔍 [{i}/{len(recipe_urls)}] Importing: {recipe_slug}")
+
+                # Scrape recipe
+                scraped_data = scrape_recipe_from_url(recipe_url)
+
+                if not scraped_data.get('title'):
+                    failed_recipes.append({'url': recipe_url, 'error': 'no_title'})
+                    continue
+
+                # Format for database
+                formatted_data = format_recipe_for_db(scraped_data, source_url=recipe_url)
+
+                # Download image
+                image_filename = None
+                image_url = formatted_data.get('image')
+                if image_url and image_url.startswith('http'):
+                    try:
+                        img_response = requests.get(image_url, timeout=10, stream=True)
+                        img_response.raise_for_status()
+                        ext = image_url.split('.')[-1].split('?')[0][:4]
+                        if ext not in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
+                            ext = 'jpg'
+                        image_filename = f"{uuid.uuid4()}.{ext}"
+                        image_path = os.path.join(UPLOAD_FOLDER, image_filename)
+                        with open(image_path, 'wb') as f:
+                            shutil.copyfileobj(img_response.raw, f)
+                    except:
+                        pass
+
+                # Save to database
+                recipe = Recipe(
+                    title=formatted_data['title'],
+                    image=image_filename,
+                    notes=formatted_data['notes'],
+                    duration=formatted_data.get('duration'),
+                    rating=formatted_data.get('rating'),
+                    user_id=user_id,
+                    auto_imported=True
+                )
+                db.session.add(recipe)
+                db.session.commit()
+
+                imported_recipes.append({
+                    'id': recipe.id,
+                    'title': recipe.title,
+                    'url': recipe_url
+                })
+
+                print(f"✅ [{i}/{len(recipe_urls)}] Imported: {recipe.title}")
+
+                # Delay zwischen Requests
+                if i < len(recipe_urls):
+                    time.sleep(delay_ms / 1000.0)
+
+            except Exception as e:
+                print(f"❌ [{i}/{len(recipe_urls)}] Failed: {recipe_url} - {e}")
+                failed_recipes.append({'url': recipe_url, 'error': str(e)})
+                db.session.rollback()
+
+        return jsonify({
+            'success': True,
+            'imported': len(imported_recipes),
+            'failed': len(failed_recipes),
+            'skipped': len(skipped_recipes),
+            'total_found': len(recipe_urls),
+            'filters': filters,
+            'overview_url': overview_url,
+            'recipes': imported_recipes,
+            'failed_details': failed_recipes if failed_recipes else None
+        })
+
+    except Exception as e:
+        print(f"Batch import failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/recipes/cleanup-old-imports', methods=['POST'])
 def cleanup_old_imports():

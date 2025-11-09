@@ -2,8 +2,24 @@
 
 Eine Flask-basierte Web-App zum Verwalten von Rezepten und Tagebucheinträgen.
 
-**Version:** v25.11.04
+**Version:** v25.11.09
 **Stand:** November 2025
+
+## ✨ Neu in v25.11.09
+
+**Migusto.ch Integration:**
+- 🇨🇭 Automatischer Import von Schweizer Rezepten (Migusto.ch)
+- 🔄 Täglicher Batch-Import mit konfigurierbaren Presets
+- 📋 Schema.org JSON-LD Parsing für strukturierte Daten
+- ⏰ Systemd Timer: Täglich um 07:00 Uhr
+- 🖼️ Automatischer Bild-Download
+
+**Bug Fixes:**
+- ⏱️ Duration-Konvertierung (Minuten → Stunden)
+- 🌍 Timezone-Fix (UTC mit Z-Suffix)
+- 📁 Volume-Mount korrigiert für Bilder
+- 🔧 Frontend Parser-Config Endpoint
+- 🐛 Recipe Scraper 're' import Bug
 
 ---
 
@@ -235,6 +251,62 @@ Flexibler Wrapper für täglichen Rezept-Import mit Retry-Logik.
 **Siehe auch:**
 - `systemd/README.md` - Systemd Service Konfiguration
 - `docs/THEMEALDB-CONFIG.md` - Import-Strategien und API
+
+#### daily-migusto-import.sh
+
+Täglicher Import von Migusto.ch Rezepten mit konfigurierbaren Presets.
+
+```bash
+./scripts/daily-migusto-import.sh [preset_name]
+```
+
+**Features:**
+- Preset-basiert: Verwendet vorkonfigurierte Filter-Kombinationen
+- Batch-Import: Importiert 1 zufälliges Rezept aus Preset
+- Schema.org Parsing: Extrahiert strukturierte Rezeptdaten
+- Smart Duration: Konvertiert PT-Format zu Stunden
+- Cleanup: Entfernt alte Auto-Imports nach Erfolg
+
+**Beispiele:**
+```bash
+# Vegetarische Pasta für Familien (Standard bei Random-Auswahl)
+./scripts/daily-migusto-import.sh vegetarische_pasta_familie
+
+# Vegane Hauptgerichte
+./scripts/daily-migusto-import.sh vegane_hauptgerichte
+
+# Schnelle Familiengerichte
+./scripts/daily-migusto-import.sh schnelle_familiengerichte
+
+# Zufälliges Preset (wird automatisch gewählt)
+./scripts/daily-migusto-import.sh
+```
+
+**Verfügbare Presets (config/migusto-import-config.json):**
+- `vegetarische_pasta_familie`: Vegetarisch + Pasta + Familie + Schnell
+- `vegane_hauptgerichte`: Vegane Hauptgerichte
+- `schnelle_familiengerichte`: Schnell + Familie + Hauptgericht
+
+**API Endpoints:**
+- Single Import: `POST /api/recipes/import-migusto` - Import einzelnes Rezept via URL
+- Batch Import: `POST /api/recipes/import-migusto-batch` - Import aus Overview-Seite
+
+**Was passiert:**
+1. Script wählt Preset (Random oder Parameter)
+2. Ruft `/api/recipes/import-migusto-batch` mit max_recipes=1
+3. Backend scrapt Migusto Overview-Seite für Filter
+4. Importiert 1 zufälliges Rezept
+5. Lädt Bild herunter (falls vorhanden)
+6. Führt Cleanup alter Imports durch
+
+**Systemd Timer:**
+- Service: `rezept-daily-migusto-import.service`
+- Timer: `rezept-daily-migusto-import.timer`
+- Zeitplan: Täglich um **07:00 Uhr** (1 Stunde nach TheMealDB)
+
+**Siehe auch:**
+- `config/migusto-import-config.json` - Preset-Konfiguration
+- `recipe_scraper.py` - HTML/Schema.org Parser
 
 ### Deployment Scripts
 

@@ -64,9 +64,9 @@ class Recipe(db.Model):
             'user_avatar_color': self.user.avatar_color if self.user else None,
             'is_system': self.is_system,
             'auto_imported': self.auto_imported,
-            'erstellt_am': self.erstellt_am.isoformat() if self.erstellt_am else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'erstellt_am': self.erstellt_am.isoformat() + 'Z' if self.erstellt_am else None,
+            'created_at': self.created_at.isoformat() + 'Z' if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() + 'Z' if self.updated_at else None
         }
 
 

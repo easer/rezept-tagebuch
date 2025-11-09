@@ -1,0 +1,38 @@
+{
+  "migusto_import_config": {
+    "base_url": "https://migusto.migros.ch",
+    "overview_path": "/de/rezept-uebersicht",
+    "filters": {
+      "hauptgericht": "hauptgericht",
+      "schnell_einfach": "schnelleinfach",
+      "familien_kinder": "familienkinder",
+      "pasta": "pasta",
+      "vegetarisch": "vegetarisch",
+      "vegan": "vegan",
+      "dessert": "dessert",
+      "backen": "backen",
+      "salat": "salat",
+      "suppe": "suppe"
+    },
+    "presets": {
+      "vegetarische_pasta_familie": {
+        "name": "Vegetarische Pasta für Familien",
+        "filters": ["familienkinder", "hauptgericht", "pasta", "schnelleinfach", "vegetarisch"],
+        "description": "Schnelle vegetarische Pasta-Rezepte für die ganze Familie"
+      },
+      "vegane_hauptgerichte": {
+        "name": "Vegane Hauptgerichte",
+        "filters": ["hauptgericht", "vegan"],
+        "description": "Vegane Hauptgerichte"
+      },
+      "schnelle_familiengerichte": {
+        "name": "Schnelle Familiengerichte",
+        "filters": ["familienkinder", "hauptgericht", "schnelleinfach"],
+        "description": "Schnelle und einfache Gerichte für Familien"
+      }
+    },
+    "default_preset": "vegetarische_pasta_familie",
+    "max_recipes_per_import": 50,
+    "delay_between_imports_ms": 2000
+  }
+}

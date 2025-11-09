@@ -20,8 +20,11 @@
       "patterns": [
         "^🌍\\s*Quelle:",
         "^📖\\s*Original:",
+        "^📖\\s*URL:",
         "^🏷️\\s*Kategorie:",
         "^🌎\\s*Region:",
+        "^👥\\s*Portionen:",
+        "^📋\\s*Methode:",
         "^🤖\\s*Übersetzt",
         "^─{5,}"
       ],

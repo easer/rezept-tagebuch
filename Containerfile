@@ -12,9 +12,11 @@ COPY app.py .
 COPY app_new.py .
 COPY models.py .
 COPY config.py .
+COPY recipe_scraper.py .
 COPY index.html .
-COPY config/recipe-format-config.json .
-COPY config/themealdb-config.json .
+COPY config/recipe-format-config.json config/
+COPY config/themealdb-config.json config/
+COPY config/migusto-import-config.json config/
 COPY migrations/ migrations/
 COPY tests/ tests/
 COPY pytest.ini .
