@@ -90,6 +90,7 @@ def upgrade() -> None:
             sa.Column('date', sa.Date(), nullable=False),
             sa.Column('notes', sa.Text(), nullable=True),
             sa.Column('images', sa.Text(), nullable=True),
+            sa.Column('rating', sa.Integer(), nullable=True),
             sa.Column('dish_name', sa.Text(), nullable=True),
             sa.Column('user_id', sa.Integer(), nullable=True),
             sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
