@@ -42,7 +42,7 @@ class Recipe(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     is_system = db.Column(db.Boolean, default=False)
     auto_imported = db.Column(db.Boolean, default=False)
-    imported_at = db.Column(db.Date)
+    erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -64,7 +64,7 @@ class Recipe(db.Model):
             'user_avatar_color': self.user.avatar_color if self.user else None,
             'is_system': self.is_system,
             'auto_imported': self.auto_imported,
-            'imported_at': self.imported_at.isoformat() if self.imported_at else None,
+            'erstellt_am': self.erstellt_am.isoformat() if self.erstellt_am else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

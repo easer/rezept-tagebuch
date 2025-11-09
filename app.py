@@ -1064,8 +1064,8 @@ def daily_recipe_import():
             image=image_filename,
             notes=notes,
             user_id=import_user_id,
-            auto_imported=True,
-            imported_at=date.today()
+            auto_imported=True
+            # erstellt_am wird automatisch gesetzt durch DB-Default (CURRENT_TIMESTAMP)
         )
         db.session.add(recipe)
         db.session.commit()
@@ -1080,7 +1080,7 @@ def daily_recipe_import():
             'filter_value': value,
             'category': category,
             'area': area,
-            'imported_at': date.today().isoformat()
+            'erstellt_am': recipe.erstellt_am.isoformat() if recipe.erstellt_am else None
         })
 
     except Exception as e:
@@ -1097,7 +1097,7 @@ def cleanup_old_imports():
 
         old_recipes = Recipe.query.filter(
             Recipe.auto_imported == True,
-            Recipe.imported_at < cutoff_date
+            Recipe.erstellt_am < cutoff_date
         ).filter(
             ~Recipe.diary_entries.any()
         ).all()
