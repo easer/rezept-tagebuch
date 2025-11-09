@@ -105,6 +105,7 @@ class DiaryEntry(db.Model):
     date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.Text)
     images = db.Column(db.Text)  # JSON array as text
+    rating = db.Column(db.Integer)  # Bewertung pro Tagebuch-Eintrag (1-5 Sterne)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -121,6 +122,7 @@ class DiaryEntry(db.Model):
             'date': self.date.isoformat() if self.date else None,
             'notes': self.notes,
             'images': self.images,
+            'rating': self.rating,
             'user_id': self.user_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

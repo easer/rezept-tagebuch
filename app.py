@@ -525,7 +525,8 @@ def create_diary_entry():
             date=datetime.fromisoformat(data.get('date')).date() if data.get('date') else None,
             notes=data.get('notes'),
             images=images_json,
-            dish_name=data.get('dish_name')
+            dish_name=data.get('dish_name'),
+            rating=data.get('rating')
         )
         db.session.add(entry)
         db.session.commit()
@@ -602,6 +603,7 @@ def update_diary_entry(entry_id):
         entry.notes = data.get('notes')
         entry.images = images_json
         entry.dish_name = data.get('dish_name')
+        entry.rating = data.get('rating')
         entry.updated_at = datetime.utcnow()
 
         db.session.commit()

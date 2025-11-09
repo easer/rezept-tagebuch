@@ -4228,6 +4228,7 @@
                         ${firstImage ? `<img src="${API_BASE}/uploads/${firstImage}" class="recipe-thumbnail" alt="${entry.dish_name || entry.recipe_title || 'Ohne Name'}">` : ''}
                     </div>
                     <div class="recipe-date">${formatDate(entry.date)}</div>
+                    ${entry.rating ? `<div class="recipe-rating">${'★'.repeat(entry.rating)}${'☆'.repeat(5 - entry.rating)}</div>` : ''}
                 </div>
                 `;
             }).join('');
@@ -4263,6 +4264,12 @@
                 <div class="detail-row">
                     <div class="detail-label">Notizen</div>
                     <div class="detail-value">${entry.notes}</div>
+                </div>
+                ` : ''}
+                ${entry.rating ? `
+                <div class="detail-row">
+                    <div class="detail-label">Bewertung</div>
+                    <div class="detail-rating">${'★'.repeat(entry.rating)}${'☆'.repeat(5 - entry.rating)}</div>
                 </div>
                 ` : ''}
                 ${entry.recipe_image ? `
@@ -4329,6 +4336,17 @@
                         <textarea id="entry-notes" placeholder="Wie war das Essen? Besonderheiten?"></textarea>
                     </div>
                     <div class="form-group">
+                        <label>Bewertung</label>
+                        <input type="hidden" id="entry-rating" value="">
+                        <div class="star-rating" id="diary-star-rating">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                            <span class="star" data-value="4">★</span>
+                            <span class="star" data-value="5">★</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label>Bilder</label>
                         <input type="file" id="entry-images" multiple accept="image/*" onchange="previewDiaryImages(event)">
                     </div>
@@ -4342,6 +4360,11 @@
             `;
 
             openPanel();
+
+            // Star rating für Tagebuch initialisieren
+            setTimeout(() => {
+                initDiaryStarRating();
+            }, 100);
         }
 
         // Panel zum Bearbeiten eines Eintrags anzeigen
@@ -4386,6 +4409,17 @@
                         <textarea id="entry-notes">${entry.notes || ''}</textarea>
                     </div>
                     <div class="form-group">
+                        <label>Bewertung</label>
+                        <input type="hidden" id="entry-rating" value="${entry.rating || ''}">
+                        <div class="star-rating" id="diary-star-rating">
+                            <span class="star ${entry.rating >= 1 ? 'active' : ''}" data-value="1">★</span>
+                            <span class="star ${entry.rating >= 2 ? 'active' : ''}" data-value="2">★</span>
+                            <span class="star ${entry.rating >= 3 ? 'active' : ''}" data-value="3">★</span>
+                            <span class="star ${entry.rating >= 4 ? 'active' : ''}" data-value="4">★</span>
+                            <span class="star ${entry.rating >= 5 ? 'active' : ''}" data-value="5">★</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label>Bilder</label>
                         <input type="file" id="entry-images" multiple accept="image/*" onchange="previewDiaryImages(event)">
                     </div>
@@ -4409,6 +4443,11 @@
             `;
 
             openPanel();
+
+            // Star rating für Tagebuch initialisieren
+            setTimeout(() => {
+                initDiaryStarRating();
+            }, 100);
         }
 
         // Rezeptname automatisch in Name-Feld eintragen
@@ -4428,6 +4467,30 @@
                 }
             }
             // Wenn kein Rezept ausgewählt: Feld leer lassen oder bestehenden Wert behalten
+        }
+
+        // Sterne-Bewertung für Tagebuch-Einträge initialisieren
+        function initDiaryStarRating() {
+            const stars = document.querySelectorAll('#diary-star-rating .star');
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    const rating = this.getAttribute('data-value');
+                    document.getElementById('entry-rating').value = rating;
+                    updateDiaryStarDisplay(rating);
+                });
+            });
+        }
+
+        function updateDiaryStarDisplay(rating) {
+            const stars = document.querySelectorAll('#diary-star-rating .star');
+            stars.forEach(star => {
+                const starValue = star.getAttribute('data-value');
+                if (starValue <= rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
         }
 
         // Globale Variable für ausgewählte neue Bilder
@@ -4606,12 +4669,15 @@
                 }
             }
 
+            const rating = document.getElementById('entry-rating')?.value;
+
             const entryData = {
                 recipe_id: recipeId || null,
                 dish_name: dishName,
                 date,
                 notes,
                 images,
+                rating: rating ? parseInt(rating) : null,
                 user_id: currentUser.id
             };
 
