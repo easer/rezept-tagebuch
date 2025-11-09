@@ -79,19 +79,47 @@ def api_client(api_base_url, verify_container_running):
 
         def get(self, endpoint, **kwargs):
             url = f"{self.base_url}{endpoint}"
-            return self.session.get(url, **kwargs)
+            response = self.session.get(url, **kwargs)
+            # Auto-parse JSON responses
+            if response.status_code in [200, 201] and response.content:
+                try:
+                    return response.json()
+                except ValueError:
+                    return response
+            return response
 
         def post(self, endpoint, **kwargs):
             url = f"{self.base_url}{endpoint}"
-            return self.session.post(url, **kwargs)
+            response = self.session.post(url, **kwargs)
+            # Auto-parse JSON responses
+            if response.status_code in [200, 201] and response.content:
+                try:
+                    return response.json()
+                except ValueError:
+                    return response
+            return response
 
         def put(self, endpoint, **kwargs):
             url = f"{self.base_url}{endpoint}"
-            return self.session.put(url, **kwargs)
+            response = self.session.put(url, **kwargs)
+            # Auto-parse JSON responses
+            if response.status_code in [200, 201] and response.content:
+                try:
+                    return response.json()
+                except ValueError:
+                    return response
+            return response
 
         def delete(self, endpoint, **kwargs):
             url = f"{self.base_url}{endpoint}"
-            return self.session.delete(url, **kwargs)
+            response = self.session.delete(url, **kwargs)
+            # Auto-parse JSON responses for DELETE (some APIs return data)
+            if response.status_code in [200, 201, 204] and response.content:
+                try:
+                    return response.json()
+                except ValueError:
+                    return response
+            return response
 
     return APIClient(api_base_url)
 
@@ -117,10 +145,8 @@ def cleanup_test_diary_entries(api_client):
     """Cleanup fixture - stores created diary entry IDs and deletes them after test"""
     created_ids = []
 
-    def add_entry_id(entry_id):
-        created_ids.append(entry_id)
-
-    yield add_entry_id
+    # Return the list itself so tests can use .append() and .extend()
+    yield created_ids
 
     # Cleanup after test
     for entry_id in created_ids:
