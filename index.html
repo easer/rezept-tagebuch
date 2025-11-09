@@ -2658,7 +2658,6 @@
                     </div>
                     ${hasMeta ? `<div class="recipe-meta">
                         ${recipe.duration ? `<div class="recipe-duration">⏱️ ${formatDuration(recipe.duration)}</div>` : ''}
-                        ${recipe.rating ? `<div class="recipe-rating">${'★'.repeat(recipe.rating)}${'☆'.repeat(5 - recipe.rating)}</div>` : ''}
                     </div>` : ''}
                 </div>
                 `;
@@ -2990,13 +2989,6 @@
                     </div>
                 ` : ''}
 
-                ${recipe.rating ? `
-                    <div class="detail-section">
-                        <div class="detail-label">Bewertung</div>
-                        <div class="detail-rating">${'★'.repeat(recipe.rating)}${'☆'.repeat(5 - recipe.rating)}</div>
-                    </div>
-                ` : ''}
-
                 ${documentHtml}
 
                 ${parsedNotes ? `
@@ -3064,18 +3056,6 @@
                             <option value="5" ${isEdit && recipe.duration == 5 ? 'selected' : ''}>5 Stunden</option>
                             <option value="6" ${isEdit && recipe.duration == 6 ? 'selected' : ''}>6 Stunden</option>
                         </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>BEWERTUNG</label>
-                        <input type="hidden" id="recipe-rating" value="${isEdit && recipe.rating ? recipe.rating : ''}">
-                        <div class="star-rating" id="star-rating">
-                            <span class="star ${isEdit && recipe.rating >= 1 ? 'active' : ''}" data-value="1">★</span>
-                            <span class="star ${isEdit && recipe.rating >= 2 ? 'active' : ''}" data-value="2">★</span>
-                            <span class="star ${isEdit && recipe.rating >= 3 ? 'active' : ''}" data-value="3">★</span>
-                            <span class="star ${isEdit && recipe.rating >= 4 ? 'active' : ''}" data-value="4">★</span>
-                            <span class="star ${isEdit && recipe.rating >= 5 ? 'active' : ''}" data-value="5">★</span>
-                        </div>
                     </div>
 
                     <div class="form-group file-group">
@@ -3314,7 +3294,6 @@
                 image: document.getElementById('recipe-image-filename').value,
                 notes: document.getElementById('recipe-notes').value,
                 duration: document.getElementById('recipe-duration').value || null,
-                rating: document.getElementById('recipe-rating').value || null,
                 user_id: currentUser ? currentUser.id : 1  // Fallback to Natalie
             };
 
