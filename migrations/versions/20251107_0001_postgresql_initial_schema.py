@@ -57,7 +57,7 @@ def upgrade() -> None:
             sa.Column('user_id', sa.Integer(), nullable=True),
             sa.Column('is_system', sa.Boolean(), server_default='false', nullable=True),
             sa.Column('auto_imported', sa.Boolean(), server_default='false', nullable=True),
-            sa.Column('imported_at', sa.Date(), nullable=True),
+            sa.Column('erstellt_am', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
             sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
             sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
             sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL'),
