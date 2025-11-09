@@ -1,13 +1,13 @@
 # Git-Tag-basiertes Deployment
 
-> **⚠️ DEPRECATED - Bitte verwende stattdessen [IMPROVED_WORKFLOW.md](./IMPROVED_WORKFLOW.md)**
+> **⚠️ DEPRECATED - Bitte verwende stattdessen [WORKFLOW.md](../WORKFLOW.md)**
 >
 > Dieses Dokument beschreibt den **alten Workflow** ohne TEST-Phase und .test-approvals.
 >
 > Der neue Workflow (seit 09.11.2025) ist:
 > **DEV → TEST (test-migration.sh) → Tag → PROD (deploy-prod.sh)**
 >
-> Siehe: [docs/IMPROVED_WORKFLOW.md](./IMPROVED_WORKFLOW.md)
+> Siehe: [docs/WORKFLOW.md](../WORKFLOW.md)
 
 ---
 
