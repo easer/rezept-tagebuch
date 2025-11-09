@@ -17,6 +17,8 @@ COPY config/recipe-format-config.json .
 COPY config/themealdb-config.json .
 COPY migrations/ migrations/
 COPY alembic.ini .
+COPY alembic-test.ini .
+COPY alembic-prod.ini .
 
 # ENV Variable setzen (NACH den Copies, damit bei Version-Änderung nur dieser Layer neu gebaut wird)
 ENV APP_VERSION=${APP_VERSION}
