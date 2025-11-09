@@ -596,16 +596,22 @@ def update_diary_entry(entry_id):
         if not entry:
             return jsonify({'error': 'Entry not found'}), 404
 
-        # Images as JSON
-        images_json = json.dumps(data.get('images', []))
+        # Update only fields that are present in the request
+        if 'recipe_id' in data:
+            entry.recipe_id = data['recipe_id']
+        if 'date' in data:
+            entry.date = datetime.fromisoformat(data['date']).date()
+        if 'notes' in data:
+            entry.notes = data['notes']
+        if 'images' in data:
+            entry.images = json.dumps(data['images'])
+        if 'dish_name' in data:
+            entry.dish_name = data['dish_name']
+        if 'rating' in data:
+            entry.rating = data['rating']
+        if 'happiness' in data:
+            entry.happiness = data['happiness']
 
-        entry.recipe_id = data.get('recipe_id')
-        entry.date = datetime.fromisoformat(data.get('date')).date() if data.get('date') else None
-        entry.notes = data.get('notes')
-        entry.images = images_json
-        entry.dish_name = data.get('dish_name')
-        entry.rating = data.get('rating')
-        entry.happiness = data.get('happiness')
         entry.updated_at = datetime.utcnow()
 
         db.session.commit()
