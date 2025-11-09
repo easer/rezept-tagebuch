@@ -89,18 +89,19 @@ echo "🚀 Deploying Version: $GIT_TAG"
 echo ""
 
 # 1. Create automatic backup BEFORE deployment (PostgreSQL)
-echo "📦 Step 1/5: Creating database backup..."
+echo "📦 Step 1/6: Creating database backup..."
 echo "  ⚠️  Using PostgreSQL - backup via pg_dump"
-podman exec seaser-postgres pg_dump -U postgres rezepte > "data/prod/backups/rezepte-backup-before-$GIT_TAG.sql" 2>/dev/null || echo "  ℹ️  Backup skipped (PostgreSQL)"
+mkdir -p "$SCRIPT_DIR/../../data/prod/backups"
+podman exec seaser-postgres pg_dump -U postgres rezepte > "$SCRIPT_DIR/../../data/prod/backups/rezepte-backup-before-$GIT_TAG.sql" 2>/dev/null || echo "  ℹ️  Backup skipped (PostgreSQL)"
 echo ""
 
 # 2. Build aus dem exportierten Git-Tag (nicht aus Working Directory!)
-echo "🔨 Step 2/5: Building Image from Git-Tag..."
+echo "🔨 Step 2/6: Building Image from Git-Tag..."
 podman build --build-arg APP_VERSION=$GIT_TAG -t seaser-rezept-tagebuch:$GIT_TAG -f "$TEMP_DIR/Containerfile" "$TEMP_DIR"
 
 # Tag als latest
 echo ""
-echo "🏷️  Step 3/5: Tagging as latest..."
+echo "🏷️  Step 3/6: Tagging as latest..."
 podman tag seaser-rezept-tagebuch:$GIT_TAG seaser-rezept-tagebuch:latest
 
 # 3. Build temporary container for migration
