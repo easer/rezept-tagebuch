@@ -29,4 +29,8 @@ ENV APP_VERSION=${APP_VERSION}
 
 EXPOSE 80
 
-CMD ["python", "app.py"]
+# Use Gunicorn for production-ready WSGI server
+# - 4 workers for parallel request handling
+# - 300s timeout for long-running imports (DeepL translations)
+# - Logs to stdout/stderr for container logging
+CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:80", "--timeout", "300", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info", "app:app"]
