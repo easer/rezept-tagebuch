@@ -3,7 +3,7 @@
 Detaillierte Anleitung für Build, Deployment und Rollback.
 
 **Version:** v25.11.10
-**Stand:** November 2025 (Git-Tag-basiertes Deployment seit v25.11.05, vereinfachte Container-Config seit v25.11.10)
+**Stand:** November 2025 (Git-Tag-basiertes Deployment seit v25.11.05, vereinfachte Container-Config seit v25.11.10, Gunicorn WSGI Server seit v25.11.10)
 
 ---
 
@@ -72,6 +72,78 @@ main Branch → Git-Tag erstellen → Prod Deployment
 
 **Test-Container Lifecycle**: Der Test-Container (`seaser-rezept-tagebuch-test`) startet automatisch wenn `pytest` läuft und stoppt danach wieder. Dies spart Ressourcen, da er nur während Tests benötigt wird. Siehe **tests/README.md** für Details.
 
+### WSGI Server: Gunicorn (seit v25.11.10)
+
+**Warum Gunicorn statt Flask Development Server?**
+
+Die App verwendet **Gunicorn** als produktionsreifer WSGI Server statt dem Flask Development Server:
+
+| Feature | Flask Dev Server | Gunicorn |
+|---------|------------------|----------|
+| Workers | 1 (single-threaded) | 4 (multi-process) |
+| Blocking | JA - blockiert bei langen Requests | NEIN - parallel processing |
+| Production-ready | NEIN | JA |
+| Performance | Niedrig | Hoch |
+| Long-running requests | Blockiert gesamte App | Nur ein Worker blockiert |
+
+**Gunicorn Konfiguration:**
+
+```dockerfile
+CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:80", "--timeout", "300", \
+     "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info", "app:app"]
+```
+
+**Parameter-Erklärung:**
+- `--workers 4`: 4 Worker-Prozesse für parallele Request-Verarbeitung
+- `--bind 0.0.0.0:80`: Container lauscht auf Port 80 für alle Interfaces
+- `--timeout 300`: 5 Minuten Timeout für lange DeepL-API-Übersetzungen
+- `--access-logfile -`: Access-Logs nach stdout (für `podman logs`)
+- `--error-logfile -`: Error-Logs nach stderr (für `podman logs`)
+- `--log-level info`: Info-Level Logging
+- `app:app`: Flask-App aus `app.py`
+
+**Use Case: TheMealDB Import mit DeepL**
+
+Ein TheMealDB-Import mit DeepL-Übersetzung dauert ~30-40 Sekunden:
+- Titel übersetzen (~5s)
+- Anleitung übersetzen (~10s)
+- 15-20 Zutaten einzeln übersetzen (~15-20s)
+
+**Mit Flask Dev Server:**
+- Import startet → Server blockiert
+- Alle anderen Requests müssen warten
+- UI wirkt "eingefroren"
+
+**Mit Gunicorn (4 Workers):**
+- Import läuft auf Worker 1
+- Andere Requests werden von Worker 2-4 bedient
+- UI bleibt responsiv
+- Mehrere Imports können parallel laufen
+
+**Gunicorn Logs prüfen:**
+
+```bash
+# Container-Startup-Logs zeigen Worker-Start
+podman logs seaser-rezept-tagebuch | head -10
+
+# Ausgabe:
+# [2025-11-10 21:11:58 +0000] [1] [INFO] Starting gunicorn 21.2.0
+# [2025-11-10 21:11:58 +0000] [1] [INFO] Using worker: sync
+# [2025-11-10 21:11:58 +0000] [2] [INFO] Booting worker with pid: 2
+# [2025-11-10 21:11:58 +0000] [3] [INFO] Booting worker with pid: 3
+# [2025-11-10 21:11:58 +0000] [4] [INFO] Booting worker with pid: 4
+# [2025-11-10 21:11:58 +0000] [5] [INFO] Booting worker with pid: 5
+```
+
+**Dependencies:**
+
+In `requirements.txt`:
+```
+gunicorn==21.2.0
+```
+
+**Wichtig:** Gunicorn wird in **allen Umgebungen** verwendet (DEV/TEST/PROD). Der Flask Development Server (`python app.py`) wird nicht mehr genutzt.
+
 ---
 
 ## 🚀 Deployment-Workflows
@@ -86,29 +158,48 @@ main Branch → Git-Tag erstellen → Prod Deployment
 **Container Start-Commands:**
 
 ```bash
-# PROD (keine Environment Variables)
+# PROD (mit optionalem DeepL API Key)
 podman run -d \
   --name seaser-rezept-tagebuch \
   --network seaser-network \
+  -e DEEPL_API_KEY="$DEEPL_KEY" \
   -v "$PROJECT_ROOT/data/prod/uploads:/data/uploads:Z" \
   seaser-rezept-tagebuch:latest
 
-# DEV (nur DEV_MODE)
+# DEV (mit DEV_MODE und optionalem DeepL API Key)
 podman run -d \
   --name seaser-rezept-tagebuch-dev \
   --network seaser-network \
   -e DEV_MODE=true \
+  -e DEEPL_API_KEY="$DEEPL_KEY" \
   -v "$PROJECT_ROOT/data/dev/uploads:/data/dev/uploads:Z" \
   seaser-rezept-tagebuch:dev
 
-# TEST (nur TESTING_MODE)
+# TEST (mit TESTING_MODE und optionalem DeepL API Key)
 podman run -d \
   --name seaser-rezept-tagebuch-test \
   --network seaser-network \
   -e TESTING_MODE=true \
+  -e DEEPL_API_KEY="$DEEPL_KEY" \
   -v "$PROJECT_ROOT/data/test/uploads:/data/test/uploads:Z" \
   seaser-rezept-tagebuch:test
 ```
+
+**DeepL API Key Konfiguration (seit v25.11.10):**
+
+Der DeepL API Key wird aus `.env` im Projekt-Root geladen:
+
+```bash
+# .env Datei
+DEEPL_API_KEY=a35ce617-15e4-46b2-8e99-a97bd1e6a853:fx
+```
+
+Alle Deployment-Scripts laden den Key automatisch:
+- `scripts/deployment/build-dev.sh` → DEV Container
+- `scripts/deployment/deploy-prod.sh` → PROD Container
+- `scripts/database/test-migration.sh` → TEST Container
+
+**Wichtig:** `.env` ist in `.gitignore` und wird **nicht** committet. Jede Umgebung benötigt ihre eigene `.env` Datei.
 
 **Was config.py automatisch setzt:**
 - PROD: `seaser-postgres:5432/rezepte`
@@ -197,11 +288,14 @@ cd /home/gabor/easer_projekte/rezept-tagebuch
    podman run -d \
      --name seaser-rezept-tagebuch \
      --network seaser-network \
+     -e DEEPL_API_KEY="$DEEPL_KEY" \
      -v /home/gabor/easer_projekte/rezept-tagebuch/data/prod/uploads:/data/uploads:Z \
      localhost/seaser-rezept-tagebuch:latest
    ```
 
-   **Hinweis:** DB-Connection wird automatisch von `config.py` konfiguriert (keine Environment Variables nötig)
+   **Hinweis:**
+   - DB-Connection wird automatisch von `config.py` konfiguriert (keine Environment Variables nötig)
+   - DeepL API Key wird aus `.env` geladen für Rezept-Übersetzungen
 
 5. **Systemd Service aktualisieren**:
    ```bash
