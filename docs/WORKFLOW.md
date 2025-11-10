@@ -1,5 +1,8 @@
 # Verbesserter DEV → TEST → PROD Workflow mit Alembic
 
+**Version:** v25.11.10
+**Update:** Vereinfachte Container-Config (nur TESTING_MODE / DEV_MODE, keine redundanten ENV vars)
+
 ## 🎯 Ziel
 
 Systematischer Workflow der sicherstellt, dass:
@@ -7,6 +10,7 @@ Systematischer Workflow der sicherstellt, dass:
 2. ✅ Automated Tests auf TEST laufen (inkl. Feature-Tests)
 3. ✅ Nur getesteter Code auf PROD kommt
 4. ✅ Alembic Migrations linear bleiben (0001 → 0002 → 0003)
+5. ✅ Container-Konfiguration ist vereinfacht und konsistent
 
 ## 📋 Workflow-Übersicht
 
@@ -52,6 +56,37 @@ Dev Testing      0003          0002          0002
 Test Phase       0003          0003          0002
 Production       0003          0003          0003
 ```
+
+## 🐳 Container-Konfiguration (v25.11.10)
+
+Seit v25.11.10 verwenden alle Umgebungen **vereinfachte Container-Configs**:
+
+### Automatische Umgebungserkennung
+
+Die `config.py` erkennt automatisch die Umgebung und wählt die richtige Datenbank:
+
+```python
+# DEV: -e DEV_MODE=true
+if DEV_MODE:
+    db = postgresql://postgres:seaser@seaser-postgres-dev:5432/rezepte_dev
+    uploads = /data/dev/uploads
+
+# TEST: -e TESTING_MODE=true
+if TESTING_MODE:
+    db = postgresql://postgres:test@seaser-postgres-test:5432/rezepte_test
+    uploads = /data/test/uploads
+
+# PROD: (keine Environment Variable)
+else:
+    db = postgresql://postgres:seaser@seaser-postgres:5432/rezepte
+    uploads = /data/uploads
+```
+
+**Keine redundanten Environment Variables mehr nötig!**
+- ❌ Früher: `-e DB_TYPE -e POSTGRES_HOST -e POSTGRES_DB -e POSTGRES_USER -e POSTGRES_PASSWORD`
+- ✅ Jetzt: Nur `-e DEV_MODE=true` oder `-e TESTING_MODE=true`
+
+**Details:** Siehe `docs/DATABASE-STORAGE.md` für vollständige Architektur.
 
 ## 📝 Detaillierte Schritte
 
@@ -158,13 +193,14 @@ git commit -m "feat: add new feature with migration 0003"
 
 **Was passiert:**
 1. ✅ Baut Container aus **Working Directory** (HEAD)
-2. ✅ Startet TEST Container
+2. ✅ Startet TEST Container (on-demand, nur `-e TESTING_MODE=true`)
 3. ✅ `alembic upgrade head` auf TEST DB: 0002 → 0003
 4. ✅ Führt pytest aus:
    - CRUD Tests (test_recipes_crud.py, test_diary_crud.py)
    - Migration Tests (test_migrations.py)
    - **Feature Tests (test_rating_feature.py)** ← NEU!
 5. ✅ Bei Erfolg: Schreibt `.test-approvals` mit COMMIT_HASH
+6. ✅ Stoppt TEST Container automatisch (on-demand only)
 
 **Beispiel .test-approvals:**
 ```

@@ -2,8 +2,8 @@
 
 Detaillierte Anleitung für Build, Deployment und Rollback.
 
-**Version:** v25.11.06
-**Stand:** November 2025 (Git-Tag-basiertes Deployment seit v25.11.05)
+**Version:** v25.11.10
+**Stand:** November 2025 (Git-Tag-basiertes Deployment seit v25.11.05, vereinfachte Container-Config seit v25.11.10)
 
 ---
 
@@ -76,6 +76,49 @@ main Branch → Git-Tag erstellen → Prod Deployment
 
 ## 🚀 Deployment-Workflows
 
+### Container-Konfiguration (vereinfacht seit v25.11.10)
+
+**Automatische Umgebungs-Erkennung:**
+- `config.py` erkennt die Umgebung anhand von Environment Variables
+- DB-Connection-Details werden automatisch gesetzt
+- Nur minimale Environment Variables nötig
+
+**Container Start-Commands:**
+
+```bash
+# PROD (keine Environment Variables)
+podman run -d \
+  --name seaser-rezept-tagebuch \
+  --network seaser-network \
+  -v "$PROJECT_ROOT/data/prod/uploads:/data/uploads:Z" \
+  seaser-rezept-tagebuch:latest
+
+# DEV (nur DEV_MODE)
+podman run -d \
+  --name seaser-rezept-tagebuch-dev \
+  --network seaser-network \
+  -e DEV_MODE=true \
+  -v "$PROJECT_ROOT/data/dev/uploads:/data/dev/uploads:Z" \
+  seaser-rezept-tagebuch:dev
+
+# TEST (nur TESTING_MODE)
+podman run -d \
+  --name seaser-rezept-tagebuch-test \
+  --network seaser-network \
+  -e TESTING_MODE=true \
+  -v "$PROJECT_ROOT/data/test/uploads:/data/test/uploads:Z" \
+  seaser-rezept-tagebuch:test
+```
+
+**Was config.py automatisch setzt:**
+- PROD: `seaser-postgres:5432/rezepte`
+- DEV: `seaser-postgres-dev:5432/rezepte_dev`
+- TEST: `seaser-postgres-test:5432/rezepte_test`
+
+**Deployment-Scripts verwenden:** Die Scripts `build-dev.sh`, `build-test.sh`, und `deploy-prod.sh` nutzen diese vereinfachte Konfiguration.
+
+---
+
 ### Workflow 1: Dev-Entwicklung
 
 **Szenario:** Du möchtest Features entwickeln und testen.
@@ -98,6 +141,14 @@ podman logs --tail 50 seaser-rezept-tagebuch-dev
 ```
 
 **Wichtig:** Dev-Container nutzt `seaser-postgres-dev:rezepte_dev` - komplett getrennt von Prod!
+
+**Automatische Konfiguration seit v25.11.10:**
+- `config.py` erkennt automatisch die Umgebung (DEV/TEST/PROD) anhand der Environment Variables
+- Nur noch `-e DEV_MODE=true` oder `-e TESTING_MODE=true` nötig
+- Keine manuellen DB-Connection-Parameter mehr erforderlich
+- Volume Mounts zeigen direkt auf Upload-Verzeichnisse (nicht auf data-Root)
+
+**Details:** Siehe `docs/DATABASE-STORAGE.md` für vollständige Architektur-Dokumentation.
 
 ---
 
@@ -146,13 +197,11 @@ cd /home/gabor/easer_projekte/rezept-tagebuch
    podman run -d \
      --name seaser-rezept-tagebuch \
      --network seaser-network \
-     -e DB_TYPE=postgresql \
-     -e POSTGRES_HOST=seaser-postgres \
-     -e POSTGRES_DB=rezepte \
-     -e POSTGRES_PASSWORD=seaser \
-     -v /home/gabor/easer_projekte/rezept-tagebuch/data/prod:/data \
+     -v /home/gabor/easer_projekte/rezept-tagebuch/data/prod/uploads:/data/uploads:Z \
      localhost/seaser-rezept-tagebuch:latest
    ```
+
+   **Hinweis:** DB-Connection wird automatisch von `config.py` konfiguriert (keine Environment Variables nötig)
 
 5. **Systemd Service aktualisieren**:
    ```bash
@@ -372,8 +421,8 @@ podman stop seaser-rezept-tagebuch
 podman rm seaser-rezept-tagebuch
 podman run -d \
   --name seaser-rezept-tagebuch \
-  --network pasta \
-  -v /home/gabor/easer_projekte/rezept-tagebuch/data/prod:/data:Z \
+  --network seaser-network \
+  -v /home/gabor/easer_projekte/rezept-tagebuch/data/prod/uploads:/data/uploads:Z \
   localhost/seaser-rezept-tagebuch:rezept_version_05_11_2025_004
 ```
 
@@ -386,10 +435,19 @@ podman run -d \
 **Z-Flag verwenden** für korrekte SELinux-Labels:
 
 ```bash
--v /home/gabor/data/rezept-tagebuch:/data:Z
+# PROD
+-v /home/gabor/easer_projekte/rezept-tagebuch/data/prod/uploads:/data/uploads:Z
+
+# DEV
+-v /home/gabor/easer_projekte/rezept-tagebuch/data/dev/uploads:/data/dev/uploads:Z
+
+# TEST
+-v /home/gabor/easer_projekte/rezept-tagebuch/data/test/uploads:/data/test/uploads:Z
 ```
 
 Ohne `:Z` können Permission-Probleme auftreten!
+
+**Wichtig:** Jede Umgebung hat ihr eigenes Upload-Verzeichnis (siehe `docs/DATABASE-STORAGE.md`)
 
 ### PostgreSQL Zugriff
 

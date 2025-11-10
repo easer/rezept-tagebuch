@@ -66,14 +66,8 @@ podman rm seaser-rezept-tagebuch-test 2>/dev/null || true
 
 podman run -d --name seaser-rezept-tagebuch-test \
   --network seaser-network \
-  -e DB_TYPE=postgresql \
   -e TESTING_MODE=true \
-  -e POSTGRES_HOST=seaser-postgres-test \
-  -e POSTGRES_DB=rezepte_test \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=test \
-  -e DEEPL_API_KEY=a35ce617-15e4-46b2-8e99-a97bd1e6a853:fx \
-  -v "$PROJECT_ROOT/data/test:/data" \
+  -v "$PROJECT_ROOT/data/test/uploads:/data/test/uploads:Z" \
   localhost/seaser-rezept-tagebuch:test
 
 echo -e "${GREEN}✅ TEST Container gestartet${NC}"
@@ -112,6 +106,9 @@ else
     echo "TEST Container läuft weiter für Debugging:"
     echo "  podman logs seaser-rezept-tagebuch-test"
     echo "  podman exec -it seaser-rezept-tagebuch-test bash"
+    echo ""
+    echo "Container stoppen wenn fertig:"
+    echo "  podman stop seaser-rezept-tagebuch-test && podman rm seaser-rezept-tagebuch-test"
     exit 1
 fi
 
@@ -171,6 +168,8 @@ echo "     ./scripts/deployment/deploy-prod.sh rezept_version_DD_MM_YYYY_NNN"
 echo ""
 echo -e "${YELLOW}⚠️  Nur Tags mit diesem Commit ($COMMIT_SHORT) können deployed werden!${NC}"
 echo ""
-echo "Test Container Status:"
-podman ps | grep seaser-rezept-tagebuch-test
+echo -e "${BLUE}🧹 Stopping TEST Container...${NC}"
+podman stop seaser-rezept-tagebuch-test 2>/dev/null || true
+podman rm seaser-rezept-tagebuch-test 2>/dev/null || true
+echo -e "${GREEN}✅ TEST Container gestoppt (on-demand only)${NC}"
 echo ""

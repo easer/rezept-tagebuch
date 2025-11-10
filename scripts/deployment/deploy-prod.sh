@@ -168,7 +168,11 @@ echo "🔄 Step 5/6: Restarting Production Container..."
 podman stop seaser-rezept-tagebuch 2>/dev/null || true
 podman rm seaser-rezept-tagebuch 2>/dev/null || true
 
-podman run -d --name seaser-rezept-tagebuch --network seaser-network -e DB_TYPE=postgresql -e POSTGRES_HOST=seaser-postgres -e POSTGRES_DB=rezepte -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=seaser -e DEEPL_API_KEY=a35ce617-15e4-46b2-8e99-a97bd1e6a853:fx -v /home/gabor/easer_projekte/rezept-tagebuch/data/prod:/data localhost/seaser-rezept-tagebuch:latest
+podman run -d \
+  --name seaser-rezept-tagebuch \
+  --network seaser-network \
+  -v "$PROJECT_ROOT/data/prod/uploads:/data/uploads:Z" \
+  localhost/seaser-rezept-tagebuch:latest
 
 # Systemd Service aktualisieren
 echo ""
