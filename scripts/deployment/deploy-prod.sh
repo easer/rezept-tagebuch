@@ -168,9 +168,16 @@ echo "🔄 Step 5/6: Restarting Production Container..."
 podman stop seaser-rezept-tagebuch 2>/dev/null || true
 podman rm seaser-rezept-tagebuch 2>/dev/null || true
 
+# Load DeepL API Key from .env if available
+DEEPL_KEY=""
+if [ -f "$PROJECT_ROOT/.env" ]; then
+  DEEPL_KEY=$(grep "^DEEPL_API_KEY=" "$PROJECT_ROOT/.env" | cut -d'=' -f2)
+fi
+
 podman run -d \
   --name seaser-rezept-tagebuch \
   --network seaser-network \
+  -e DEEPL_API_KEY="$DEEPL_KEY" \
   -v "$PROJECT_ROOT/data/prod/uploads:/data/uploads:Z" \
   localhost/seaser-rezept-tagebuch:latest
 

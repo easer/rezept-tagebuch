@@ -64,9 +64,16 @@ echo -e "${BLUE}🚀 Step 2/6: Starting TEST Container...${NC}"
 podman stop seaser-rezept-tagebuch-test 2>/dev/null || true
 podman rm seaser-rezept-tagebuch-test 2>/dev/null || true
 
+# Load DeepL API Key from .env if available
+DEEPL_KEY=""
+if [ -f "$PROJECT_ROOT/.env" ]; then
+  DEEPL_KEY=$(grep "^DEEPL_API_KEY=" "$PROJECT_ROOT/.env" | cut -d'=' -f2)
+fi
+
 podman run -d --name seaser-rezept-tagebuch-test \
   --network seaser-network \
   -e TESTING_MODE=true \
+  -e DEEPL_API_KEY="$DEEPL_KEY" \
   -v "$PROJECT_ROOT/data/test/uploads:/data/test/uploads:Z" \
   localhost/seaser-rezept-tagebuch:test
 
