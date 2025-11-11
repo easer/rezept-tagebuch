@@ -8,7 +8,7 @@ PROJECT_ROOT="$SCRIPT_DIR/../.."
 cd "$PROJECT_ROOT"
 
 echo "🔨 Building Dev Image..."
-podman build -t seaser-rezept-tagebuch:dev -f Containerfile .
+podman build -t seaser-rezept-tagebuch:dev -f container/Containerfile .
 
 echo "🔄 Restarting Dev Container..."
 podman stop seaser-rezept-tagebuch-dev 2>/dev/null || true

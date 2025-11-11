@@ -32,7 +32,7 @@ fi
 
 echo ""
 echo "🔨 Building Test Image from Working Directory..."
-podman build -t seaser-rezept-tagebuch:test -f Containerfile .
+podman build -t seaser-rezept-tagebuch:test -f container/Containerfile .
 
 echo ""
 echo "🔄 Stopping existing Test Container..."

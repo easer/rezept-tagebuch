@@ -56,7 +56,7 @@ echo ""
 
 # Step 1: Build TEST Container aus HEAD
 echo -e "${BLUE}🔨 Step 1/6: Building TEST Container from HEAD...${NC}"
-podman build -t seaser-rezept-tagebuch:test -f "$TEMP_DIR/Containerfile" "$TEMP_DIR"
+podman build -t seaser-rezept-tagebuch:test -f "$TEMP_DIR/container/Containerfile" "$TEMP_DIR"
 echo ""
 
 # Step 2: Start TEST Container

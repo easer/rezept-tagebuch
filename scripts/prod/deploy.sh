@@ -140,7 +140,7 @@ echo ""
 
 # 2. Build aus dem exportierten Git-Tag (nicht aus Working Directory!)
 echo "🔨 Step 2/6: Building Image from Git-Tag..."
-podman build --build-arg APP_VERSION=$GIT_TAG -t seaser-rezept-tagebuch:$GIT_TAG -f "$TEMP_DIR/Containerfile" "$TEMP_DIR"
+podman build --build-arg APP_VERSION=$GIT_TAG -t seaser-rezept-tagebuch:$GIT_TAG -f "$TEMP_DIR/container/Containerfile" "$TEMP_DIR"
 
 # Tag als latest
 echo ""
@@ -151,7 +151,7 @@ podman tag seaser-rezept-tagebuch:$GIT_TAG seaser-rezept-tagebuch:latest
 echo ""
 echo "🔄 Step 4/6: Running database migrations..."
 echo "  📍 Building temporary container for Alembic..."
-podman build --build-arg APP_VERSION=$GIT_TAG -t seaser-rezept-tagebuch:migration-temp -f "$TEMP_DIR/Containerfile" "$TEMP_DIR"
+podman build --build-arg APP_VERSION=$GIT_TAG -t seaser-rezept-tagebuch:migration-temp -f "$TEMP_DIR/container/Containerfile" "$TEMP_DIR"
 
 echo "  📍 Running Alembic upgrade head on PROD DB..."
 podman run --rm --network seaser-network \
