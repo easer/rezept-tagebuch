@@ -150,6 +150,22 @@ Ausreichend für optimierten Flow!
 | API-Calls pro Import | 22 | 1 | **95%** |
 | Gunicorn Timeout | 300s | 90s | 70% |
 
+### Automatisierte Performance-Tests (TEST System)
+
+**TheMealDB Import:**
+- Einzelimport: 0.60s ✅ (Threshold: 3s)
+- Multiple Imports (3x): Durchschnitt 0.34s ✅
+- Min: 0.31s, Max: 0.36s
+
+**Migusto Import:**
+- Einzelimport: 1.49s ✅ (Threshold: 3s)
+- Batch Import (5 Rezepte): Durchschnitt 2.46s/Rezept ✅
+
+**Test-Suite:** `tests/test_performance_imports.py`
+- 4 Performance-Tests mit automatischer Regression Detection
+- Threshold: < 3 Sekunden pro Import
+- Alle Tests bestehen ✅
+
 ### DeepL API Performance
 
 - **Single Call:** ~2-3s pro Text
