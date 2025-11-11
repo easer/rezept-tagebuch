@@ -11,3 +11,6 @@ __pycache__/
 app_old.py
 REFACTORING_SUMMARY.md
 .test-approvals
+__pycache__/
+*.pyc
+*.pyo
