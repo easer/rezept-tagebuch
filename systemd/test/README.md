@@ -1,14 +1,51 @@
-# TEST Systemd Services
+# TEST Services - Rezept-Tagebuch
 
-**Target:** TEST Container (seaser-rezept-tagebuch-test)
-**Port:** 8001
-**Env Var:** `TESTING_MODE=true`
+**Umgebung:** Test
+**Datenbank:** `seaser-postgres-test` → DB `rezepte_test`
+**Nutzung:** On-demand für pytest Test-Runs
 
 ---
 
-## Status
+## 📦 Services in diesem Verzeichnis
 
-Aktuell keine TEST-spezifischen systemd Services.
+### Container Services
+
+#### 1. container-seaser-postgres-test.service
+**Startet:** PostgreSQL TEST Datenbank Container
+**Container:** `seaser-postgres-test`
+**Datenbank:** `rezepte_test`
+**Volume:** `/home/gabor/easer_projekte/rezept-tagebuch/data/postgres-test/`
+**Password:** `test` (abweichend von PROD/DEV!)
+
+---
+
+## 🚀 Installation
+
+```bash
+cd /home/gabor/easer_projekte/rezept-tagebuch
+
+# Service kopieren
+cp systemd/test/*.service ~/.config/systemd/user/
+
+# Systemd neu laden
+systemctl --user daemon-reload
+
+# Service aktivieren (Auto-Start)
+systemctl --user enable container-seaser-postgres-test.service
+
+# Service starten
+systemctl --user start container-seaser-postgres-test.service
+```
+
+---
+
+## 📝 Hinweise
+
+### TEST App-Container
+
+Es gibt **keinen** systemd service für den TEST App-Container (`seaser-rezept-tagebuch-test`).
+
+**Warum?** Der TEST App-Container wird on-demand von pytest gestartet und gestoppt.
 
 ---
 

@@ -304,7 +304,7 @@ Es gibt keinen automatischen Alert wenn PostgreSQL Container stoppen. Health-Che
 
 ## 📋 Action Items
 
-- [ ] **KRITISCH:** Systemd services für PostgreSQL Container erstellen
+- [x] **KRITISCH:** Systemd services für PostgreSQL Container erstellen ✅ DONE (2025-11-11)
 - [ ] **KRITISCH:** PROD mit versioned Git-Tag neu deployen
 - [ ] **MEDIUM:** Health-Check Script implementieren
 - [ ] **MEDIUM:** docs/DEPLOYMENT.md um "Troubleshooting" Section erweitern
@@ -312,5 +312,102 @@ Es gibt keinen automatischen Alert wenn PostgreSQL Container stoppen. Health-Che
 
 ---
 
-**Status:** PROD läuft stabil (Stand 2025-11-10 22:40 UTC)
-**Next Steps:** Systemd services implementieren für langfristige Stabilität
+## ✅ Update 2025-11-11: Systemd Services korrigiert
+
+### Was wurde gefixt:
+
+#### 1. PostgreSQL Dependencies hinzugefügt
+**PROD Service:**
+```ini
+[Unit]
+After=network-online.target container-seaser-postgres.service
+Requires=container-seaser-postgres.service
+```
+
+**DEV Service:**
+```ini
+[Unit]
+After=network-online.target container-seaser-postgres-dev.service
+Requires=container-seaser-postgres-dev.service
+```
+
+**Resultat:** App-Container starten jetzt IMMER erst nachdem PostgreSQL läuft.
+
+#### 2. Environment Variables korrigiert
+
+**PROD Container (container-seaser-rezept-tagebuch.service):**
+```bash
+--env APP_VERSION=latest
+--env DB_TYPE=postgresql
+--env POSTGRES_HOST=seaser-postgres
+--env POSTGRES_PASSWORD=seaser
+--env-file /home/gabor/easer_projekte/rezept-tagebuch/.env
+--volume /home/gabor/easer_projekte/rezept-tagebuch/data/prod:/data:Z
+```
+
+**DEV Container (container-seaser-rezept-tagebuch-dev.service):**
+```bash
+--env APP_VERSION=dev
+--env DB_TYPE=postgresql
+--env DEV_MODE=true
+--env POSTGRES_HOST=seaser-postgres-dev
+--env POSTGRES_PASSWORD=seaser
+--env-file /home/gabor/easer_projekte/rezept-tagebuch/.env
+--volume /home/gabor/easer_projekte/rezept-tagebuch/data/dev:/data:Z
+```
+
+**Wichtig:** DEV hat jetzt korrekt `POSTGRES_HOST=seaser-postgres-dev` und `DEV_MODE=true`!
+
+#### 3. DEV Service aktiviert für Auto-Start
+```bash
+systemctl --user enable container-seaser-rezept-tagebuch-dev.service
+```
+
+### Status nach Fix (2025-11-11 19:40 UTC):
+
+**Alle Services enabled:**
+- ✅ `container-seaser-postgres.service` - enabled
+- ✅ `container-seaser-postgres-dev.service` - enabled
+- ✅ `container-seaser-postgres-test.service` - enabled
+- ✅ `container-seaser-rezept-tagebuch.service` - enabled
+- ✅ `container-seaser-rezept-tagebuch-dev.service` - enabled ⬅️ NEU!
+
+**Dependencies verifiziert:**
+```bash
+# PROD requires PostgreSQL PROD:
+$ systemctl --user show container-seaser-rezept-tagebuch.service -p Requires
+Requires=container-seaser-postgres.service basic.target app.slice
+
+# DEV requires PostgreSQL DEV:
+$ systemctl --user show container-seaser-rezept-tagebuch-dev.service -p Requires
+Requires=app.slice basic.target container-seaser-postgres-dev.service
+```
+
+**Container-Status:**
+- ✅ seaser-postgres: Up 21 hours
+- ✅ seaser-postgres-dev: Up 21 hours
+- ✅ seaser-postgres-test: Up 21 hours
+- ✅ seaser-rezept-tagebuch: Up 21 hours
+- ✅ seaser-rezept-tagebuch-dev: Up 14 hours
+- ✅ seaser-rezept-tagebuch-test: Up 12 hours
+
+### Was passiert bei Server-Neustart:
+
+**Alte Situation (vor Fix):**
+1. System bootet
+2. PROD App-Container startet ✅
+3. DEV App-Container startet NICHT ❌ (disabled)
+4. PostgreSQL Container starten ✅ (waren bereits enabled)
+5. **Problem:** Timing-Problem möglich wenn App vor DB startet
+
+**Neue Situation (nach Fix):**
+1. System bootet
+2. PostgreSQL Container starten **ZUERST** ✅
+3. PROD App-Container wartet auf PostgreSQL, dann start ✅
+4. DEV App-Container wartet auf PostgreSQL-dev, dann start ✅
+5. **Garantiert:** DB ist IMMER vor App verfügbar
+
+---
+
+**Status:** PROD & DEV laufen stabil mit korrekten Dependencies (Stand 2025-11-11 19:40 UTC)
+**Next Steps:** PROD mit versioned Git-Tag deployen, Health-Check Script

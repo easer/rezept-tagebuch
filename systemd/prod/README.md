@@ -1,14 +1,31 @@
-# PROD Systemd Services
+# PROD Services - Rezept-Tagebuch
 
-**Target:** PROD Container (seaser-rezept-tagebuch)
-**Port:** 8000
+**Umgebung:** Production
 **URL:** http://192.168.2.139:8000/rezept-tagebuch/
+**Datenbank:** `seaser-postgres` → DB `rezepte`
 
 ---
 
-## Services
+## 📦 Services in diesem Verzeichnis
 
-### 1. rezept-daily-import (TheMealDB)
+### Container Services
+
+#### 1. container-seaser-postgres.service
+**Startet:** PostgreSQL PROD Datenbank Container
+**Container:** `seaser-postgres`
+**Datenbank:** `rezepte`
+**Volume:** `/home/gabor/easer_projekte/rezept-tagebuch/data/postgres/`
+
+#### 2. container-seaser-rezept-tagebuch.service
+**Startet:** Rezept-Tagebuch PROD App Container
+**Container:** `seaser-rezept-tagebuch`
+**Image:** `localhost/seaser-rezept-tagebuch:latest`
+**Dependencies:** Requires PostgreSQL service
+**Volume:** `/home/gabor/easer_projekte/rezept-tagebuch/data/prod/`
+
+### Timer Services
+
+#### 3. rezept-daily-import (TheMealDB)
 
 **Files:**
 - `rezept-daily-import.service`
