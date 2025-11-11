@@ -67,3 +67,18 @@ Diese Scripts arbeiteten mit SQLite .db Dateien und müssen für PostgreSQL neu 
 
 ### Verbleibende aktive Scripts (scripts/database/)
 - `test-db-migration-with-clean-commit-for-prod.sh` - PostgreSQL Test-Migration-Workflow (umbenannt von test-migration.sh)
+
+## Update 2025-11-11 (dritte Bereinigung)
+
+### Weitere archivierte Scripts
+- `run-tests-isolated.sh` - SQLite-basiertes Test-Script (Zeile 27-30: nutzt `./data/test/rezepte.db`)
+
+Dieses Script ist veraltet, da es:
+- SQLite Test-Datenbank nutzt (PostgreSQL hat keine .db Dateien)
+- DEV Container mit TESTING_MODE startet (nicht mehr nötig mit separatem TEST Container)
+- Test-DB manuell löscht (PostgreSQL nutzt Container-basierte DBs)
+
+Moderne Test-Strategie:
+- Separater TEST Container mit eigener PostgreSQL DB
+- Migration-Workflow für PROD-Freigabe
+- pytest gegen TEST Container (Port 8001)
