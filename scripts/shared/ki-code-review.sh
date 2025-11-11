@@ -12,8 +12,8 @@ NC='\033[0m'
 
 # Konfiguration
 REPO_DIR="/home/gabor/easer_projekte/rezept-tagebuch"
-LOG_DIR="$REPO_DIR/logs"
-REVIEW_DIR="$REPO_DIR/ki-reviews"
+LOG_DIR="/home/gabor/easer_projekte/logs"
+REVIEW_DIR="/home/gabor/easer_projekte/ki-reviews"
 MODEL="qwen2.5-coder:7b"
 OLLAMA_URL="http://localhost:11434"
 
@@ -59,13 +59,28 @@ update_git() {
     git pull origin main 2>&1 | tee -a "$LOG_FILE" "$MAIN_LOG" || true
 }
 
-# Geänderte Dateien finden
+# Geänderte Dateien finden (vom Vortag)
 find_changed_files() {
-    log INFO "Suche geänderte Dateien..."
+    log INFO "Suche am Vortag geänderte Dateien..."
     cd "$REPO_DIR"
 
-    # Finde alle relevanten Dateien
-    local files=$(git ls-files | grep -E '\.(py|sh|js|html|css|md|yml|yaml|txt)$' | grep -v -E 'node_modules|\.git|__pycache__|\.pyc|\.backup')
+    # Berechne Zeitstempel für gestern 00:00 bis heute 00:00
+    local yesterday_start=$(date -d "yesterday 00:00:00" +%s)
+    local today_start=$(date -d "today 00:00:00" +%s)
+
+    log INFO "Zeitraum: $(date -d @$yesterday_start '+%Y-%m-%d %H:%M:%S') bis $(date -d @$today_start '+%Y-%m-%d %H:%M:%S')"
+
+    # Finde Dateien die am Vortag geändert wurden (via git log)
+    local files=$(git log --since="yesterday 00:00:00" --until="today 00:00:00" --name-only --pretty=format: | \
+        sort -u | \
+        grep -E '\.(py|sh|js|html|css|md|yml|yaml|txt)$' | \
+        grep -v -E 'node_modules|\.git|__pycache__|\.pyc|\.backup' | \
+        while read file; do
+            # Prüfe ob Datei noch existiert
+            if [ -f "$REPO_DIR/$file" ]; then
+                echo "$file"
+            fi
+        done)
 
     echo "$files"
 }
