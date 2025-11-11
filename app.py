@@ -916,7 +916,7 @@ def fetch_recipe_from_themealdb(strategy='random', value=None):
         return None
 
 def translate_to_german(text):
-    """Translate text from English to German using DeepL API"""
+    """Translate text from English to German using DeepL API (single text)"""
     if not DEEPL_API_KEY:
         print("Warning: No DeepL API key configured, skipping translation")
         return text
@@ -944,6 +944,70 @@ def translate_to_german(text):
     except Exception as e:
         print(f"DeepL translation error: {e}")
         return text  # Fallback to original text
+
+def translate_batch_to_german(texts):
+    """
+    Translate multiple texts in one DeepL API call (OPTIMIZED)
+
+    Args:
+        texts: List of strings to translate
+
+    Returns:
+        List of translated strings (same order as input)
+        Falls back to original texts on error
+    """
+    if not DEEPL_API_KEY:
+        print("Warning: No DeepL API key configured, skipping translation")
+        return texts
+
+    if not texts:
+        return []
+
+    # Filter out empty texts but remember positions
+    filtered_texts = []
+    text_indices = []
+    for i, text in enumerate(texts):
+        if text and text.strip():
+            filtered_texts.append(text)
+            text_indices.append(i)
+
+    if not filtered_texts:
+        return texts
+
+    try:
+        # Build request data - DeepL accepts multiple 'text' parameters
+        data = {
+            'auth_key': DEEPL_API_KEY,
+            'source_lang': 'EN',
+            'target_lang': 'DE'
+        }
+
+        # Add each text as separate 'text' parameter
+        request_data = []
+        for key, value in data.items():
+            request_data.append((key, value))
+        for text in filtered_texts:
+            request_data.append(('text', text))
+
+        # Batch translation with longer timeout (more data)
+        response = requests.post(DEEPL_API_URL, data=request_data, timeout=30)
+        response.raise_for_status()
+        result = response.json()
+
+        if 'translations' in result and len(result['translations']) == len(filtered_texts):
+            # Reconstruct results with original positions
+            translated = list(texts)  # Start with original
+            for i, translation in enumerate(result['translations']):
+                original_index = text_indices[i]
+                translated[original_index] = translation['text']
+            return translated
+        else:
+            print(f"DeepL batch translation failed: {result}")
+            return texts  # Fallback to original
+
+    except Exception as e:
+        print(f"DeepL batch translation error: {e}")
+        return texts  # Fallback to original
 
 @app.route('/api/recipes/daily-import', methods=['POST'])
 def daily_recipe_import():
@@ -986,34 +1050,32 @@ def daily_recipe_import():
                 'rejected_title': meal.get('strMeal')
             }), 400
 
-        # 2. Download image
-        image_url = meal.get('strMealThumb')
-        image_filename = None
-
-        if image_url:
-            try:
-                img_response = requests.get(image_url, timeout=10, stream=True)
-                img_response.raise_for_status()
-
-                # Generate unique filename
-                image_filename = f"{uuid.uuid4()}.jpg"
-                image_path = os.path.join(UPLOAD_FOLDER, image_filename)
-
-                # Save image
-                with open(image_path, 'wb') as f:
-                    shutil.copyfileobj(img_response.raw, f)
-            except Exception as e:
-                print(f"Image download failed: {e}")
-                image_filename = None
-
-        # 3. Translate title and instructions to German
+        # 2. Parse recipe data in ENGLISH first (before translation)
         original_title = meal.get('strMeal', 'Imported Recipe')
-        translated_title = translate_to_german(original_title)
-
         original_instructions = meal.get('strInstructions', '')
-        translated_instructions = translate_to_german(original_instructions)
 
-        # 3a. Format instructions into SCHRITT structure for parser
+        # Parse ingredients in English
+        ingredients_en = []
+        for i in range(1, 21):
+            ingredient = meal.get(f'strIngredient{i}', '').strip()
+            measure = meal.get(f'strMeasure{i}', '').strip()
+            if ingredient:
+                ing_en = f"{measure} {ingredient}".strip()
+                ingredients_en.append(ing_en)
+
+        # 3. BATCH TRANSLATE everything in ONE API call (OPTIMIZED!)
+        # Build list: [title, instructions, ingredient1, ingredient2, ...]
+        texts_to_translate = [original_title, original_instructions] + ingredients_en
+
+        print(f"🌐 Translating {len(texts_to_translate)} texts in 1 batch API call...")
+        translations = translate_batch_to_german(texts_to_translate)
+
+        # Parse translations
+        translated_title = translations[0]
+        translated_instructions = translations[1]
+        ingredients_de = translations[2:] if len(translations) > 2 else []
+
+        # 4. Format instructions into SCHRITT structure for parser
         instruction_text = translated_instructions.replace('\r\n', '\n').strip()
 
         # Check if already formatted (contains "SCHRITT X" or "Step X")
@@ -1034,23 +1096,30 @@ def daily_recipe_import():
                     step_num += 1
             formatted_instructions = "\n\n".join(formatted_steps)
 
-        # 4. Parse and translate ingredients
-        ingredients = []
-        ingredients_en = []
-        for i in range(1, 21):
-            ingredient = meal.get(f'strIngredient{i}', '').strip()
-            measure = meal.get(f'strMeasure{i}', '').strip()
-            if ingredient:
-                ing_en = f"{measure} {ingredient}".strip()
-                ingredients_en.append(ing_en)
-                # Translate ingredient
-                ing_de = translate_to_german(ing_en)
-                ingredients.append(ing_de)
+        # 5. Download image (can be parallel but kept here for simplicity)
+        image_url = meal.get('strMealThumb')
+        image_filename = None
 
-        # Build notes with structured SCHRITT format
+        if image_url:
+            try:
+                img_response = requests.get(image_url, timeout=10, stream=True)
+                img_response.raise_for_status()
+
+                # Generate unique filename
+                image_filename = f"{uuid.uuid4()}.jpg"
+                image_path = os.path.join(UPLOAD_FOLDER, image_filename)
+
+                # Save image
+                with open(image_path, 'wb') as f:
+                    shutil.copyfileobj(img_response.raw, f)
+            except Exception as e:
+                print(f"Image download failed: {e}")
+                image_filename = None
+
+        # 6. Build notes with structured SCHRITT format
         notes = formatted_instructions + "\n\n"
-        if ingredients:
-            notes += "Zutaten:\n" + "\n".join(f"- {ing}" for ing in ingredients)
+        if ingredients_de:
+            notes += "Zutaten:\n" + "\n".join(f"- {ing}" for ing in ingredients_de)
 
         # Add source info (bilingual)
         area = meal.get('strArea', 'N/A')
@@ -1061,7 +1130,7 @@ def daily_recipe_import():
         notes += f"\n🌎 Region: {area}"
         notes += f"\n🤖 Übersetzt mit DeepL"
 
-        # 5. Save to database
+        # 7. Save to database
         # Get import user ID
         import_user = User.query.filter_by(email='import@seaser.local').first()
         import_user_id = import_user.id if import_user else 1

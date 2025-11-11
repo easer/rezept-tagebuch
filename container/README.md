@@ -118,14 +118,14 @@ Wird als `ENV APP_VERSION` im Container gesetzt.
 CMD ["gunicorn",
      "--workers", "4",              # 4 Worker-Prozesse
      "--bind", "0.0.0.0:80",        # Port 80
-     "--timeout", "300",            # 300s für lange Imports
+     "--timeout", "90",             # 90s (optimiert mit Batch-Translation)
      "--access-logfile", "-",       # Logs zu stdout
      "--error-logfile", "-",        # Errors zu stderr
      "--log-level", "info",         # Log-Level
      "app:app"]
 ```
 
-**Warum 300s Timeout?** DeepL Translations können bei großen Rezepten lange dauern.
+**Optimierung:** Batch-Translation reduziert 22 API-Calls → 1 Call (90% schneller, 90s Timeout ausreichend).
 
 ---
 

@@ -15,7 +15,7 @@ Dieses Dokument enthält alle wichtigen technischen Referenzen für die Arbeit m
 - **Database:** PostgreSQL 16
 - **Container:** Podman
 - **Reverse Proxy:** Nginx (seaser-proxy)
-- **Web Server:** Gunicorn (4 workers, 300s timeout)
+- **Web Server:** Gunicorn (4 workers, 90s timeout, optimized batch translation)
 - **Migrations:** Alembic
 - **Testing:** pytest
 
@@ -427,7 +427,7 @@ tests/
 
 ### Container
 - **container/Containerfile** - Multi-Environment Containerfile
-- Verwendet Gunicorn (4 workers, 300s timeout)
+- Verwendet Gunicorn (4 workers, 90s timeout, batch translation)
 - Kopiert Code, Configs, Migrations, Tests
 
 ---
