@@ -1,22 +1,22 @@
 # Rezept-Tagebuch PROD App Container
-# Pod: rezept-prod
+# Network: seaser-network
 # URL: http://192.168.2.139:8000/rezept-tagebuch/
 
 [Unit]
 Description=Rezept-Tagebuch PROD App
 Documentation=https://github.com/easer/rezept-tagebuch
-Requires=rezept-prod.pod
-After=rezept-prod.pod rezept-prod-postgres.container
+After=seaser-postgres.service
+Wants=seaser-postgres.service
 
 [Container]
 Image=localhost/seaser-rezept-tagebuch:latest
 ContainerName=seaser-rezept-tagebuch
-Pod=rezept-prod.pod
+Network=seaser-network
 
 # Application Configuration
 Environment=APP_VERSION=latest
 Environment=DB_TYPE=postgresql
-Environment=POSTGRES_HOST=localhost
+Environment=POSTGRES_HOST=seaser-postgres
 Environment=POSTGRES_PASSWORD=seaser
 Environment=POSTGRES_DB=rezepte
 Environment=POSTGRES_USER=postgres

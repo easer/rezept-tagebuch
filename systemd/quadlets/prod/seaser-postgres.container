@@ -1,17 +1,15 @@
 # PostgreSQL Database for Rezept-Tagebuch PROD
-# Pod: rezept-prod
+# Network: seaser-network
 # Database: rezepte
 
 [Unit]
 Description=PostgreSQL Database for Rezept-Tagebuch PROD
 Documentation=https://github.com/easer/rezept-tagebuch
-Requires=rezept-prod.pod
-After=rezept-prod.pod
 
 [Container]
 Image=docker.io/library/postgres:16-alpine
 ContainerName=seaser-postgres
-Pod=rezept-prod.pod
+Network=seaser-network
 
 # Database Configuration
 Environment=POSTGRES_PASSWORD=seaser
