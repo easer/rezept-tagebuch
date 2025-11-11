@@ -13,7 +13,10 @@ import time
 from datetime import datetime
 
 # Test configuration
-BASE_URL = "http://localhost:8001"  # TEST container
+# When running inside container: http://localhost:80
+# When running from host: http://localhost:8001
+import os
+BASE_URL = os.getenv('TEST_BASE_URL', 'http://localhost:80')
 TIMEOUT = 10  # Request timeout
 PERFORMANCE_THRESHOLD_SECONDS = 3.0  # Max acceptable time
 
