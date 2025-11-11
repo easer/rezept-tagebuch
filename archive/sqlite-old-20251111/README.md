@@ -39,3 +39,17 @@ Falls SQLite-Daten benötigt werden:
 3. Bei Bedarf mit `migrate-data-to-postgres.py` nach PostgreSQL migrieren
 
 **Achtung:** Diese Dateien sind nur als Backup gedacht. Die aktive App unterstützt kein SQLite mehr.
+
+## Archivierte Database-Scripts
+
+### Migration-Scripts (veraltet)
+- `migrate.sh` - Alembic-Wrapper für SQLite-Migrationen
+- `reset-and-migrate-postgres.sh` - SQLite→PostgreSQL One-Time Migration
+- `schema-postgres.sql` - Initiales PostgreSQL Schema (ersetzt durch Alembic)
+
+Diese Scripts waren für die Migration von SQLite zu PostgreSQL gedacht und werden nicht mehr benötigt.
+
+### Aktive Database-Scripts (weiterhin in scripts/database/)
+- `backup-db.sh` - PostgreSQL Backup-Tool
+- `restore-db.sh` - PostgreSQL Restore-Tool
+- `test-migration.sh` - Test-Migrations-Tool
