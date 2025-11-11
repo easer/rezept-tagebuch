@@ -1,0 +1,30 @@
+# PostgreSQL Database for Rezept-Tagebuch TEST
+# Pod: rezept-test
+# Database: rezepte_test
+# Note: App container started on-demand by pytest
+
+[Unit]
+Description=PostgreSQL Database for Rezept-Tagebuch TEST
+Documentation=https://github.com/easer/rezept-tagebuch
+Requires=rezept-test.pod
+After=rezept-test.pod
+
+[Container]
+Image=docker.io/library/postgres:16-alpine
+ContainerName=seaser-postgres-test
+Pod=rezept-test.pod
+
+# Database Configuration (Different password for TEST!)
+Environment=POSTGRES_PASSWORD=test
+Environment=POSTGRES_DB=rezepte_test
+Environment=POSTGRES_USER=postgres
+
+# Data Persistence
+Volume=/home/gabor/easer_projekte/rezept-tagebuch/data/postgres-test:/var/lib/postgresql/data:Z
+
+[Service]
+Restart=on-failure
+TimeoutStopSec=70
+
+[Install]
+WantedBy=default.target

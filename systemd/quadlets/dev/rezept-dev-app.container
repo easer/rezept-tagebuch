@@ -1,0 +1,36 @@
+# Rezept-Tagebuch DEV App Container
+# Pod: rezept-dev
+# URL: http://192.168.2.139:8000/rezept-tagebuch-dev/
+
+[Unit]
+Description=Rezept-Tagebuch DEV App
+Documentation=https://github.com/easer/rezept-tagebuch
+Requires=rezept-dev.pod
+After=rezept-dev.pod rezept-dev-postgres.container
+
+[Container]
+Image=localhost/seaser-rezept-tagebuch:dev
+ContainerName=seaser-rezept-tagebuch-dev
+Pod=rezept-dev.pod
+
+# Application Configuration
+Environment=APP_VERSION=dev
+Environment=DB_TYPE=postgresql
+Environment=DEV_MODE=true
+Environment=POSTGRES_HOST=localhost
+Environment=POSTGRES_PASSWORD=seaser
+Environment=POSTGRES_DB=rezepte_dev
+Environment=POSTGRES_USER=postgres
+
+# Load additional environment from file (DeepL API Key, etc.)
+EnvironmentFile=/home/gabor/easer_projekte/rezept-tagebuch/.env
+
+# Data Persistence
+Volume=/home/gabor/easer_projekte/rezept-tagebuch/data/dev:/data:Z
+
+[Service]
+Restart=on-failure
+TimeoutStopSec=70
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,35 @@
+# Rezept-Tagebuch PROD App Container
+# Pod: rezept-prod
+# URL: http://192.168.2.139:8000/rezept-tagebuch/
+
+[Unit]
+Description=Rezept-Tagebuch PROD App
+Documentation=https://github.com/easer/rezept-tagebuch
+Requires=rezept-prod.pod
+After=rezept-prod.pod rezept-prod-postgres.container
+
+[Container]
+Image=localhost/seaser-rezept-tagebuch:latest
+ContainerName=seaser-rezept-tagebuch
+Pod=rezept-prod.pod
+
+# Application Configuration
+Environment=APP_VERSION=latest
+Environment=DB_TYPE=postgresql
+Environment=POSTGRES_HOST=localhost
+Environment=POSTGRES_PASSWORD=seaser
+Environment=POSTGRES_DB=rezepte
+Environment=POSTGRES_USER=postgres
+
+# Load additional environment from file (DeepL API Key, etc.)
+EnvironmentFile=/home/gabor/easer_projekte/rezept-tagebuch/.env
+
+# Data Persistence
+Volume=/home/gabor/easer_projekte/rezept-tagebuch/data/prod:/data:Z
+
+[Service]
+Restart=on-failure
+TimeoutStopSec=70
+
+[Install]
+WantedBy=default.target

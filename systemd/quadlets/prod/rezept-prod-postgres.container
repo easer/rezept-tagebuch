@@ -1,0 +1,29 @@
+# PostgreSQL Database for Rezept-Tagebuch PROD
+# Pod: rezept-prod
+# Database: rezepte
+
+[Unit]
+Description=PostgreSQL Database for Rezept-Tagebuch PROD
+Documentation=https://github.com/easer/rezept-tagebuch
+Requires=rezept-prod.pod
+After=rezept-prod.pod
+
+[Container]
+Image=docker.io/library/postgres:16-alpine
+ContainerName=seaser-postgres
+Pod=rezept-prod.pod
+
+# Database Configuration
+Environment=POSTGRES_PASSWORD=seaser
+Environment=POSTGRES_DB=rezepte
+Environment=POSTGRES_USER=postgres
+
+# Data Persistence
+Volume=/home/gabor/easer_projekte/rezept-tagebuch/data/postgres:/var/lib/postgresql/data:Z
+
+[Service]
+Restart=on-failure
+TimeoutStopSec=70
+
+[Install]
+WantedBy=default.target

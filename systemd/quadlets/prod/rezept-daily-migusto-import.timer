@@ -1,0 +1,10 @@
+[Unit]
+Description=Rezept Tagebuch Daily Migusto Import Timer
+Requires=rezept-daily-migusto-import.service
+
+[Timer]
+OnCalendar=*-*-* 07:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
