@@ -1,0 +1,3 @@
+[submodule "rezept-tagebuch"]
+	path = rezept-tagebuch
+	url = git@github.com:easer/rezept-tagebuch.git

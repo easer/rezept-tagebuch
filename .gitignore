@@ -1,16 +1,84 @@
-__pycache__/
-.env
-data/
-venv/
-.pytest_cache/
-*.pyc
-__pycache__/
-.claude/
+# seaser Multi-App Gateway - .gitignore
 
-# Legacy files from refactoring
-app_old.py
-REFACTORING_SUMMARY.md
-.test-approvals
+# ============================================
+# Data Directories (Runtime Data)
+# ============================================
+inventar-data/
+localki-data/
+medialib-data/
+ki-reviews/
+logs/
+data/
+
+# ============================================
+# Secrets & Credentials
+# ============================================
+ssl/
+*.key
+*.crt
+*.pem
+nginx.htpasswd
+authelia/
+oauth2-proxy/
+wireguard/
+.env
+.env.local
+*.local
+
+# ============================================
+# Archives & Backups
+# ============================================
+.archive/
+*.backup
+*.old
+*.bak
+
+# ============================================
+# Submodules (managed separately)
+# ============================================
+# rezept-tagebuch/ is a git submodule
+# (tracked via .gitmodules - DO NOT ignore!)
+
+# ============================================
+# Development & Testing
+# ============================================
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.log
+venv/
+.test-approvals
+
+# ============================================
+# IDE & Editor Files
+# ============================================
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+.temp/
+tmp/
+
+# ============================================
+# Container Storage (handled by Podman)
+# ============================================
+.local/share/containers/
+
+# ============================================
+# Legacy files from refactoring
+# ============================================
+app_old.py
+REFACTORING_SUMMARY.md
