@@ -146,15 +146,15 @@ read -r response
 if [[ "$response" =~ ^[Yy]$ ]]; then
     echo ""
     echo "🔨 Building DEV Container..."
-    "$SCRIPT_DIR/../deployment/build-dev.sh"
+    "$SCRIPT_DIR/../dev/build.sh"
     echo ""
     echo -e "${GREEN}✅ DEV Container aktualisiert${NC}"
-    echo "📍 URL: http://192.168.2.139:8001/rezept-tagebuch/"
+    echo "📍 URL: http://192.168.2.139:8000/rezept-tagebuch-dev/"
 else
     echo ""
     echo -e "${YELLOW}⏭️  DEV Update übersprungen${NC}"
     echo "Du kannst später manuell updaten:"
-    echo "  ./scripts/deployment/build-dev.sh"
+    echo "  ./scripts/dev/build.sh"
 fi
 
 echo ""
@@ -171,7 +171,7 @@ echo "  1. Git Tag erstellen:"
 echo "     git tag -a rezept_version_DD_MM_YYYY_NNN -m 'Release message'"
 echo ""
 echo "  2. PROD Deployment:"
-echo "     ./scripts/deployment/deploy-prod.sh rezept_version_DD_MM_YYYY_NNN"
+echo "     ./scripts/prod/deploy.sh rezept_version_DD_MM_YYYY_NNN"
 echo ""
 echo -e "${YELLOW}⚠️  Nur Tags mit diesem Commit ($COMMIT_SHORT) können deployed werden!${NC}"
 echo ""
