@@ -10,7 +10,6 @@ import subprocess
 # Test Configuration
 TEST_PORT = "8001"  # Port when accessed from HOST
 CONTAINER_NAME = "seaser-rezept-tagebuch-test"
-TEST_DB_PATH = "/home/gabor/easer_projekte/rezept-tagebuch/data/test/rezepte.db"
 
 # Determine if we're running inside a container or on the host
 # When running inside container (via test-migration.sh), use localhost:80
@@ -56,18 +55,14 @@ def verify_container_running():
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_test_db(verify_container_running):
-    """Clean test database before and after test session"""
-    import os
-
-    # Note: DB cleanup happens BEFORE container starts
-    # The container will create and initialize a fresh database
+    """Test database cleanup (PostgreSQL managed by container)"""
+    # Note: PostgreSQL test database is managed by the container
+    # No file-based cleanup needed (unlike SQLite)
 
     yield
 
-    # Clean after tests (optional - comment out if you want to inspect DB after tests)
-    # if os.path.exists(TEST_DB_PATH):
-    #     os.remove(TEST_DB_PATH)
-    #     print(f"🧹 Cleaned test database: {TEST_DB_PATH}")
+    # PostgreSQL cleanup happens automatically when container is removed
+    print("✅ Test session complete (PostgreSQL test DB managed by container)")
 
 @pytest.fixture(scope="function")
 def api_client(api_base_url, verify_container_running):
