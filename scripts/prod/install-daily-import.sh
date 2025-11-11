@@ -1,27 +1,56 @@
 #!/bin/bash
-# Install systemd timer for daily TheMealDB import
+# Install systemd timers for daily imports (PROD)
 
-echo "📅 Installing daily import timer..."
+set -e
 
-# Copy service and timer files
-sudo cp systemd/rezept-daily-import.service /etc/systemd/system/
-sudo cp systemd/rezept-daily-import.timer /etc/systemd/system/
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$SCRIPT_DIR"
+
+echo "📅 Installing PROD daily import timers..."
+echo ""
+
+# Copy TheMealDB service and timer files
+echo "📦 Installing TheMealDB import service..."
+cp systemd/prod/rezept-daily-import.service ~/.config/systemd/user/
+cp systemd/prod/rezept-daily-import.timer ~/.config/systemd/user/
+
+# Copy Migusto service and timer files
+echo "📦 Installing Migusto import service..."
+cp systemd/prod/rezept-daily-migusto-import.service ~/.config/systemd/user/
+cp systemd/prod/rezept-daily-migusto-import.timer ~/.config/systemd/user/
 
 # Reload systemd
-sudo systemctl daemon-reload
+echo ""
+echo "🔄 Reloading systemd..."
+systemctl --user daemon-reload
 
-# Enable and start timer
-sudo systemctl enable rezept-daily-import.timer
-sudo systemctl start rezept-daily-import.timer
+# Enable and start timers
+echo ""
+echo "🚀 Enabling timers..."
+systemctl --user enable rezept-daily-import.timer
+systemctl --user enable rezept-daily-migusto-import.timer
+
+echo ""
+echo "🚀 Starting timers..."
+systemctl --user start rezept-daily-import.timer
+systemctl --user start rezept-daily-migusto-import.timer
 
 # Show status
-sudo systemctl status rezept-daily-import.timer
+echo ""
+echo "📊 Status:"
+echo ""
+systemctl --user list-timers | grep rezept
 
 echo ""
-echo "✅ Daily import timer installed!"
-echo "⏰ Runs every day at 06:00"
+echo "✅ Daily import timers installed!"
+echo ""
+echo "Services:"
+echo "  • TheMealDB Import: Täglich um 06:00 UTC"
+echo "  • Migusto Import:   Täglich um 07:00 UTC"
 echo ""
 echo "Commands:"
-echo "  sudo systemctl status rezept-daily-import.timer  # Check timer status"
-echo "  sudo journalctl -u rezept-daily-import.service   # View logs"
-echo "  sudo systemctl start rezept-daily-import.service # Run manually"
+echo "  systemctl --user list-timers | grep rezept           # Show timers"
+echo "  systemctl --user status rezept-daily-import.timer    # Check status"
+echo "  journalctl --user -u rezept-daily-import.service     # View logs"
+echo "  systemctl --user start rezept-daily-import.service   # Run manually"
+echo ""
