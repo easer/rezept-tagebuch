@@ -79,4 +79,21 @@ Führt Tests parallel aus (schnellere Ausführung).
 
 ---
 
+### run-performance-tests.sh
+Führt Performance-Tests für Recipe-Imports aus.
+
+```bash
+./run-performance-tests.sh
+```
+
+**Was wird getestet:**
+- TheMealDB Import: < 3 Sekunden
+- Migusto Import: < 3 Sekunden
+
+**Use Case:** Performance-Regression Detection
+
+**Voraussetzung:** TEST Container muss laufen
+
+---
+
 **Target:** TEST Container (seaser-rezept-tagebuch-test)
