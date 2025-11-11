@@ -1408,6 +1408,158 @@ def cleanup_old_imports():
         print(f"Cleanup failed: {e}")
         return jsonify({'error': str(e)}), 500
 
+
+# ============================================================================
+# BACKGROUND JOBS API - Async Import Jobs
+# ============================================================================
+
+from background_jobs import create_job, get_job, run_job_in_background, get_all_jobs
+from import_workers import themealdb_import_worker, migusto_import_worker
+
+
+@app.route('/api/jobs/import-themealdb', methods=['POST'])
+def start_themealdb_import_job():
+    """
+    Start TheMealDB import as background job
+
+    Request Body:
+        {
+            "count": 2,  // optional, number of recipes
+            "user_id": 1  // optional
+        }
+
+    Returns:
+        {
+            "job_id": "uuid",
+            "status": "pending",
+            "message": "Job created"
+        }
+    """
+    try:
+        data = request.json or {}
+
+        # Create job
+        job_id = create_job('themealdb_import', {
+            'count': data.get('count', 2),
+            'user_id': data.get('user_id')
+        })
+
+        # Start background worker
+        run_job_in_background(job_id, themealdb_import_worker, app.app_context())
+
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'status': 'pending',
+            'message': 'TheMealDB import job started',
+            'poll_url': f'/api/jobs/{job_id}'
+        }), 202
+
+    except Exception as e:
+        print(f"Failed to start TheMealDB import job: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/jobs/import-migusto', methods=['POST'])
+def start_migusto_import_job():
+    """
+    Start Migusto import as background job
+
+    Request Body:
+        {
+            "preset": "vegetarische_pasta_familie",  // optional
+            "filters": ["hauptgericht", "pasta"],  // optional
+            "max_recipes": 20,  // optional
+            "user_id": 1  // optional
+        }
+
+    Returns:
+        {
+            "job_id": "uuid",
+            "status": "pending",
+            "message": "Job created"
+        }
+    """
+    try:
+        data = request.json or {}
+
+        # Create job
+        job_id = create_job('migusto_import', {
+            'preset': data.get('preset'),
+            'filters': data.get('filters'),
+            'max_recipes': data.get('max_recipes'),
+            'user_id': data.get('user_id')
+        })
+
+        # Start background worker
+        run_job_in_background(job_id, migusto_import_worker, app.app_context())
+
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'status': 'pending',
+            'message': 'Migusto import job started',
+            'poll_url': f'/api/jobs/{job_id}'
+        }), 202
+
+    except Exception as e:
+        print(f"Failed to start Migusto import job: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/jobs/<job_id>', methods=['GET'])
+def get_job_status(job_id):
+    """
+    Get job status and result
+
+    Returns:
+        {
+            "job_id": "uuid",
+            "job_type": "themealdb_import",
+            "status": "running|completed|failed",
+            "progress": {
+                "current": 1,
+                "total": 2,
+                "message": "Importing recipe 1/2..."
+            },
+            "result": {...},  // only if completed
+            "error": "...",  // only if failed
+            "created_at": "2025-11-10T21:00:00",
+            "started_at": "2025-11-10T21:00:01",
+            "completed_at": "2025-11-10T21:01:00"  // only if completed/failed
+        }
+    """
+    job = get_job(job_id)
+
+    if not job:
+        return jsonify({'error': 'Job not found'}), 404
+
+    return jsonify(job)
+
+
+@app.route('/api/jobs', methods=['GET'])
+def list_jobs():
+    """
+    List all jobs (for debugging/monitoring)
+
+    Query params:
+        limit: Maximum number of jobs (default: 50)
+
+    Returns:
+        {
+            "jobs": [...]
+        }
+    """
+    limit = request.args.get('limit', 50, type=int)
+    jobs = get_all_jobs(limit=limit)
+
+    return jsonify({
+        'success': True,
+        'jobs': jobs,
+        'count': len(jobs)
+    })
+
+
 # Server start
 if __name__ == '__main__':
     init_db()

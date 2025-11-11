@@ -12,9 +12,6 @@ Erstellt Git-Tags für Releases.
 ### ki-code-review.sh
 KI-basiertes Code-Review.
 
-### install-git-hooks.sh
-Installiert Git Pre-Commit Hooks.
-
 ---
 
 ## Testing

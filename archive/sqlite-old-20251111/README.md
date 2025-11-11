@@ -82,3 +82,15 @@ Moderne Test-Strategie:
 - Separater TEST Container mit eigener PostgreSQL DB
 - Migration-Workflow für PROD-Freigabe
 - pytest gegen TEST Container (Port 8001)
+
+## Update 2025-11-11 (vierte Bereinigung)
+
+### Git Hooks Script archiviert
+- `install-git-hooks.sh` - Git Pre-Commit Hook Installer (veraltet)
+
+Dieses Script ist veraltet, da es:
+- DEV Container prüft statt TEST Container (Zeile 34: `seaser-rezept-tagebuch-dev`)
+- Veraltete Pfade nutzt (Zeile 39: `./scripts/deployment/build-dev.sh`)
+- Nicht installiert ist (nur .sample Dateien in .git/hooks/)
+
+**Status:** Keine aktiven Git Hooks installiert im Projekt

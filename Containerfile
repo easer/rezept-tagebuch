@@ -13,6 +13,8 @@ COPY app_new.py .
 COPY models.py .
 COPY config.py .
 COPY recipe_scraper.py .
+COPY background_jobs.py .
+COPY import_workers.py .
 COPY index.html .
 COPY config/recipe-format-config.json config/
 COPY config/themealdb-config.json config/
