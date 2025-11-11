@@ -28,7 +28,7 @@ fi
 echo "Starting daily Migusto import (preset: $PRESET)..."
 
 # Build API request body
-REQUEST_BODY="{\"preset_name\": \"${PRESET}\", \"max_recipes\": 1}"
+REQUEST_BODY="{\"preset\": \"${PRESET}\", \"max_recipes\": 1}"
 
 # Make request
 echo "Fetching recipe with preset: $PRESET..."
@@ -38,10 +38,10 @@ http_code=$(curl -s -o /tmp/migusto-import-response.json -w "%{http_code}" \
     -d "$REQUEST_BODY")
 
 if [ "$http_code" = "200" ]; then
-    success_count=$(cat /tmp/migusto-import-response.json | grep -o '"success_count":[0-9]*' | cut -d':' -f2)
+    imported_count=$(cat /tmp/migusto-import-response.json | grep -o '"imported":[0-9]*' | cut -d':' -f2)
 
-    if [ "$success_count" -gt 0 ]; then
-        echo "✅ Success! $success_count Migusto recipe imported."
+    if [ -n "$imported_count" ] && [ "$imported_count" -gt 0 ]; then
+        echo "✅ Success! $imported_count Migusto recipe(s) imported."
 
         # Extract recipe title if available
         recipe_title=$(cat /tmp/migusto-import-response.json | grep -o '"title":"[^"]*"' | head -1 | cut -d'"' -f4)
@@ -55,7 +55,7 @@ if [ "$http_code" = "200" ]; then
         echo "✅ Daily Migusto import completed successfully"
         exit 0
     else
-        echo "⚠️ No recipes imported (0 success)"
+        echo "⚠️ No recipes imported (imported count: ${imported_count:-0})"
         cat /tmp/migusto-import-response.json
         exit 1
     fi
