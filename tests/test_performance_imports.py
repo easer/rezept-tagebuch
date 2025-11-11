@@ -160,7 +160,7 @@ def test_migusto_import_performance():
     start_time = time.time()
 
     response = requests.post(
-        f"{BASE_URL}/api/recipes/import-migusto",
+        f"{BASE_URL}/api/recipes/import-migusto-batch",
         json={
             'preset': 'vegetarische_pasta_familie',
             'max_recipes': 1  # Import only 1 recipe for performance test
@@ -201,7 +201,7 @@ def test_migusto_import_performance_batch():
     start_time = time.time()
 
     response = requests.post(
-        f"{BASE_URL}/api/recipes/import-migusto",
+        f"{BASE_URL}/api/recipes/import-migusto-batch",
         json={
             'preset': 'schnelle_familiengerichte',
             'max_recipes': max_recipes
