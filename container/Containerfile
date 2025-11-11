@@ -9,7 +9,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
-COPY app_new.py .
 COPY models.py .
 COPY config.py .
 COPY recipe_scraper.py .
