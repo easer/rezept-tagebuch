@@ -94,3 +94,15 @@ Dieses Script ist veraltet, da es:
 - Nicht installiert ist (nur .sample Dateien in .git/hooks/)
 
 **Status:** Keine aktiven Git Hooks installiert im Projekt
+
+## Update 2025-11-11 (fünfte Bereinigung)
+
+### Config-Dateien archiviert
+- `alembic.ini` - Alte generische Alembic-Config (ersetzt durch Root alembic*.ini)
+- `pytest.ini` - Alte generische pytest-Config (ersetzt durch Root pytest.ini)
+
+Diese Configs waren Duplikate der aktiven Configs im Root-Verzeichnis und wurden nicht mehr genutzt.
+
+**Aktive Configs:**
+- Root: `alembic.ini`, `alembic-prod.ini`, `alembic-test.ini`, `pytest.ini`
+- config/shared: `themealdb-config.json`, `migusto-import-config.json`, `recipe-format-config.json`

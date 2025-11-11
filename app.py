@@ -90,7 +90,7 @@ def index():
 
 @app.route('/api/recipe-format-config.json')
 def recipe_format_config():
-    return send_from_directory('config', 'recipe-format-config.json')
+    return send_from_directory('config/shared', 'recipe-format-config.json')
 
 # ============================================================================
 # User API Endpoints
@@ -799,7 +799,7 @@ def global_search():
 # ============================================================================
 
 THEMEALDB_API = 'https://www.themealdb.com/api/json/v1/1'
-THEMEALDB_CONFIG_FILE = 'themealdb-config.json'
+THEMEALDB_CONFIG_FILE = 'config/shared/themealdb-config.json'
 DEEPL_API_KEY = os.getenv('DEEPL_API_KEY', '')
 DEEPL_API_URL = 'https://api-free.deepl.com/v2/translate'
 
@@ -1230,7 +1230,7 @@ def import_migusto_batch():
         data = request.json or {}
 
         # Load Migusto config
-        config_path = os.path.join(os.path.dirname(__file__), 'config/migusto-import-config.json')
+        config_path = os.path.join(os.path.dirname(__file__), 'config/shared/migusto-import-config.json')
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)['migusto_import_config']
 

@@ -187,7 +187,7 @@ def migusto_import_worker(job_id: str, params: dict, app_context):
     from recipe_scraper import scrape_recipe_from_url, format_recipe_for_db
 
     # Load Migusto config
-    config_path = os.path.join(os.path.dirname(__file__), 'config/migusto-import-config.json')
+    config_path = os.path.join(os.path.dirname(__file__), 'config/shared/migusto-import-config.json')
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)['migusto_import_config']
 
