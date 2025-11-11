@@ -53,3 +53,17 @@ Diese Scripts waren für die Migration von SQLite zu PostgreSQL gedacht und werd
 - `backup-db.sh` - PostgreSQL Backup-Tool
 - `restore-db.sh` - PostgreSQL Restore-Tool
 - `test-migration.sh` - Test-Migrations-Tool
+
+## Update 2025-11-11 (zweite Bereinigung)
+
+### Weitere archivierte Scripts
+- `backup-db.sh` - SQLite-basiertes Backup-Tool (nicht kompatibel mit PostgreSQL)
+- `restore-db.sh` - SQLite-basiertes Restore-Tool (nicht kompatibel mit PostgreSQL)
+
+Diese Scripts arbeiteten mit SQLite .db Dateien und müssen für PostgreSQL neu geschrieben werden:
+- PostgreSQL Backups: `pg_dump` (SQL-Dumps)
+- PostgreSQL Restore: `psql` (SQL-Import)
+- Container-basiert: `podman exec seaser-postgres pg_dump ...`
+
+### Verbleibende aktive Scripts (scripts/database/)
+- `test-db-migration-with-clean-commit-for-prod.sh` - PostgreSQL Test-Migration-Workflow (umbenannt von test-migration.sh)
