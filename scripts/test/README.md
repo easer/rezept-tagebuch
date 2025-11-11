@@ -26,11 +26,11 @@ Baut TEST Container aus aktuellem Code.
 
 ---
 
-### migration-workflow.sh
+### test-and-approve-for-prod.sh
 **Vollständiger Test-Workflow für PROD-Freigabe**
 
 ```bash
-./migration-workflow.sh
+./test-and-approve-for-prod.sh
 ```
 
 **Workflow:**
